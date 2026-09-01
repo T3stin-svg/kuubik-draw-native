@@ -56,7 +56,9 @@ if ($forbidden) {
 }
 
 $manifest = Get-Content -LiteralPath (Join-Path $package 'build-manifest.json') -Raw | ConvertFrom-Json
-if ($manifest.executable -ne 'KuubikDraw.exe' -or $manifest.upstreamCommit -ne '7ebab007d9eb4c68609388b835a2487648f0877b') {
+if ($manifest.executable -ne 'KuubikDraw.exe' -or
+    $manifest.version -ne '0.2.0-preview.1' -or
+    $manifest.upstreamCommit -ne '7ebab007d9eb4c68609388b835a2487648f0877b') {
     throw 'Build manifest product or upstream provenance is incorrect.'
 }
 
@@ -87,6 +89,40 @@ if ((Get-Item -LiteralPath $pdf).Length -lt 1000) {
 }
 
 $env:QT_QPA_PLATFORM = 'offscreen'
+$uiContractPath = Join-Path $smokeRoot 'kuubik-ui-contract.json'
+$env:KUUBIK_UI_CONTRACT_PATH = $uiContractPath
+Run-Native -Executable $portableExe -Arguments @() -Label 'Kuubik UI contract smoke'
+Remove-Item Env:KUUBIK_UI_CONTRACT_PATH
+Require-Path $uiContractPath
+
+$uiContract = Get-Content -LiteralPath $uiContractPath -Raw | ConvertFrom-Json
+if ($uiContract.product -ne 'Kuubik Draw' -or
+    $uiContract.version -ne '0.2.0-preview.1' -or
+    $uiContract.workspaceMode -ne 'kuubik' -or
+    $uiContract.workspaceVersion -ne 1 -or
+    $uiContract.theme -ne 'kuubik-dark' -or
+    $uiContract.paletteSide -ne 'right' -or
+    -not $uiContract.ribbonVisible) {
+    throw 'Kuubik UI contract identity, theme, ribbon, or workspace state is incorrect.'
+}
+if (@($uiContract.missingActionKeys).Count -ne 0 -or
+    @($uiContract.bindingMismatches).Count -ne 0 -or
+    @($uiContract.boundActionKeys).Count -lt 40) {
+    throw 'Ribbon QAction binding contract is incomplete or invalid.'
+}
+$visibleToolbarNames = @($uiContract.visibleToolbars)
+if ('kuubikRibbonToolbar' -notin $visibleToolbarNames) {
+    throw 'Kuubik ribbon toolbar is not visible in the native UI contract.'
+}
+$layerDock = @($uiContract.docks | Where-Object objectName -eq 'layer_dockwidget')
+$blockDock = @($uiContract.docks | Where-Object objectName -eq 'block_dockwidget')
+$commandDock = @($uiContract.docks | Where-Object objectName -eq 'command_dockwidget')
+if ($layerDock.Count -ne 1 -or $layerDock[0].area -ne 'right' -or
+    $blockDock.Count -ne 1 -or $blockDock[0].area -ne 'right' -or
+    $commandDock.Count -ne 1 -or $commandDock[0].area -ne 'bottom') {
+    throw 'Primary dock layout does not match the Kuubik workspace contract.'
+}
+
 $guiProcess = Start-Process -FilePath $portableExe -PassThru
 Start-Sleep -Seconds 8
 if ($guiProcess.HasExited) {
@@ -98,3 +134,4 @@ Remove-Item Env:QT_QPA_PLATFORM
 Write-Host "Portable native smoke passed from a path containing spaces: $portableCopy"
 Write-Host "PDF: $pdf"
 Write-Host "SVG: $(Join-Path $smokeRoot 'preview-smoke.svg')"
+Write-Host "UI contract: $uiContractPath"

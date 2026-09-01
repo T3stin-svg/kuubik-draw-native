@@ -1,4 +1,4 @@
-# Kuubik Draw 0.1.0-preview.1 test guide
+# Kuubik Draw 0.2.0-preview.1 test guide
 
 This is an experimental Windows x64 preview of Kuubik Draw, based on LibreCAD
 2.2.1.5. It is a native, offline 2D CAD application. It does not require
@@ -15,6 +15,19 @@ Node.js, Python, internet access, installation, or administrator rights.
 
 Settings are isolated under `Kuubik Projekt OÜ / Kuubik Draw`; they do not use
 LibreCAD's settings or the old React Kuubik Draw data.
+
+## Kuubik workspace
+
+- The default workspace uses the built-in `Kuubik Dark` theme and compact
+  ribbon. Ribbon buttons call LibreCAD's real actions; the original commands
+  remain available through the menus.
+- Quick Access contains New, Open, Save, Undo, Redo, and Print. The ribbon has
+  Home, Annotate, Insert, View, and Output tabs.
+- Layers and Blocks are tabbed on the right. Use `View -> Workspace -> Palette
+  Left/Right` to move them, `Reset Kuubik Workspace` to restore the default, or
+  `Classic workspace` to show the familiar LibreCAD toolbars.
+- The command line is full-width at the bottom. GRID, ORTHO, END, MID, CEN, and
+  INT status controls use the same checked/enabled state as their real actions.
 
 ## Primary preview checks
 
@@ -33,16 +46,17 @@ LibreCAD's settings or the old React Kuubik Draw data.
 
 ## Scope and known limitations
 
-- DXF open/save and vector PDF export are the promised v0.1 file workflows.
+- DXF open/save and vector PDF export are the promised v0.2 file workflows.
 - DWG support inherited from upstream is experimental and is not a guaranteed
   roundtrip workflow.
 - `.kdraw` files from the old web application are not imported; use DXF for
   exchange.
-- LibreCAD 2.2.1.5 exposes entity Properties as a command/dialog, not as a
-  permanent right-side Properties palette. Layers and Blocks are docked right;
-  the command line is docked at the bottom.
-- This preview uses LibreCAD's toolbar/menu interface. An AutoCAD-like ribbon
-  is not part of v0.1.
+- LibreCAD 2.2.1.5 exposes entity Properties as a real command/dialog, not as a
+  permanent right-side Properties palette.
+- The compact ribbon covers the everyday tools only. Every other inherited
+  LibreCAD function remains available from the menus or Classic workspace.
+- The v0.2 ribbon uses the existing GPL LibreCAD icons. A complete custom icon
+  redraw and a live Properties palette are intentionally deferred.
 
 Report a problem with the exact command, input values, smallest non-confidential
 DXF that reproduces it, and a screenshot. Do not upload client drawings.

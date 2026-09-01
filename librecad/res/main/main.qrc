@@ -13,6 +13,7 @@
 <file>manual.png</file>
 <file>splash_librecad.png</file>
 <file>splash_kuubikdraw.png</file>
+<file>kuubik-dark.qss</file>
 <file>donate.png</file>
 </qresource>
 </RCC>

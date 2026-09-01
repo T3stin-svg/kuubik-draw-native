@@ -36,6 +36,7 @@
 #include <QSettings>
 #include <QMessageBox>
 #include <QFileInfo>
+#include <QTimer>
 
 #include "rs_fontlist.h"
 #include "rs_patternlist.h"
@@ -104,6 +105,10 @@ int main(int argc, char** argv)
     QSettings settings;
 
     bool first_load = settings.value("Startup/FirstLoad", 1).toBool();
+    const QString uiContractPath = qEnvironmentVariable("KUUBIK_UI_CONTRACT_PATH");
+    if (!uiContractPath.isEmpty()) {
+        first_load = false;
+    }
 
     const QString lpDebugSwitch0("-d"),lpDebugSwitch1("--debug") ;
     const QString help0("-h"), help1("--help");
@@ -251,7 +256,8 @@ int main(int argc, char** argv)
 
     auto splash = new QSplashScreen;
 
-    bool show_splash = settings.value("Startup/ShowSplash", 1).toBool();
+    bool show_splash = settings.value("Startup/ShowSplash", 1).toBool()
+                       && uiContractPath.isEmpty();
 
     if (show_splash)
     {
@@ -386,6 +392,12 @@ int main(int argc, char** argv)
 
     if (first_load)
         settings.setValue("Startup/FirstLoad", 0);
+
+    if (!uiContractPath.isEmpty()) {
+        QTimer::singleShot(0, &app, [&app, &appWin, uiContractPath]() {
+            app.exit(appWin.writeKuubikUiContract(uiContractPath) ? 0 : 3);
+        });
+    }
 
     RS_DEBUG->print("main: entering Qt event loop");
 

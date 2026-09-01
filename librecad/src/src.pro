@@ -816,6 +816,8 @@ HEADERS += ui/lc_actionfactory.h \
     ui/forms/qg_widgetpen.h \
     ui/lc_centralwidget.h \
     ui/lc_widgetfactory.h \
+    ui/kuubikribbon.h \
+    ui/kuubiktheme.h \
     ui/twostackedlabels.h \
     ui/qg_commandhistory.h \
     ui/lc_dockwidget.h \
@@ -920,6 +922,8 @@ SOURCES += ui/lc_actionfactory.cpp \
     ui/forms/qg_widgetpen.cpp \
     ui/lc_centralwidget.cpp \
     ui/lc_widgetfactory.cpp \
+    ui/kuubikribbon.cpp \
+    ui/kuubiktheme.cpp \
     ui/twostackedlabels.cpp \
     ui/qg_commandhistory.cpp \
     ui/lc_dockwidget.cpp \

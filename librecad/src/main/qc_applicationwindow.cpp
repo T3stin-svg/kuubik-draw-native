@@ -31,10 +31,17 @@
 
 #include "qc_applicationwindow.h"
 
+#include <QActionGroup>
+#include <QApplication>
 #include <QByteArray>
 #include <QDockWidget>
 #include <QFileDialog>
+#include <QFont>
 #include <QImageWriter>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QLabel>
 #include <QMdiArea>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -43,11 +50,16 @@
 #include <QPrinter>
 #include <QPrintDialog>
 #include <QRegExp>
+#include <QSaveFile>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QStyleFactory>
 #include <QSysInfo>
+#include <QTabBar>
+#include <QTabWidget>
 #include <QTimer>
+#include <QToolBar>
+#include <QToolButton>
 #include <QtSvg>
 
 #include <boost/version.hpp>
@@ -59,6 +71,8 @@
 #include "textfileviewer.h"
 #include "twostackedlabels.h"
 #include "widgetcreator.h"
+#include "kuubikribbon.h"
+#include "kuubiktheme.h"
 
 #include "rs_actionlibraryinsert.h"
 #include "rs_actionprintpreview.h"
@@ -326,6 +340,26 @@ QC_ApplicationWindow::QC_ApplicationWindow()
     file_menu = widget_factory.file_menu;
     windowsMenu = widget_factory.windows_menu;
 
+    // Kuubik Ribbon owns presentation only. Every button keeps the original
+    // LibreCAD QAction and therefore the upstream command implementation,
+    // shortcut, enabled state and checked state.
+    removeToolBar(penToolBar);
+    removeToolBar(optionWidget);
+    kuubikRibbon = new KuubikRibbon(a_map, penToolBar, optionWidget, this);
+    kuubikRibbonToolbar = new QToolBar(tr("Kuubik Ribbon"), this);
+    kuubikRibbonToolbar->setObjectName("kuubikRibbonToolbar");
+    kuubikRibbonToolbar->setMovable(false);
+    kuubikRibbonToolbar->setFloatable(false);
+    kuubikRibbonToolbar->setAllowedAreas(Qt::TopToolBarArea);
+    kuubikRibbonToolbar->addWidget(kuubikRibbon);
+    addToolBar(Qt::TopToolBarArea, kuubikRibbonToolbar);
+
+    if (auto* toolbarsMenu = menuBar()->findChild<QMenu*>("toolbars_menu")) {
+        toolbarsMenu->addAction(kuubikRibbonToolbar->toggleViewAction());
+    }
+    createKuubikWorkspaceMenu();
+    createKuubikStatusControls();
+
     connect(a_map["FileClose"], SIGNAL(triggered(bool)),
             mdiAreaCAD, SLOT(closeActiveSubWindow()));
 
@@ -365,6 +399,7 @@ QC_ApplicationWindow::QC_ApplicationWindow()
 
     RS_DEBUG->print("QC_ApplicationWindow::QC_ApplicationWindow: init settings");
     initSettings();
+    initializeKuubikVisuals();
 
     auto command_file = settings.value("Paths/VariableFile", "").toString();
     if (!command_file.isEmpty())
@@ -939,6 +974,365 @@ void QC_ApplicationWindow::initSettings()
     settings.endGroup();
 
     a_map["ViewDraft"]->setChecked(settings.value("Appearance/DraftMode", 0).toBool());
+}
+
+void QC_ApplicationWindow::createKuubikWorkspaceMenu()
+{
+    auto* viewMenu = menuBar()->findChild<QMenu*>("view_menu");
+    if (viewMenu == nullptr) {
+        return;
+    }
+
+    viewMenu->addSeparator();
+    auto* workspaceMenu = viewMenu->addMenu(tr("Workspace"));
+    workspaceMenu->setObjectName("kuubik_workspace_menu");
+
+    auto* workspaceGroup = new QActionGroup(this);
+    workspaceGroup->setExclusive(true);
+    kuubikWorkspaceAction = workspaceMenu->addAction(tr("Kuubik workspace"));
+    classicWorkspaceAction = workspaceMenu->addAction(tr("Classic workspace"));
+    kuubikWorkspaceAction->setCheckable(true);
+    classicWorkspaceAction->setCheckable(true);
+    workspaceGroup->addAction(kuubikWorkspaceAction);
+    workspaceGroup->addAction(classicWorkspaceAction);
+
+    workspaceMenu->addSeparator();
+    paletteLeftAction = workspaceMenu->addAction(tr("Palette Left"));
+    paletteRightAction = workspaceMenu->addAction(tr("Palette Right"));
+    paletteLeftAction->setCheckable(true);
+    paletteRightAction->setCheckable(true);
+    auto* paletteGroup = new QActionGroup(this);
+    paletteGroup->setExclusive(true);
+    paletteGroup->addAction(paletteLeftAction);
+    paletteGroup->addAction(paletteRightAction);
+    workspaceMenu->addSeparator();
+    auto* resetAction = workspaceMenu->addAction(tr("Reset Kuubik Workspace"));
+
+    connect(kuubikWorkspaceAction, &QAction::triggered, this, [this]() {
+        applyKuubikWorkspace(true);
+    });
+    connect(classicWorkspaceAction, &QAction::triggered, this, [this]() {
+        applyClassicWorkspace();
+    });
+    connect(paletteLeftAction, &QAction::triggered, this, [this]() {
+        setKuubikPaletteSide(Qt::LeftDockWidgetArea);
+    });
+    connect(paletteRightAction, &QAction::triggered, this, [this]() {
+        setKuubikPaletteSide(Qt::RightDockWidgetArea);
+    });
+    connect(resetAction, &QAction::triggered, this, [this]() {
+        applyKuubikWorkspace(true);
+    });
+}
+
+void QC_ApplicationWindow::createKuubikStatusControls()
+{
+    const QList<QPair<QString, QString>> statusActions {
+        {"ViewGrid", "GRID"},
+        {"RestrictOrthogonal", "ORTHO"},
+        {"SnapEnd", "END"},
+        {"SnapMiddle", "MID"},
+        {"SnapCenter", "CEN"},
+        {"SnapIntersection", "INT"}
+    };
+
+    for (const auto& item : statusActions) {
+        QAction* action = a_map.value(item.first, nullptr);
+        if (action == nullptr) {
+            continue;
+        }
+        auto* button = new QToolButton(statusBar());
+        button->setObjectName("kuubikStatusToggle");
+        button->setProperty("kuubikActionKey", item.first);
+        button->setDefaultAction(action);
+        button->setText(item.second);
+        button->setToolButtonStyle(Qt::ToolButtonTextOnly);
+        button->setAutoRaise(false);
+        button->setAccessibleName(action->text().remove('&'));
+        statusBar()->addPermanentWidget(button);
+    }
+}
+
+void QC_ApplicationWindow::initializeKuubikVisuals()
+{
+    QSettings settings;
+    if (!qEnvironmentVariable("KUUBIK_UI_CONTRACT_PATH").isEmpty()) {
+        settings.setValue("Workspace/Version", 1);
+        settings.setValue("Workspace/Mode", "kuubik");
+        settings.setValue("Workspace/PaletteSide", "right");
+        applyKuubikWorkspace(true);
+        return;
+    }
+
+    const int workspaceVersion = settings.value("Workspace/Version", 0).toInt();
+    const QString workspaceMode = settings.value("Workspace/Mode", "kuubik").toString();
+
+    if (workspaceVersion < 1) {
+        settings.setValue("Appearance/Theme", "kuubik-dark");
+        settings.setValue("Workspace/Version", 1);
+        settings.setValue("Workspace/Mode", "kuubik");
+        settings.setValue("Workspace/PaletteSide", "right");
+        applyKuubikWorkspace(true);
+    } else if (workspaceMode == "classic") {
+        applyClassicWorkspace();
+    } else {
+        applyKuubikWorkspace(false);
+    }
+}
+
+void QC_ApplicationWindow::applyKuubikTheme()
+{
+    KuubikTheme::apply();
+
+    QSettings settings;
+    settings.setValue("Appearance/Theme", "kuubik-dark");
+
+    KuubikTheme::applyCanvasSettings();
+
+    updateGrids();
+    redrawAll();
+}
+
+void QC_ApplicationWindow::applyKuubikWorkspace(bool resetLayout)
+{
+    QSettings settings;
+    settings.setValue("Workspace/Version", 1);
+    settings.setValue("Workspace/Mode", "kuubik");
+    settings.setValue("Startup/TabMode", 1);
+
+    applyKuubikTheme();
+    if (kuubikRibbon != nullptr) {
+        kuubikRibbon->embedNativeToolbars(this);
+    }
+    if (kuubikRibbonToolbar != nullptr) {
+        kuubikRibbonToolbar->show();
+    }
+
+    mdiAreaCAD->setViewMode(QMdiArea::TabbedView);
+    mdiAreaCAD->setTabsClosable(true);
+    mdiAreaCAD->setTabsMovable(true);
+    mdiAreaCAD->setTabPosition(QTabWidget::North);
+    mdiAreaCAD->setTabShape(QTabWidget::Rounded);
+    const auto tabBars = mdiAreaCAD->findChildren<QTabBar*>();
+    for (auto* tabBar : tabBars) {
+        tabBar->setExpanding(false);
+    }
+
+    statusBar()->setMinimumHeight(KuubikTheme::statusBarHeight());
+    statusBar()->setMaximumHeight(KuubikTheme::statusBarHeight());
+
+    auto* commandDock = findChild<QDockWidget*>("command_dockwidget");
+    if (commandDock != nullptr) {
+        addDockWidget(Qt::BottomDockWidgetArea, commandDock);
+        commandDock->setMinimumHeight(KuubikTheme::commandMinimumHeight());
+        commandDock->setMaximumHeight(KuubikTheme::commandMaximumHeight());
+        commandDock->show();
+        modifyCommandTitleBar(Qt::BottomDockWidgetArea);
+    }
+    if (commandWidget != nullptr) {
+        commandWidget->lCommand->hide();
+        commandWidget->teHistory->setMinimumHeight(24);
+        commandWidget->teHistory->setMaximumHeight(32);
+    }
+
+    if (resetLayout) {
+        const auto toolbars = findChildren<QToolBar*>(QString(), Qt::FindDirectChildrenOnly);
+        for (auto* toolbar : toolbars) {
+            if (toolbar != kuubikRibbonToolbar) {
+                toolbar->hide();
+            }
+        }
+
+        const QStringList primaryDocks {
+            "layer_dockwidget", "block_dockwidget", "command_dockwidget"
+        };
+        const auto docks = findChildren<QDockWidget*>();
+        for (auto* dock : docks) {
+            dock->setVisible(primaryDocks.contains(dock->objectName()));
+        }
+
+        const QString side = settings.value("Workspace/PaletteSide", "right").toString();
+        setKuubikPaletteSide(side == "left" ? Qt::LeftDockWidgetArea
+                                             : Qt::RightDockWidgetArea,
+                             false);
+    }
+
+    if (kuubikWorkspaceAction != nullptr) {
+        kuubikWorkspaceAction->setChecked(true);
+    }
+    if (classicWorkspaceAction != nullptr) {
+        classicWorkspaceAction->setChecked(false);
+    }
+}
+
+void QC_ApplicationWindow::applyClassicWorkspace()
+{
+    QSettings settings;
+    settings.setValue("Workspace/Mode", "classic");
+
+    qApp->setStyleSheet(QString());
+    QApplication::setStyle(QStyleFactory::create("Fusion"));
+
+    if (kuubikRibbon != nullptr) {
+        kuubikRibbon->releaseNativeToolbars(this);
+    }
+    if (kuubikRibbonToolbar != nullptr) {
+        kuubikRibbonToolbar->hide();
+    }
+
+    const QStringList classicToolbars {
+        "file_toolbar", "edit_toolbar", "view_toolbar", "pen_toolbar",
+        "options_toolbar", "snap_toolbar", "line_toolbar", "modify_toolbar"
+    };
+    const auto toolbars = findChildren<QToolBar*>();
+    for (auto* toolbar : toolbars) {
+        if (classicToolbars.contains(toolbar->objectName())) {
+            toolbar->show();
+        }
+    }
+
+    auto* commandDock = findChild<QDockWidget*>("command_dockwidget");
+    if (commandDock != nullptr) {
+        commandDock->setMinimumHeight(0);
+        commandDock->setMaximumHeight(QWIDGETSIZE_MAX);
+        modifyCommandTitleBar(dockWidgetArea(commandDock));
+    }
+    if (commandWidget != nullptr) {
+        commandWidget->lCommand->show();
+        commandWidget->teHistory->setMinimumHeight(46);
+        commandWidget->teHistory->setMaximumHeight(QWIDGETSIZE_MAX);
+    }
+
+    if (classicWorkspaceAction != nullptr) {
+        classicWorkspaceAction->setChecked(true);
+    }
+    if (kuubikWorkspaceAction != nullptr) {
+        kuubikWorkspaceAction->setChecked(false);
+    }
+}
+
+void QC_ApplicationWindow::setKuubikPaletteSide(Qt::DockWidgetArea area,
+                                                bool persist)
+{
+    if (area != Qt::LeftDockWidgetArea && area != Qt::RightDockWidgetArea) {
+        return;
+    }
+
+    auto* layerDock = findChild<QDockWidget*>("layer_dockwidget");
+    auto* blockDock = findChild<QDockWidget*>("block_dockwidget");
+    if (layerDock == nullptr || blockDock == nullptr) {
+        return;
+    }
+
+    removeDockWidget(layerDock);
+    removeDockWidget(blockDock);
+    addDockWidget(area, layerDock);
+    addDockWidget(area, blockDock);
+    tabifyDockWidget(layerDock, blockDock);
+    layerDock->show();
+    blockDock->show();
+    layerDock->raise();
+
+    const bool onLeft = area == Qt::LeftDockWidgetArea;
+    if (paletteLeftAction != nullptr) {
+        paletteLeftAction->setChecked(onLeft);
+    }
+    if (paletteRightAction != nullptr) {
+        paletteRightAction->setChecked(!onLeft);
+    }
+    if (persist) {
+        QSettings settings;
+        settings.setValue("Workspace/PaletteSide", onLeft ? "left" : "right");
+    }
+}
+
+bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path) const
+{
+    QJsonObject contract;
+    QSettings settings;
+    contract.insert("schemaVersion", 1);
+    contract.insert("product", qApp->applicationName());
+    contract.insert("version", qApp->applicationVersion());
+    contract.insert("workspaceMode", settings.value("Workspace/Mode", "kuubik").toString());
+    contract.insert("workspaceVersion", settings.value("Workspace/Version", 0).toInt());
+    contract.insert("theme", settings.value("Appearance/Theme", "").toString());
+    contract.insert("paletteSide", settings.value("Workspace/PaletteSide", "right").toString());
+    contract.insert("ribbonVisible", kuubikRibbonToolbar != nullptr
+                                      && kuubikRibbonToolbar->isVisible());
+
+    QJsonArray bindings;
+    QJsonArray mismatches;
+    if (kuubikRibbon != nullptr) {
+        contract.insert("boundActionKeys",
+                        QJsonArray::fromStringList(kuubikRibbon->boundActionKeys()));
+        contract.insert("missingActionKeys",
+                        QJsonArray::fromStringList(kuubikRibbon->missingActionKeys()));
+        for (const auto& key : kuubikRibbon->boundActionKeys()) {
+            auto* button = kuubikRibbon->buttonForAction(key);
+            QJsonObject binding;
+            binding.insert("key", key);
+            binding.insert("buttonActionKey", button == nullptr
+                                                 ? QString()
+                                                 : button->property("kuubikActionKey").toString());
+            binding.insert("defaultActionObjectName",
+                           button == nullptr || button->defaultAction() == nullptr
+                               ? QString()
+                               : button->defaultAction()->objectName());
+            const bool valid = button != nullptr
+                               && button->defaultAction() == a_map.value(key, nullptr)
+                               && button->property("kuubikActionKey").toString() == key;
+            binding.insert("valid", valid);
+            bindings.append(binding);
+            if (!valid) {
+                mismatches.append(key);
+            }
+        }
+    }
+    contract.insert("bindings", bindings);
+    contract.insert("bindingMismatches", mismatches);
+
+    QJsonArray visibleToolbars;
+    const auto toolbars = findChildren<QToolBar*>();
+    for (auto* toolbar : toolbars) {
+        if (toolbar->isVisible()) {
+            visibleToolbars.append(toolbar->objectName());
+        }
+    }
+    contract.insert("visibleToolbars", visibleToolbars);
+
+    auto areaName = [](Qt::DockWidgetArea area) {
+        switch (area) {
+        case Qt::LeftDockWidgetArea: return QStringLiteral("left");
+        case Qt::RightDockWidgetArea: return QStringLiteral("right");
+        case Qt::TopDockWidgetArea: return QStringLiteral("top");
+        case Qt::BottomDockWidgetArea: return QStringLiteral("bottom");
+        default: return QStringLiteral("floating");
+        }
+    };
+    QJsonArray docks;
+    const auto dockWidgets = findChildren<QDockWidget*>();
+    for (auto* dock : dockWidgets) {
+        QJsonObject dockObject;
+        dockObject.insert("objectName", dock->objectName());
+        dockObject.insert("visible", dock->isVisible());
+        dockObject.insert("area", areaName(dockWidgetArea(dock)));
+        docks.append(dockObject);
+    }
+    contract.insert("docks", docks);
+
+    QJsonObject colors;
+    const auto colorTokens = KuubikTheme::colors();
+    for (auto it = colorTokens.cbegin(); it != colorTokens.cend(); ++it) {
+        colors.insert(it.key(), it.value());
+    }
+    contract.insert("colors", colors);
+
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        return false;
+    }
+    file.write(QJsonDocument(contract).toJson(QJsonDocument::Indented));
+    return file.commit();
 }
 
 
@@ -3446,10 +3840,23 @@ void QC_ApplicationWindow::modifyCommandTitleBar(Qt::DockWidgetArea area)
     // author: ravas
 
     auto* cmdDockWidget = findChild<QDockWidget*>("command_dockwidget");
+    if (cmdDockWidget == nullptr) {
+        return;
+    }
 
     auto* commandWidget = static_cast<QG_CommandWidget*>(cmdDockWidget->widget());
     QAction* dockingAction = commandWidget->getDockingAction();
     bool docked = area & Qt::AllDockWidgetAreas;
+
+    QSettings settings;
+    if (settings.value("Workspace/Mode", "kuubik").toString() == "kuubik"
+        && area == Qt::BottomDockWidgetArea) {
+        cmdDockWidget->setWindowTitle(tr("Command"));
+        dockingAction->setText(tr("Float"));
+        cmdDockWidget->setFeatures(QDockWidget::NoDockWidgetFeatures);
+        return;
+    }
+
     cmdDockWidget->setWindowTitle(docked ? tr("Cmd") : tr("Command line"));
     dockingAction->setText(docked ? tr("Float") : tr("Dock", "Dock the command widget to the main window"));
     QDockWidget::DockWidgetFeatures features =

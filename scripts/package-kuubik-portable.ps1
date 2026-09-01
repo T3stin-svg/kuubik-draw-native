@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
-    [string]$Version = '0.1.0-preview.1'
+    [string]$Version = '0.2.0-preview.1'
 )
 
 $ErrorActionPreference = 'Stop'

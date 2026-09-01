@@ -44,6 +44,7 @@ class LC_CustomToolbar;
 class LC_PenWizard;
 class LC_PenPaletteWidget;
 class LC_SimpleTests;
+class KuubikRibbon;
 class QC_DialogFactory;
 class QC_MDIWindow;
 class QC_PluginInterface;
@@ -110,6 +111,7 @@ public:
 
     bool eventFilter(QObject *obj, QEvent *event) override;
     QAction* getAction(const QString& name) const;
+    bool writeKuubikUiContract(const QString& path) const;
 
 public slots:
     void relayAction(QAction* q_action);
@@ -341,6 +343,13 @@ private:
     QC_ApplicationWindow();
 
     QMenu* createPopupMenu() override;
+    void initializeKuubikVisuals();
+    void createKuubikWorkspaceMenu();
+    void createKuubikStatusControls();
+    void applyKuubikTheme();
+    void applyKuubikWorkspace(bool resetLayout);
+    void applyClassicWorkspace();
+    void setKuubikPaletteSide(Qt::DockWidgetArea area, bool persist = true);
 
     QString format_filename_caption(const QString &qstring_in);
     /** Helper function for Menu file -> New & New.... */
@@ -426,6 +435,12 @@ private:
     QG_SnapToolBar* snapToolBar {nullptr};
     QG_PenToolBar* penToolBar {nullptr}; //!< for selecting the current pen
     QToolBar* optionWidget {nullptr}; //!< for individual tool options
+    KuubikRibbon* kuubikRibbon {nullptr};
+    QToolBar* kuubikRibbonToolbar {nullptr};
+    QAction* kuubikWorkspaceAction {nullptr};
+    QAction* classicWorkspaceAction {nullptr};
+    QAction* paletteLeftAction {nullptr};
+    QAction* paletteRightAction {nullptr};
 
     // --- Actions ---
     QAction* previousZoom {nullptr};
