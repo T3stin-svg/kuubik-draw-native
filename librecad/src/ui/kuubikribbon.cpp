@@ -105,11 +105,11 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
 
     const QList<TabSpec> specs {
         {tr("Home"), {
-            {tr("Draw"), {{"DrawLine", ItemSize::Large}, {"DrawPolyline", ItemSize::Medium}, {"DrawLineRectangle", ItemSize::Small}, {"DrawCircle", ItemSize::Medium}, {"DrawArc", ItemSize::Small}, {"DrawHatch", ItemSize::Small}}, -1},
-            {tr("Modify"), {{"ModifyMove", ItemSize::Large}, {"ModifyDuplicate", ItemSize::Medium}, {"ModifyTrim", ItemSize::Small}, {"ModifyTrim2", ItemSize::Small}, {"ModifyCut", ItemSize::Small}, {"ModifyOffset", ItemSize::Medium}, {"ModifyRotate", ItemSize::Medium}, {"ModifyMirror", ItemSize::Small}, {"ModifyScale", ItemSize::Small}, {"ModifyRound", ItemSize::Small}, {"ModifyDeleteQuick", ItemSize::Small}}, -1},
+            {tr("Draw"), {{"DrawLine", ItemSize::Large}, {"DrawPolyline", ItemSize::Large}, {"DrawLineRectangle", ItemSize::Small}, {"DrawCircle", ItemSize::Medium}, {"DrawArc", ItemSize::Small}, {"DrawHatch", ItemSize::Small}}, -1},
+            {tr("Modify"), {{"ModifyMove", ItemSize::Large}, {"ModifyDuplicate", ItemSize::Large}, {"ModifyTrim", ItemSize::Large}, {"ModifyTrim2", ItemSize::Small}, {"ModifyCut", ItemSize::Small}, {"ModifyOffset", ItemSize::Medium}, {"ModifyRotate", ItemSize::Medium}, {"ModifyMirror", ItemSize::Small}, {"ModifyScale", ItemSize::Small}, {"ModifyRound", ItemSize::Small}, {"ModifyDeleteQuick", ItemSize::Small}}, -1},
             {tr("Annotation"), {{"DrawText", ItemSize::Medium}, {"DrawMText", ItemSize::Medium}, {"DimLinear", ItemSize::Small}, {"DimAligned", ItemSize::Small}, {"DimLinearHor", ItemSize::Small}, {"DimLinearVer", ItemSize::Small}, {"DimRadial", ItemSize::Small}, {"DimDiametric", ItemSize::Small}, {"DimAngular", ItemSize::Small}, {"DimLeader", ItemSize::Small}}, 200},
             {tr("Layers"), {{"LayersAdd", ItemSize::Medium}, {"LayersEdit", ItemSize::Medium}, {"LayersToggleView", ItemSize::Small}, {"LayersToggleLock", ItemSize::Small}}, -1},
-            {tr("Block"), {{"BlocksInsert", ItemSize::Medium}, {"BlocksCreate", ItemSize::Medium}, {"BlocksEdit", ItemSize::Small}, {"BlocksExplode", ItemSize::Small}, {"BlocksImport", ItemSize::Small}}, 300},
+            {tr("Block"), {{"BlocksInsert", ItemSize::Large}, {"BlocksCreate", ItemSize::Medium}, {"BlocksEdit", ItemSize::Small}, {"BlocksExplode", ItemSize::Small}, {"BlocksImport", ItemSize::Small}}, 300},
             {tr("Properties"), {{"ModifyEntity", ItemSize::Medium}}, 100},
             {tr("Utilities"), {{"InfoDist", ItemSize::Small}, {"InfoAngle", ItemSize::Small}, {"InfoArea", ItemSize::Small}, {"InfoTotalLength", ItemSize::Small}}, 400},
             {tr("Clipboard"), {{"EditCut", ItemSize::Small}, {"EditCopy", ItemSize::Small}, {"EditPaste", ItemSize::Small}}, 500}
@@ -277,20 +277,32 @@ QWidget* KuubikRibbon::createPage(const TabSpec& spec)
     return page;
 }
 
+QWidget* KuubikRibbon::takeCurrentLayerSelector()
+{
+    if (currentLayerSelector == nullptr) return nullptr;
+    QWidget* selector = currentLayerSelector;
+    currentLayerLayout->removeWidget(selector);
+    selector->setParent(currentLayerSelectorOriginalParent.data());
+    selector->setVisible(currentLayerSelectorWasVisible);
+    currentLayerSelector = nullptr;
+    currentLayerSelectorOriginalParent.clear();
+    currentLayerSelectorWasVisible = false;
+    if (QLabel* placeholder = currentLayerHost->findChild<QLabel*>("kuubikCurrentLayerPlaceholder")) placeholder->show();
+    return selector;
+}
+
 void KuubikRibbon::setCurrentLayerSelector(QWidget* selector)
 {
-    if (currentLayerLayout == nullptr || currentLayerHost == nullptr) return;
-    if (currentLayerSelector != nullptr) {
-        currentLayerLayout->removeWidget(currentLayerSelector);
-        currentLayerSelector->hide();
-    }
+    if (currentLayerLayout == nullptr || currentLayerHost == nullptr || selector == currentLayerSelector) return;
+    takeCurrentLayerSelector();
+    if (selector == nullptr) return;
+    currentLayerSelectorOriginalParent = selector->parentWidget();
+    currentLayerSelectorWasVisible = selector->isVisible();
     currentLayerSelector = selector;
-    if (QLabel* placeholder = currentLayerHost->findChild<QLabel*>("kuubikCurrentLayerPlaceholder")) placeholder->setVisible(selector == nullptr);
-    if (selector != nullptr) {
-        selector->setParent(currentLayerHost);
-        currentLayerLayout->addWidget(selector, 0, 0);
-        selector->show();
-    }
+    selector->setParent(currentLayerHost);
+    currentLayerLayout->addWidget(selector, 0, 0);
+    selector->show();
+    if (QLabel* placeholder = currentLayerHost->findChild<QLabel*>("kuubikCurrentLayerPlaceholder")) placeholder->hide();
 }
 
 void KuubikRibbon::setPanelCollapsed(PanelInstance& panel, bool collapsed)

@@ -13,6 +13,7 @@
 
 #include <QList>
 #include <QMap>
+#include <QPointer>
 #include <QStringList>
 #include <QWidget>
 
@@ -39,7 +40,10 @@ public:
 
     void embedNativeToolbars(QMainWindow* mainWindow);
     void releaseNativeToolbars(QMainWindow* mainWindow);
+    // Reparent a native selector into the host; nullptr restores parent and visibility.
     void setCurrentLayerSelector(QWidget* selector);
+    // Restores it and returns it; caller re-inserts it when original layout placement matters.
+    QWidget* takeCurrentLayerSelector();
 
 private:
     enum class ItemSize { Large, Medium, Small };
@@ -93,6 +97,8 @@ private:
     QFrame* currentLayerHost {nullptr};
     QGridLayout* currentLayerLayout {nullptr};
     QWidget* currentLayerSelector {nullptr};
+    QPointer<QWidget> currentLayerSelectorOriginalParent;
+    bool currentLayerSelectorWasVisible {false};
 };
 
 #endif // KUUBIKRIBBON_H
