@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "product": "Kuubik Draw",
+  "version": "0.2.0-preview.2",
+  "releaseType": "prerelease",
+  "sourceRepository": "https://github.com/T3stin-svg/kuubik-draw-native",
+  "sourceCommit": "171d95915f6f5a34b8d9fcb487dd3429de8cda74",
+  "featureCommit": "223fc8f3744fc7e6633e24079663352be056bef3",
+  "upstream": {
+    "repository": "https://github.com/LibreCAD/LibreCAD",
+    "tag": "v2.2.1.5",
+    "commit": "7ebab007d9eb4c68609388b835a2487648f0877b"
+  },
+  "windowsCi": {
+    "runId": 33510020896,
+    "url": "https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33510020896",
+    "result": "success",
+    "toolchain": "MSVC x64 / Qt 5.15.2"
+  },
+  "releaseArtifact": {
+    "name": "KuubikDraw-0.2.0-preview.2-win64.zip",
+    "sizeBytes": 43438760,
+    "sha256": "6af290c178dbd9cd21ef3d9968c6972430cf031a2b4ad4262281b2715c280492"
+  },
+  "nativeLineReadback": {
+    "entityType": "LINE",
+    "entityCount": 1,
+    "start": [122.0, 115.25, 0.0],
+    "end": [256.5, 50.0, 0.0],
+    "length": 149.49184760380749
+  },
+  "guaranteedFileWorkflows": [
+    "DXF open/save",
+    "vector PDF export"
+  ],
+  "notCertified": [
+    "DWG roundtrip",
+    "DWT",
+    "XREF parity",
+    "full AutoCAD parity"
+  ],
+  "containsClientData": false,
+  "containsPrivateAutoCadReference": false
+}

@@ -13,6 +13,8 @@ DWG roundtrip is explicitly not certified.
 
 - [Fork and license notice](FORK_NOTICE.md)
 - [Preview test guide](README_TEST.md)
+- [0.2.0-preview.2 release report](docs/releases/v0.2.0-preview.2.md)
+- [0.2.0-preview.2 public GUI evidence](evidence/releases/v0.2.0-preview.2/README.md)
 - [LibreCAD upstream](https://github.com/LibreCAD/LibreCAD)
 - [Kuubik Draw releases](https://github.com/T3stin-svg/kuubik-draw-native/releases)
 

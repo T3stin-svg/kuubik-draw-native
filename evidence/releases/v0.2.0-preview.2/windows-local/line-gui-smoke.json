@@ -1,0 +1,34 @@
+{
+    "actionActiveAfterRibbon": true,
+    "activeImageSaved": true,
+    "committedImageSaved": true,
+    "dxfSaved": true,
+    "entitiesAfterFirstClick": 0,
+    "entitiesAfterSecondClick": 1,
+    "entitiesBefore": 0,
+    "firstCanvasPoint": {
+        "x": 550,
+        "y": 261
+    },
+    "linesAfterSecondClick": 1,
+    "linesBefore": 0,
+    "prerequisites": true,
+    "previewCanvasPoint": {
+        "x": 826,
+        "y": 391
+    },
+    "product": "Kuubik Draw",
+    "ribbonActionKey": "DrawLine",
+    "ribbonMouseEvent": true,
+    "schemaVersion": 1,
+    "secondCanvasPoint": {
+        "x": 1101,
+        "y": 522
+    },
+    "status": "PASS",
+    "version": "0.2.0-preview.2",
+    "viewportRequestedHeight": 1080,
+    "viewportRequestedWidth": 1920,
+    "windowHeight": 1080,
+    "windowWidth": 1920
+}
