@@ -29,7 +29,8 @@ jobs:
       - name: Verify pinned LibreCAD ancestry
         shell: pwsh
         run: |
-          git cat-file -e 7ebab007d9eb4c68609388b835a2487648f0877b^{commit}
+          git cat-file -e '7ebab007d9eb4c68609388b835a2487648f0877b^{commit}'
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned LibreCAD commit is unavailable.' }
           git merge-base --is-ancestor 7ebab007d9eb4c68609388b835a2487648f0877b HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Preview is not based on the pinned LibreCAD commit.' }
 

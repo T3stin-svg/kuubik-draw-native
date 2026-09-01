@@ -15,9 +15,19 @@ function Require-Path([string]$Path) {
 }
 
 function Run-Native([string]$Executable, [string[]]$Arguments, [string]$Label) {
-    & $Executable @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "$Label failed with exit code $LASTEXITCODE"
+    $startInfo = [Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $Executable
+    $startInfo.UseShellExecute = $false
+    foreach ($argument in $Arguments) {
+        $startInfo.ArgumentList.Add($argument)
+    }
+    $process = [Diagnostics.Process]::Start($startInfo)
+    if ($null -eq $process) {
+        throw "$Label failed to start."
+    }
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) {
+        throw "$Label failed with exit code $($process.ExitCode)"
     }
 }
 
