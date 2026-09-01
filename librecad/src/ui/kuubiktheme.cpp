@@ -53,8 +53,8 @@ void KuubikTheme::applyCanvasSettings()
 {
     RS_SETTINGS->beginGroup("Colors");
     RS_SETTINGS->writeEntry("/background", color("canvas"));
-    RS_SETTINGS->writeEntry("/grid", "#3A4650");
-    RS_SETTINGS->writeEntry("/meta_grid", "#52606B");
+    RS_SETTINGS->writeEntry("/grid", QStringLiteral("#3A4650"));
+    RS_SETTINGS->writeEntry("/meta_grid", QStringLiteral("#52606B"));
     RS_SETTINGS->writeEntry("/select", color("accent"));
     RS_SETTINGS->writeEntry("/highlight", color("highlight"));
     RS_SETTINGS->writeEntry("/start_handle", color("highlight"));
