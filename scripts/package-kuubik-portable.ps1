@@ -58,6 +58,19 @@ Write-Host 'Deploying Qt runtime...'
 & windeployqt.exe --release --compiler-runtime --force --verbose 1 $sourceExe | Out-Host
 Assert-Success 'windeployqt'
 
+# The automated native ribbon smoke runs through Qt's offscreen platform.  It
+# must be shipped with (and loaded from) the portable payload instead of being
+# found accidentally in the CI machine's Qt installation.
+$qtPlugins = (& qmake.exe -query QT_INSTALL_PLUGINS).Trim()
+Assert-Success 'qmake -query QT_INSTALL_PLUGINS'
+$offscreenPlugin = Join-Path $qtPlugins 'platforms\qoffscreen.dll'
+if (-not (Test-Path -LiteralPath $offscreenPlugin)) {
+    throw "Qt offscreen platform plugin is unavailable: $offscreenPlugin"
+}
+$deployedPlatforms = Join-Path $buildDirectory 'platforms'
+Ensure-Directory $deployedPlatforms
+Copy-Item -LiteralPath $offscreenPlugin -Destination $deployedPlatforms -Force
+
 # windeployqt places the Visual C++ redistributable installer beside MSVC
 # builds.  A portable preview must not require an installer or administrator
 # rights, so copy the redistributable CRT DLLs from the active Visual Studio

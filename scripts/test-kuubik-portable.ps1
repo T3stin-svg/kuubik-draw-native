@@ -14,10 +14,18 @@ function Require-Path([string]$Path) {
     }
 }
 
-function Run-Native([string]$Executable, [string[]]$Arguments, [string]$Label) {
+function Run-Native(
+    [string]$Executable,
+    [string[]]$Arguments,
+    [string]$Label,
+    [hashtable]$Environment = @{}
+) {
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $Executable
     $startInfo.UseShellExecute = $false
+    foreach ($entry in $Environment.GetEnumerator()) {
+        $startInfo.Environment[$entry.Key] = $entry.Value
+    }
     foreach ($argument in $Arguments) {
         $startInfo.ArgumentList.Add($argument)
     }
@@ -35,6 +43,7 @@ $package = (Resolve-Path -LiteralPath $PackageDirectory).Path
 $exe = Join-Path $package 'KuubikDraw.exe'
 Require-Path $exe
 Require-Path (Join-Path $package 'platforms\qwindows.dll')
+Require-Path (Join-Path $package 'platforms\qoffscreen.dll')
 Require-Path (Join-Path $package 'imageformats\qsvg.dll')
 Require-Path (Join-Path $package 'msvcp140.dll')
 Require-Path (Join-Path $package 'vcruntime140.dll')
@@ -75,12 +84,21 @@ New-Item -ItemType Directory -Path $smokeRoot | Out-Null
 $portableCopy = Join-Path $smokeRoot 'Program Files'
 Copy-Item -LiteralPath $package -Destination $portableCopy -Recurse -Force
 $portableExe = Join-Path $portableCopy 'KuubikDraw.exe'
+$portableQtEnvironment = @{
+    QT_PLUGIN_PATH = $portableCopy
+    QT_QPA_PLATFORM_PLUGIN_PATH = (Join-Path $portableCopy 'platforms')
+}
+$offscreenEnvironment = @{
+    QT_PLUGIN_PATH = $portableCopy
+    QT_QPA_PLATFORM_PLUGIN_PATH = (Join-Path $portableCopy 'platforms')
+    QT_QPA_PLATFORM = 'offscreen'
+}
 
 $fixture = Join-Path $smokeRoot 'preview-smoke.dxf'
 Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'tests\fixtures\preview-smoke.dxf') -Destination $fixture -Force
 $pdf = Join-Path $smokeRoot 'preview-smoke.pdf'
-Run-Native -Executable $portableExe -Arguments @('dxf2pdf', '--fit', '--paper', '210x297', '--outfile', $pdf, $fixture) -Label 'DXF to PDF smoke'
-Run-Native -Executable $portableExe -Arguments @('dxf2svg', '--outfile', 'preview-smoke.svg', $fixture) -Label 'DXF to SVG smoke'
+Run-Native -Executable $portableExe -Arguments @('dxf2pdf', '--fit', '--paper', '210x297', '--outfile', $pdf, $fixture) -Label 'DXF to PDF smoke' -Environment $portableQtEnvironment
+Run-Native -Executable $portableExe -Arguments @('dxf2svg', '--outfile', 'preview-smoke.svg', $fixture) -Label 'DXF to SVG smoke' -Environment $portableQtEnvironment
 
 Require-Path $pdf
 Require-Path (Join-Path $smokeRoot 'preview-smoke.svg')
@@ -88,10 +106,9 @@ if ((Get-Item -LiteralPath $pdf).Length -lt 1000) {
     throw 'Generated PDF is unexpectedly small.'
 }
 
-$env:QT_QPA_PLATFORM = 'offscreen'
 $uiContractPath = Join-Path $smokeRoot 'kuubik-ui-contract.json'
 $env:KUUBIK_UI_CONTRACT_PATH = $uiContractPath
-Run-Native -Executable $portableExe -Arguments @() -Label 'Kuubik UI contract smoke'
+Run-Native -Executable $portableExe -Arguments @() -Label 'Kuubik UI contract smoke' -Environment $offscreenEnvironment
 Remove-Item Env:KUUBIK_UI_CONTRACT_PATH
 Require-Path $uiContractPath
 
@@ -126,7 +143,7 @@ if ($layerDock.Count -ne 1 -or $layerDock[0].area -ne 'right' -or
 $guiSmokeDirectory = Join-Path $smokeRoot 'gui-evidence'
 New-Item -ItemType Directory -Path $guiSmokeDirectory | Out-Null
 $env:KUUBIK_GUI_SMOKE_DIR = $guiSmokeDirectory
-Run-Native -Executable $portableExe -Arguments @() -Label 'Ribbon LINE mouse workflow smoke'
+Run-Native -Executable $portableExe -Arguments @() -Label 'Ribbon LINE mouse workflow smoke' -Environment $offscreenEnvironment
 Remove-Item Env:KUUBIK_GUI_SMOKE_DIR
 
 $guiSmokeReportPath = Join-Path $guiSmokeDirectory 'line-gui-smoke.json'
@@ -164,7 +181,6 @@ if ($guiProcess.HasExited) {
     throw "GUI startup smoke exited early with code $($guiProcess.ExitCode)"
 }
 Stop-Process -Id $guiProcess.Id -Force
-Remove-Item Env:QT_QPA_PLATFORM
 
 Write-Host "Portable native smoke passed from a path containing spaces: $portableCopy"
 Write-Host "PDF: $pdf"
