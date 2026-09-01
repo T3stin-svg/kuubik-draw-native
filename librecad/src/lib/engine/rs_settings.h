@@ -59,11 +59,11 @@ public:
     static constexpr char const* background        = "Black";
     static constexpr char const* grid              = "Gray";
     static constexpr char const* meta_grid         = "#404040";
-    static constexpr char const* select            = "#A54747";
-    static constexpr char const* highlight         = "#739373";
-    static constexpr char const* start_handle      = "Cyan";
-    static constexpr char const* handle            = "Blue";
-    static constexpr char const* end_handle        = "Blue";
+    static constexpr char const* select            = "#168DCE";
+    static constexpr char const* highlight         = "#4CC2FF";
+    static constexpr char const* start_handle      = "#74D4FF";
+    static constexpr char const* handle            = "#168DCE";
+    static constexpr char const* end_handle        = "#168DCE";
     static constexpr char const* relativeZeroColor = "Red";
 
     // Used to have RAII style GroupGuard: endGroup is called automatically whenever a unique_ptr<GroupGuard>

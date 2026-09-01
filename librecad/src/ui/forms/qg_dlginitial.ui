@@ -61,11 +61,12 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>&lt;font size=&quot;+1&quot;&gt;&lt;b&gt;Welcome to LibreCAD&lt;/b&gt;
+          <string>&lt;font size=&quot;+1&quot;&gt;&lt;b&gt;Welcome to Kuubik Draw&lt;/b&gt;
 &lt;/font&gt;
 &lt;br&gt;
 Please choose the unit you want to use for new drawings and your preferred language.&lt;br&gt;
-(You can changes these settings later.)</string>
+(You can change these settings later.)&lt;br&gt;&lt;br&gt;
+Kuubik Draw is based on LibreCAD 2.2.1.5 and distributed under GPLv2.</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignVCenter</set>

@@ -105,10 +105,10 @@
 #include "qg_recentfiles.h"
 
 #ifndef QC_APP_ICON
-# define QC_APP_ICON ":/main/librecad.png"
+# define QC_APP_ICON ":/main/kuubikdraw.png"
 #endif
 #ifndef QC_ABOUT_ICON
-# define QC_ABOUT_ICON ":/main/intro_librecad.png"
+# define QC_ABOUT_ICON ":/main/intro_kuubikdraw.png"
 #endif
 
 /*	- Window Title Bar Extra (character) Size.
@@ -3053,7 +3053,9 @@ void QC_ApplicationWindow::showAboutWindow()
 
     QString info
     (
-        tr("Version: %1").arg(XSTR(LC_VERSION)) + "\n" +
+        QStringLiteral(KUUBIK_DRAW_PRODUCT_NAME " " KUUBIK_DRAW_VERSION " \u2014 "
+                       KUUBIK_DRAW_BASE_VERSION) + "\n" +
+        tr("LibreCAD base version: %1").arg(XSTR(LC_VERSION)) + "\n" +
         #if defined(Q_CC_CLANG)
             tr("Compiler: Clang %1.%2.%3").arg(__clang_major__).arg(__clang_minor__).arg(__clang_patchlevel__) + "\n" +
         #elif defined(Q_CC_GNU)
@@ -3076,14 +3078,22 @@ void QC_ApplicationWindow::showAboutWindow()
 
     connect(copy_button, SIGNAL(released()), &dlg, SLOT(accept()));
 
+    auto attribution_label = new QLabel(
+        tr("Kuubik Draw is a GPLv2 fork of LibreCAD. LibreCAD authors and upstream attribution are preserved below."));
+    attribution_label->setWordWrap(true);
+    f_layout->addWidget(attribution_label);
+
     QLabel *links_label = new QLabel( QString( "<a href=\"https://github.com/LibreCAD/LibreCAD/graphs/contributors\">%1</a>"
                                                "<br/>"
-                                               "<a href=\"https://github.com/LibreCAD/LibreCAD/blob/master/LICENSE\">%2</a>"
+                                               "<a href=\"https://github.com/LibreCAD/LibreCAD/blob/v2.2.1.5/LICENSE\">%2</a>"
                                                "<br/>"
-                                               "<a href=\"https://github.com/LibreCAD/LibreCAD/\">%3</a>")
-                                      .arg( tr("Contributors"))
-                                      .arg( tr("License"))
-                                      .arg( tr("The Code")) );
+                                               "<a href=\"https://github.com/LibreCAD/LibreCAD/\">%3</a>"
+                                               "<br/>"
+                                               "<a href=\"https://github.com/T3stin-svg/kuubik-draw-native\">%4</a>")
+                                      .arg( tr("LibreCAD contributors"))
+                                      .arg( tr("GPLv2 license"))
+                                      .arg( tr("LibreCAD upstream source"))
+                                      .arg( tr("Kuubik Draw source")) );
     links_label->setOpenExternalLinks(true);
     links_label->setTextInteractionFlags(Qt::LinksAccessibleByMouse);
     f_layout->addWidget(links_label);

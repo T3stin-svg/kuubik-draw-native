@@ -32,6 +32,13 @@
 #define STR(x)   #x
 #define XSTR(x)  STR(x)
 
+// Kuubik Draw product identity. The LibreCAD base version remains available
+// through LC_VERSION for provenance and compatibility diagnostics.
+#define KUUBIK_DRAW_ORGANIZATION "Kuubik Projekt OÜ"
+#define KUUBIK_DRAW_PRODUCT_NAME "Kuubik Draw"
+#define KUUBIK_DRAW_VERSION "0.1.0-preview.1"
+#define KUUBIK_DRAW_BASE_VERSION "LibreCAD 2.2.1.5 base"
+
 /**
  * @brief handleArgs
  * @param argc cli argument counter from main()

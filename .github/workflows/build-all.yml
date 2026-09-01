@@ -4,10 +4,11 @@ on:
     branches:
       - master
       - 2.2.1
+    # The fork publishes Kuubik preview tags with its dedicated portable
+    # workflow. Keep upstream's broad multi-platform workflow available only
+    # for explicitly named upstream-sync tags to avoid duplicate releases.
     tags:
-      - 'v*'
-      - '*_rc[0-9]*'
-      - '*-rc[0-9]*'
+      - 'librecad-upstream-v*'
 
 # A release pushes branch+tag atomically and GitHub fires two workflow runs
 # (refs/heads/<branch> and refs/tags/<tag>) on the same SHA. We let both run

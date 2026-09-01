@@ -1,4 +1,25 @@
-# LibreCAD [![Build Status](https://travis-ci.org/LibreCAD/LibreCAD.svg?branch=master)](https://travis-ci.org/LibreCAD/LibreCAD) 
+# Kuubik Draw Native
+
+Kuubik Draw is an experimental native Windows 2D CAD application by Kuubik
+Projekt OÜ. This repository is a GPLv2 fork of LibreCAD `v2.2.1.5`, pinned to
+upstream commit `7ebab007d9eb4c68609388b835a2487648f0877b`.
+
+The first target is the portable prerelease `0.1.0-preview.1`: extract the ZIP
+and run `KuubikDraw.exe` without an installer, Node.js, Python, or internet.
+DXF open/save and vector PDF export are the guaranteed v0.1 file workflows;
+DWG roundtrip is explicitly not certified.
+
+- [Fork and license notice](FORK_NOTICE.md)
+- [Preview test guide](README_TEST.md)
+- [LibreCAD upstream](https://github.com/LibreCAD/LibreCAD)
+- [Kuubik Draw releases](https://github.com/T3stin-svg/kuubik-draw-native/releases)
+
+This project is not affiliated with Autodesk. Kuubik Draw keeps LibreCAD's
+full source history, author notices, GPLv2 license, and upstream attribution.
+
+---
+
+# LibreCAD upstream README [![Build Status](https://travis-ci.org/LibreCAD/LibreCAD.svg?branch=master)](https://travis-ci.org/LibreCAD/LibreCAD)
 
 [→ Download ←](https://github.com/LibreCAD/LibreCAD/wiki/Download)
 

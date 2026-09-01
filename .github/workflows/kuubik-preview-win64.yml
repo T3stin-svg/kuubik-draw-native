@@ -1,0 +1,125 @@
+name: Kuubik Draw Windows portable preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - kuubik/preview-v0.1
+    tags:
+      - v0.1.0-preview.1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kuubik-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-win64-portable:
+    runs-on: windows-2022
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout full fork history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify pinned LibreCAD ancestry
+        shell: pwsh
+        run: |
+          git cat-file -e 7ebab007d9eb4c68609388b835a2487648f0877b^{commit}
+          git merge-base --is-ancestor 7ebab007d9eb4c68609388b835a2487648f0877b HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Preview is not based on the pinned LibreCAD commit.' }
+
+      - name: Setup MSVC x64 developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Install Qt 5.15 for MSVC 2019 x64
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '5.15.*'
+          host: windows
+          target: desktop
+          arch: win64_msvc2019_64
+          dir: '..'
+          install-deps: true
+          cache: false
+          setup-python: true
+          set-env: true
+          aqtversion: '==3.1.*'
+          py7zrversion: '==0.20.*'
+          extra: '--external 7z'
+
+      - name: Install Boost headers
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri 'https://archives.boost.io/release/1.87.0/source/boost_1_87_0.7z' -OutFile boost.7z
+          7z x boost.7z '-o.' -y | Out-Host
+          Move-Item -LiteralPath boost_1_87_0 -Destination ..\boost
+          Remove-Item -LiteralPath boost.7z
+
+      - name: Configure portable MSVC build
+        shell: pwsh
+        run: |
+          $root = $env:GITHUB_WORKSPACE.Replace('/', '\')
+          $boost = (Join-Path (Split-Path $root -Parent) 'boost').Replace('/', '\')
+          @(
+            "CUSTOM_ROOT = $root"
+            "BOOST_DIR = $boost"
+            "BOOST_LIBDIR = $boost"
+            'MSYSGIT_DIR = C:\Progra~1\Git\bin'
+            'DISABLE_POSTSCRIPT = true'
+          ) | Set-Content -LiteralPath custom.pri -Encoding ASCII
+          Get-Content custom.pri
+
+      - name: Build Kuubik Draw release binary
+        shell: cmd
+        run: |
+          qmake.exe librecad.pro -r CONFIG+=release
+          if errorlevel 1 exit /b 1
+          nmake release
+          if errorlevel 1 exit /b 1
+          if not exist windows\KuubikDraw.exe exit /b 1
+
+      - name: Package portable application
+        shell: pwsh
+        run: .\scripts\package-kuubik-portable.ps1
+
+      - name: Test portable folder and native file outputs
+        shell: pwsh
+        run: .\scripts\test-kuubik-portable.ps1 -PackageDirectory .\artifacts\KuubikDraw-0.1.0-preview.1-win64
+
+      - name: Independently read back DXF, PDF and SVG
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check --quiet ezdxf pypdf
+          python .\scripts\verify-preview-outputs.py "$env:RUNNER_TEMP\Kuubik Draw portable smoke"
+
+      - name: Verify archive payload and checksum
+        shell: pwsh
+        run: |
+          $zip = '.\artifacts\KuubikDraw-0.1.0-preview.1-win64.zip'
+          if (-not (Test-Path -LiteralPath $zip)) { throw 'Portable ZIP is missing.' }
+          $entries = tar -tf $zip
+          $required = @('KuubikDraw.exe', 'README_TEST.md', 'FORK_NOTICE.md', 'build-manifest.json', 'SHA256SUMS.txt')
+          foreach ($item in $required) {
+            if (-not ($entries -contains $item)) { throw "ZIP entry missing: $item" }
+          }
+          if ($entries | Where-Object { $_ -match '\.(pdb|ilk|obj|exp|lib|idb|tlog)$' }) {
+            throw 'ZIP contains forbidden build cache or symbol files.'
+          }
+          Get-FileHash -LiteralPath $zip -Algorithm SHA256
+
+      - name: Upload tested portable preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: KuubikDraw-0.1.0-preview.1-win64
+          path: |
+            artifacts/KuubikDraw-0.1.0-preview.1-win64.zip
+            artifacts/KuubikDraw-0.1.0-preview.1-win64.zip.sha256
+          if-no-files-found: error
+          retention-days: 30

@@ -92,9 +92,10 @@ int main(int argc, char** argv)
     RS_DEBUG->setLevel(RS_Debug::D_WARNING);
 
     LC_Application app(argc, argv);
-    QCoreApplication::setOrganizationName("LibreCAD");
-    QCoreApplication::setApplicationName("LibreCAD");
-    QCoreApplication::setApplicationVersion(XSTR(LC_VERSION));
+    QCoreApplication::setOrganizationName(KUUBIK_DRAW_ORGANIZATION);
+    QCoreApplication::setOrganizationDomain("kuubik3d.ee");
+    QCoreApplication::setApplicationName(KUUBIK_DRAW_PRODUCT_NAME);
+    QCoreApplication::setApplicationVersion(KUUBIK_DRAW_VERSION);
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 7, 0))
     QGuiApplication::setDesktopFileName("librecad.desktop");
@@ -119,7 +120,7 @@ int main(int argc, char** argv)
         if (allowOptions && (help0.compare(argstr, Qt::CaseInsensitive)==0 ||
                              help1.compare(argstr, Qt::CaseInsensitive)==0 ))
         {
-            qDebug()<<"Usage: librecad [command] <options> <dxf file>";
+            qDebug()<<"Usage: KuubikDraw [command] <options> <dxf file>";
             qDebug()<<"";
             qDebug()<<"Commands:";
             qDebug()<<"";
@@ -237,7 +238,7 @@ int main(int argc, char** argv)
     {
         RS_DEBUG->print("main: show initial config dialog..");
         QG_DlgInitial di(nullptr);
-        QPixmap pxm(":/main/intro_librecad.png");
+        QPixmap pxm(":/main/intro_kuubikdraw.png");
         di.setPixmap(pxm);
         if (di.exec())
         {
@@ -254,7 +255,7 @@ int main(int argc, char** argv)
 
     if (show_splash)
     {
-        QPixmap pixmap(":/main/splash_librecad.png");
+        QPixmap pixmap(":/main/splash_kuubikdraw.png");
         splash->setPixmap(pixmap);
         splash->setAttribute(Qt::WA_DeleteOnClose);
         splash->show();
@@ -288,7 +289,8 @@ int main(int argc, char** argv)
     app.installEventFilter(&appWin);
 #endif
     RS_DEBUG->print("main: setting caption");
-    appWin.setWindowTitle(app.applicationName());
+    appWin.setWindowTitle(QStringLiteral(KUUBIK_DRAW_PRODUCT_NAME " " KUUBIK_DRAW_VERSION
+                                         " \u2014 " KUUBIK_DRAW_BASE_VERSION));
 
     RS_DEBUG->print("main: show main window");
 

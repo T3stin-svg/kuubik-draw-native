@@ -388,11 +388,11 @@ void LC_WidgetFactory::createRightSidebar(QG_ActionHandler* action_handler)
     dock_library->resize(240, 400);
 
     QDockWidget* dock_command = new QDockWidget(tr("Command line"), main_window);
-    dock_command->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    dock_command->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     dock_command->setObjectName("command_dockwidget");
     command_widget = new QG_CommandWidget(dock_command, "Command");
     command_widget->setActionHandler(action_handler);
-    command_widget->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    command_widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     connect(main_window, SIGNAL(windowsChanged(bool)), command_widget, SLOT(setEnabled(bool)));
     connect(command_widget->leCommand, SIGNAL(escape()), main_window, SLOT(setFocus()));
     dock_command->setWidget(command_widget);
@@ -410,7 +410,9 @@ void LC_WidgetFactory::createRightSidebar(QG_ActionHandler* action_handler)
         main_window->tabifyDockWidget(dock_layer, dock_pen_palette);
         main_window->tabifyDockWidget(dock_pen_palette, dock_layer_tree);
     }
-    main_window->addDockWidget(Qt::RightDockWidgetArea, dock_command);
+    dock_layer->raise();
+    main_window->addDockWidget(Qt::BottomDockWidgetArea, dock_command);
+    dock_command->resize(800, 96);
     command_widget->getDockingAction()->setText(dock_command->isFloating() ? tr("Dock") : tr("Float"));
 }
 
@@ -521,7 +523,6 @@ void LC_WidgetFactory::createCADToolbars()
     line_toolbar->setSizePolicy(toolBarPolicy);
     line_toolbar->setObjectName("line_toolbar");
     line_toolbar->addActions(line_actions);
-    line_toolbar->hide();
 
     QToolBar* circle_toolbar = new QToolBar(QC_ApplicationWindow::tr("Circle"), main_window);
     circle_toolbar->setSizePolicy(toolBarPolicy);
@@ -563,7 +564,6 @@ void LC_WidgetFactory::createCADToolbars()
     modify_toolbar->setSizePolicy(toolBarPolicy);
     modify_toolbar->setObjectName("modify_toolbar");
     modify_toolbar->addActions(modify_actions);
-    modify_toolbar->hide();
 
     QToolBar* info_toolbar = new QToolBar(QC_ApplicationWindow::tr("Info"), main_window);
     info_toolbar->setSizePolicy(toolBarPolicy);
@@ -571,13 +571,13 @@ void LC_WidgetFactory::createCADToolbars()
     info_toolbar->addActions(info_actions);
     info_toolbar->hide();
 
-    main_window->addToolBar(Qt::BottomToolBarArea, line_toolbar);
+    main_window->addToolBar(Qt::TopToolBarArea, line_toolbar);
     main_window->addToolBar(Qt::BottomToolBarArea, circle_toolbar);
     main_window->addToolBar(Qt::BottomToolBarArea, curve_toolbar);
     main_window->addToolBar(Qt::BottomToolBarArea, ellipse_toolbar);
     main_window->addToolBar(Qt::BottomToolBarArea, polyline_toolbar);
     main_window->addToolBar(Qt::BottomToolBarArea, dimension_toolbar);
-    main_window->addToolBar(Qt::BottomToolBarArea, modify_toolbar);
+    main_window->addToolBar(Qt::TopToolBarArea, modify_toolbar);
     main_window->addToolBar(Qt::BottomToolBarArea, info_toolbar);
     main_window->addToolBar(Qt::BottomToolBarArea, select_toolbar);
 }

@@ -97,9 +97,10 @@ int console_dxf2png(int argc, char* argv[])
     RS_DEBUG->setLevel(RS_Debug::D_NOTHING);
 
     QApplication app(argc, argv);
-    QCoreApplication::setOrganizationName("LibreCAD");
-    QCoreApplication::setApplicationName("LibreCAD");
-    QCoreApplication::setApplicationVersion(XSTR(LC_VERSION));
+    QCoreApplication::setOrganizationName(KUUBIK_DRAW_ORGANIZATION);
+    QCoreApplication::setOrganizationDomain("kuubik3d.ee");
+    QCoreApplication::setApplicationName(KUUBIK_DRAW_PRODUCT_NAME);
+    QCoreApplication::setApplicationVersion(KUUBIK_DRAW_VERSION);
 
     QFileInfo prgInfo(QFile::decodeName(argv[0]));
     QString prgDir(prgInfo.absolutePath());

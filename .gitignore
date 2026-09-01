@@ -4,7 +4,11 @@
 !/CMakeLists.txt
 /*.txt
 /\.*
+!/.github/
+!/.github/workflows/
+!/.github/workflows/kuubik-preview-win64.yml
 /build/
+/artifacts/
 
 # Apple generated directories
 LibreCAD.app/
