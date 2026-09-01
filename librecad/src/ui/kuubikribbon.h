@@ -11,8 +11,8 @@
 #ifndef KUUBIKRIBBON_H
 #define KUUBIKRIBBON_H
 
-#include <QMap>
 #include <QList>
+#include <QMap>
 #include <QStringList>
 #include <QWidget>
 
@@ -20,6 +20,7 @@ class QAction;
 class QFrame;
 class QGridLayout;
 class QMainWindow;
+class QResizeEvent;
 class QTabWidget;
 class QToolBar;
 class QToolButton;
@@ -38,24 +39,50 @@ public:
 
     void embedNativeToolbars(QMainWindow* mainWindow);
     void releaseNativeToolbars(QMainWindow* mainWindow);
+    void setCurrentLayerSelector(QWidget* selector);
 
 private:
-    struct GroupSpec {
+    enum class ItemSize { Large, Medium, Small };
+
+    struct ItemSpec {
+        QString actionKey;
+        ItemSize size {ItemSize::Small};
+    };
+    struct PanelSpec {
         QString title;
-        QStringList actionKeys;
+        QList<ItemSpec> items;
+        int collapsePriority {0};
+    };
+    struct TabSpec {
+        QString title;
+        QList<PanelSpec> panels;
+    };
+    struct PanelInstance {
+        QWidget* page {nullptr};
+        QFrame* frame {nullptr};
+        QList<QToolButton*> itemButtons;
+        QToolButton* overflowButton {nullptr};
+        int collapsePriority {0};
+        bool collapsed {false};
     };
 
-    QFrame* createActionGroup(const GroupSpec& spec, QWidget* parent);
+    QFrame* createActionGroup(const PanelSpec& spec, QWidget* parent, QWidget* page);
     QToolButton* createActionButton(const QString& key, QWidget* parent,
+                                    ItemSize size = ItemSize::Small,
                                     bool iconOnly = false);
-    QWidget* createPage(const QList<GroupSpec>& groups);
+    QWidget* createPage(const TabSpec& spec);
     QFrame* createEmbeddedToolbarGroup(const QString& title,
                                        QToolBar* toolbar,
                                        QWidget* parent);
+    QFrame* createCurrentLayerHost(QWidget* parent);
+    void updateCollapsedPanels();
+    void setPanelCollapsed(PanelInstance& panel, bool collapsed);
+    void resizeEvent(QResizeEvent* event) override;
 
     const QMap<QString, QAction*>& actions;
     QMap<QString, QToolButton*> actionButtons;
     QStringList missingKeys;
+    QList<PanelInstance> panels;
     QTabWidget* tabs {nullptr};
     QToolBar* penToolbar {nullptr};
     QToolBar* optionToolbar {nullptr};
@@ -63,6 +90,9 @@ private:
     QFrame* optionToolbarHost {nullptr};
     QGridLayout* penToolbarLayout {nullptr};
     QGridLayout* optionToolbarLayout {nullptr};
+    QFrame* currentLayerHost {nullptr};
+    QGridLayout* currentLayerLayout {nullptr};
+    QWidget* currentLayerSelector {nullptr};
 };
 
 #endif // KUUBIKRIBBON_H

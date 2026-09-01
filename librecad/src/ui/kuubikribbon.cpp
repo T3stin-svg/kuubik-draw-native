@@ -9,6 +9,7 @@
 ****************************************************************************/
 
 #include "kuubikribbon.h"
+#include "kuubikiconregistry.h"
 #include "kuubiktheme.h"
 
 #include <QAction>
@@ -17,11 +18,16 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMainWindow>
+#include <QMenu>
+#include <QResizeEvent>
 #include <QSizePolicy>
 #include <QTabWidget>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
+
+#include <algorithm>
 
 namespace {
 QLabel* makeLabel(const QString& text, const char* objectName, QWidget* parent)
@@ -36,10 +42,7 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
                            QToolBar* nativePenToolbar,
                            QToolBar* nativeOptionToolbar,
                            QWidget* parent)
-    : QWidget(parent)
-    , actions(actionMap)
-    , penToolbar(nativePenToolbar)
-    , optionToolbar(nativeOptionToolbar)
+    : QWidget(parent), actions(actionMap), penToolbar(nativePenToolbar), optionToolbar(nativeOptionToolbar)
 {
     setObjectName("kuubikRibbon");
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -57,29 +60,41 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
     quickLayout->setContentsMargins(6, 2, 8, 2);
     quickLayout->setSpacing(2);
 
-    const QStringList quickKeys {
-        "FileNew", "FileOpen", "FileSave", "EditUndo", "EditRedo", "FilePrint"
-    };
-    for (const auto& key : quickKeys) {
-        if (auto* button = createActionButton(key, quickBar, true)) {
+    auto* applicationButton = new QToolButton(quickBar);
+    applicationButton->setObjectName("kuubikApplicationButton");
+    applicationButton->setText(tr("Application"));
+    applicationButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    applicationButton->setPopupMode(QToolButton::InstantPopup);
+    auto* applicationMenu = new QMenu(applicationButton);
+    for (const QString& key : {QStringLiteral("FileNew"), QStringLiteral("FileOpen"),
+                               QStringLiteral("FileSave"), QStringLiteral("FileSaveAs"),
+                               QStringLiteral("FileExport"), QStringLiteral("FilePrintPreview"),
+                               QStringLiteral("FilePrintPDF"), QStringLiteral("FilePrint")}) {
+        if (QAction* action = actions.value(key, nullptr)) {
+            applicationMenu->addAction(action);
+        }
+    }
+    applicationButton->setMenu(applicationMenu);
+    quickLayout->addWidget(applicationButton);
+
+    for (const QString& key : {QStringLiteral("FileNew"), QStringLiteral("FileOpen"),
+                               QStringLiteral("FileSave"), QStringLiteral("EditUndo"),
+                               QStringLiteral("EditRedo"), QStringLiteral("FilePrint")}) {
+        if (QToolButton* button = createActionButton(key, quickBar, ItemSize::Small, true)) {
             button->setObjectName("kuubikQuickButton");
             quickLayout->addWidget(button);
         }
     }
     quickLayout->addSpacing(8);
-    quickLayout->addWidget(makeLabel(tr("2D Drafting & Annotation"),
-                                     "kuubikWorkspaceLabel", quickBar));
+    quickLayout->addWidget(makeLabel(tr("2D Drafting & Annotation"), "kuubikWorkspaceLabel", quickBar));
     quickLayout->addStretch(1);
-
     optionToolbarHost = new QFrame(quickBar);
     optionToolbarHost->setObjectName("kuubikOptionToolbarHost");
     optionToolbarLayout = new QGridLayout(optionToolbarHost);
     optionToolbarLayout->setContentsMargins(0, 0, 0, 0);
     optionToolbarLayout->setSpacing(0);
     quickLayout->addWidget(optionToolbarHost, 1);
-    quickLayout->addSpacing(8);
-    quickLayout->addWidget(makeLabel(tr("Kuubik Draw · GPL"),
-                                     "kuubikProductBadge", quickBar));
+    quickLayout->addWidget(makeLabel(tr("Kuubik Draw · GPL"), "kuubikProductBadge", quickBar));
     root->addWidget(quickBar);
 
     tabs = new QTabWidget(this);
@@ -88,103 +103,132 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
     tabs->setMovable(false);
     tabs->setUsesScrollButtons(true);
 
-    tabs->addTab(createPage({
-        {tr("Draw"), {"DrawLine", "DrawPolyline", "DrawLineRectangle", "DrawCircle", "DrawArc"}},
-        {tr("Modify"), {"ModifyMove", "ModifyDuplicate", "ModifyRotate", "ModifyScale",
-                        "ModifyMirror", "ModifyOffset", "ModifyTrim", "ModifyTrim2",
-                        "ModifyRound", "ModifyDeleteQuick"}},
-        {tr("Layers"), {"LayersAdd", "LayersEdit", "LayersToggleView", "LayersToggleLock"}},
-        {tr("Properties"), {"ModifyEntity"}}
-    }), tr("Home"));
+    const QList<TabSpec> specs {
+        {tr("Home"), {
+            {tr("Draw"), {{"DrawLine", ItemSize::Large}, {"DrawPolyline", ItemSize::Medium}, {"DrawLineRectangle", ItemSize::Small}, {"DrawCircle", ItemSize::Medium}, {"DrawArc", ItemSize::Small}, {"DrawHatch", ItemSize::Small}}, -1},
+            {tr("Modify"), {{"ModifyMove", ItemSize::Large}, {"ModifyDuplicate", ItemSize::Medium}, {"ModifyTrim", ItemSize::Small}, {"ModifyTrim2", ItemSize::Small}, {"ModifyCut", ItemSize::Small}, {"ModifyOffset", ItemSize::Medium}, {"ModifyRotate", ItemSize::Medium}, {"ModifyMirror", ItemSize::Small}, {"ModifyScale", ItemSize::Small}, {"ModifyRound", ItemSize::Small}, {"ModifyDeleteQuick", ItemSize::Small}}, -1},
+            {tr("Annotation"), {{"DrawText", ItemSize::Medium}, {"DrawMText", ItemSize::Medium}, {"DimLinear", ItemSize::Small}, {"DimAligned", ItemSize::Small}, {"DimLinearHor", ItemSize::Small}, {"DimLinearVer", ItemSize::Small}, {"DimRadial", ItemSize::Small}, {"DimDiametric", ItemSize::Small}, {"DimAngular", ItemSize::Small}, {"DimLeader", ItemSize::Small}}, 200},
+            {tr("Layers"), {{"LayersAdd", ItemSize::Medium}, {"LayersEdit", ItemSize::Medium}, {"LayersToggleView", ItemSize::Small}, {"LayersToggleLock", ItemSize::Small}}, -1},
+            {tr("Block"), {{"BlocksInsert", ItemSize::Medium}, {"BlocksCreate", ItemSize::Medium}, {"BlocksEdit", ItemSize::Small}, {"BlocksExplode", ItemSize::Small}, {"BlocksImport", ItemSize::Small}}, 300},
+            {tr("Properties"), {{"ModifyEntity", ItemSize::Medium}}, 100},
+            {tr("Utilities"), {{"InfoDist", ItemSize::Small}, {"InfoAngle", ItemSize::Small}, {"InfoArea", ItemSize::Small}, {"InfoTotalLength", ItemSize::Small}}, 400},
+            {tr("Clipboard"), {{"EditCut", ItemSize::Small}, {"EditCopy", ItemSize::Small}, {"EditPaste", ItemSize::Small}}, 500}
+        }},
+        {tr("Insert"), {{tr("Blocks"), {{"BlocksInsert", ItemSize::Large}, {"BlocksCreate", ItemSize::Medium}, {"BlocksEdit", ItemSize::Small}, {"BlocksExplode", ItemSize::Small}, {"BlocksImport", ItemSize::Small}}, 200}}},
+        {tr("Annotate"), {
+            {tr("Text"), {{"DrawText", ItemSize::Large}, {"DrawMText", ItemSize::Medium}}, -1},
+            {tr("Dimensions"), {{"DimLinear", ItemSize::Large}, {"DimAligned", ItemSize::Medium}, {"DimLinearHor", ItemSize::Small}, {"DimLinearVer", ItemSize::Small}, {"DimRadial", ItemSize::Small}, {"DimDiametric", ItemSize::Small}, {"DimAngular", ItemSize::Small}, {"DimLeader", ItemSize::Small}}, 100},
+            {tr("Detail"), {{"DrawHatch", ItemSize::Medium}}, 200}
+        }},
+        {tr("View"), {
+            {tr("Navigate"), {{"ZoomAuto", ItemSize::Large}, {"ZoomIn", ItemSize::Medium}, {"ZoomOut", ItemSize::Medium}, {"ZoomPrevious", ItemSize::Small}, {"ZoomWindow", ItemSize::Small}, {"ZoomPan", ItemSize::Small}}, -1},
+            {tr("Display"), {{"ViewGrid", ItemSize::Medium}}, 100},
+            {tr("Snaps"), {{"SnapEnd", ItemSize::Small}, {"SnapMiddle", ItemSize::Small}, {"SnapCenter", ItemSize::Small}, {"SnapIntersection", ItemSize::Small}, {"RestrictOrthogonal", ItemSize::Small}}, 200}
+        }},
+        {tr("Manage"), {
+            {tr("Layers"), {{"LayersAdd", ItemSize::Large}, {"LayersEdit", ItemSize::Medium}, {"LayersToggleView", ItemSize::Small}, {"LayersToggleLock", ItemSize::Small}}, -1},
+            {tr("Blocks"), {{"BlocksCreate", ItemSize::Medium}, {"BlocksEdit", ItemSize::Small}, {"BlocksExplode", ItemSize::Small}}, 100},
+            {tr("Properties"), {{"ModifyEntity", ItemSize::Medium}}, 200}
+        }},
+        {tr("Output"), {
+            {tr("File"), {{"FileSaveAs", ItemSize::Medium}, {"FileExport", ItemSize::Medium}}, -1},
+            {tr("Plot"), {{"FilePrintPreview", ItemSize::Medium}, {"FilePrintPDF", ItemSize::Medium}, {"FilePrint", ItemSize::Small}}, 100}
+        }}
+    };
+    for (const TabSpec& spec : specs) {
+        tabs->addTab(createPage(spec), spec.title);
+    }
+    connect(tabs, &QTabWidget::currentChanged, this, [this](int) {
+        QTimer::singleShot(0, this, [this] { updateCollapsedPanels(); });
+    });
 
-    tabs->addTab(createPage({
-        {tr("Text"), {"DrawText", "DrawMText"}},
-        {tr("Dimensions"), {"DimLinear", "DimAligned", "DimLinearHor", "DimLinearVer",
-                            "DimRadial", "DimDiametric", "DimAngular", "DimLeader"}},
-        {tr("Detail"), {"DrawHatch"}}
-    }), tr("Annotate"));
-
-    tabs->addTab(createPage({
-        {tr("Blocks"), {"BlocksCreate", "BlocksInsert", "BlocksEdit", "BlocksExplode"}},
-        {tr("Content"), {"BlocksImport", "DrawImage"}}
-    }), tr("Insert"));
-
-    tabs->addTab(createPage({
-        {tr("Display"), {"ViewGrid", "ViewDraft", "ZoomRedraw", "ZoomAuto"}},
-        {tr("Navigate"), {"ZoomIn", "ZoomOut", "ZoomPrevious", "ZoomWindow", "ZoomPan"}},
-        {tr("Snaps"), {"SnapEnd", "SnapMiddle", "SnapCenter", "SnapIntersection",
-                       "RestrictOrthogonal"}}
-    }), tr("View"));
-
-    tabs->addTab(createPage({
-        {tr("File"), {"FileSaveAs", "FileSaveAll", "FileExport"}},
-        {tr("Print"), {"FilePrintPreview", "FilePrintPDF", "FilePrint"}}
-    }), tr("Output"));
-
-    // The native pen controls are real LibreCAD widgets. They are embedded in
-    // Home rather than reimplemented so property changes retain upstream logic.
     auto* homePage = tabs->widget(0);
     auto* homeLayout = qobject_cast<QHBoxLayout*>(homePage->layout());
+    currentLayerHost = createCurrentLayerHost(homePage);
+    homeLayout->addWidget(currentLayerHost);
     penToolbarHost = createEmbeddedToolbarGroup(tr("Pen"), penToolbar, homePage);
     penToolbarLayout = qobject_cast<QGridLayout*>(penToolbarHost->layout());
     homeLayout->addWidget(penToolbarHost);
     homeLayout->addStretch(1);
-
     root->addWidget(tabs, 1);
+    QTimer::singleShot(0, this, [this] { updateCollapsedPanels(); });
 }
 
-QToolButton* KuubikRibbon::createActionButton(const QString& key,
-                                              QWidget* parent,
-                                              bool iconOnly)
+QToolButton* KuubikRibbon::createActionButton(const QString& key, QWidget* parent, ItemSize size, bool iconOnly)
 {
     QAction* action = actions.value(key, nullptr);
     if (action == nullptr) {
-        if (!missingKeys.contains(key)) {
-            missingKeys.append(key);
-        }
+        if (!missingKeys.contains(key)) missingKeys.append(key);
         return nullptr;
     }
-
     auto* button = new QToolButton(parent);
     button->setObjectName("kuubikRibbonButton");
     button->setProperty("kuubikActionKey", key);
+    button->setProperty("kuubikItemSize", static_cast<int>(size));
     button->setDefaultAction(action);
+    const QIcon icon = KuubikIconRegistry::iconForAction(key);
+    if (!icon.isNull()) button->setIcon(icon);
     button->setAutoRaise(false);
-    button->setIconSize(iconOnly ? QSize(16, 16) : QSize(18, 18));
-    button->setToolButtonStyle(iconOnly ? Qt::ToolButtonIconOnly
-                                        : Qt::ToolButtonTextBesideIcon);
+    if (iconOnly) {
+        button->setIconSize(QSize(16, 16));
+        button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    } else if (size == ItemSize::Large) {
+        button->setIconSize(QSize(32, 32));
+        button->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    } else {
+        const int pixels = size == ItemSize::Medium ? 20 : 16;
+        button->setIconSize(QSize(pixels, pixels));
+        button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    }
     button->setAccessibleName(action->text().remove('&'));
-    actionButtons.insert(key, button);
+    if (!actionButtons.contains(key)) actionButtons.insert(key, button);
     return button;
 }
 
-QFrame* KuubikRibbon::createActionGroup(const GroupSpec& spec, QWidget* parent)
+QFrame* KuubikRibbon::createActionGroup(const PanelSpec& spec, QWidget* parent, QWidget* page)
 {
     auto* frame = new QFrame(parent);
     frame->setObjectName("kuubikRibbonGroup");
+    frame->setProperty("kuubikCollapsePriority", spec.collapsePriority);
     auto* layout = new QVBoxLayout(frame);
     layout->setContentsMargins(4, 3, 4, 1);
     layout->setSpacing(1);
-
-    auto* buttons = new QGridLayout;
-    buttons->setContentsMargins(0, 0, 0, 0);
-    buttons->setHorizontalSpacing(2);
-    buttons->setVerticalSpacing(2);
-    int visibleIndex = 0;
-    for (const auto& key : spec.actionKeys) {
-        if (auto* button = createActionButton(key, frame)) {
-            buttons->addWidget(button, visibleIndex % 2, visibleIndex / 2);
-            ++visibleIndex;
+    auto* grid = new QGridLayout;
+    grid->setContentsMargins(0, 0, 0, 0);
+    grid->setHorizontalSpacing(2);
+    grid->setVerticalSpacing(2);
+    QList<QToolButton*> itemButtons;
+    int largeColumn = 0;
+    int compactIndex = 0;
+    for (const ItemSpec& item : spec.items) {
+        if (QToolButton* button = createActionButton(item.actionKey, frame, item.size)) {
+            itemButtons.append(button);
+            if (item.size == ItemSize::Large) grid->addWidget(button, 0, largeColumn++, 2, 1);
+            else {
+                grid->addWidget(button, compactIndex % 2, largeColumn + compactIndex / 2);
+                ++compactIndex;
+            }
         }
     }
-    layout->addLayout(buttons, 1);
+    layout->addLayout(grid, 1);
+    auto* overflowButton = new QToolButton(frame);
+    overflowButton->setObjectName("kuubikRibbonPanelOverflow");
+    overflowButton->setText(tr("More"));
+    overflowButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    overflowButton->setPopupMode(QToolButton::InstantPopup);
+    auto* menu = new QMenu(overflowButton);
+    for (const ItemSpec& item : spec.items) {
+        if (QAction* action = actions.value(item.actionKey, nullptr)) menu->addAction(action);
+    }
+    overflowButton->setMenu(menu);
+    overflowButton->hide();
+    layout->addWidget(overflowButton, 1, Qt::AlignHCenter);
     layout->addWidget(makeLabel(spec.title, "kuubikRibbonGroupLabel", frame));
+    panels.append({page, frame, itemButtons, overflowButton, spec.collapsePriority, false});
     return frame;
 }
 
-QFrame* KuubikRibbon::createEmbeddedToolbarGroup(const QString& title,
-                                                 QToolBar* toolbar,
-                                                 QWidget* parent)
+QFrame* KuubikRibbon::createEmbeddedToolbarGroup(const QString& title, QToolBar* toolbar, QWidget* parent)
 {
     auto* frame = new QFrame(parent);
     frame->setObjectName("kuubikRibbonGroup");
@@ -203,40 +247,99 @@ QFrame* KuubikRibbon::createEmbeddedToolbarGroup(const QString& title,
     return frame;
 }
 
-QWidget* KuubikRibbon::createPage(const QList<GroupSpec>& groups)
+QFrame* KuubikRibbon::createCurrentLayerHost(QWidget* parent)
+{
+    auto* frame = new QFrame(parent);
+    frame->setObjectName("kuubikCurrentLayerHost");
+    currentLayerLayout = new QGridLayout(frame);
+    currentLayerLayout->setContentsMargins(4, 3, 4, 1);
+    currentLayerLayout->setSpacing(2);
+    currentLayerLayout->addWidget(makeLabel(tr("Current Layer"), "kuubikCurrentLayerPlaceholder", frame), 0, 0);
+    if (QToolButton* edit = createActionButton("LayersEdit", frame, ItemSize::Small)) {
+        edit->setObjectName("kuubikCurrentLayerEditButton");
+        currentLayerLayout->addWidget(edit, 0, 1);
+    }
+    auto* label = makeLabel(tr("Layer"), "kuubikRibbonGroupLabel", frame);
+    label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+    currentLayerLayout->addWidget(label, 1, 0, 1, 2);
+    return frame;
+}
+
+QWidget* KuubikRibbon::createPage(const TabSpec& spec)
 {
     auto* page = new QWidget(this);
     page->setObjectName("kuubikRibbonPage");
     auto* layout = new QHBoxLayout(page);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
-    for (const auto& group : groups) {
-        layout->addWidget(createActionGroup(group, page));
-    }
+    for (const PanelSpec& panel : spec.panels) layout->addWidget(createActionGroup(panel, page, page));
     layout->addStretch(1);
     return page;
 }
 
-QStringList KuubikRibbon::boundActionKeys() const
+void KuubikRibbon::setCurrentLayerSelector(QWidget* selector)
 {
-    return actionButtons.keys();
+    if (currentLayerLayout == nullptr || currentLayerHost == nullptr) return;
+    if (currentLayerSelector != nullptr) {
+        currentLayerLayout->removeWidget(currentLayerSelector);
+        currentLayerSelector->hide();
+    }
+    currentLayerSelector = selector;
+    if (QLabel* placeholder = currentLayerHost->findChild<QLabel*>("kuubikCurrentLayerPlaceholder")) placeholder->setVisible(selector == nullptr);
+    if (selector != nullptr) {
+        selector->setParent(currentLayerHost);
+        currentLayerLayout->addWidget(selector, 0, 0);
+        selector->show();
+    }
 }
 
-QStringList KuubikRibbon::missingActionKeys() const
+void KuubikRibbon::setPanelCollapsed(PanelInstance& panel, bool collapsed)
 {
-    return missingKeys;
+    if (panel.collapsed == collapsed) return;
+    panel.collapsed = collapsed;
+    panel.frame->setProperty("kuubikCollapsed", collapsed);
+    for (QToolButton* button : panel.itemButtons) button->setVisible(!collapsed);
+    panel.overflowButton->setVisible(collapsed);
+    panel.frame->layout()->invalidate();
+    panel.frame->updateGeometry();
 }
 
-QToolButton* KuubikRibbon::buttonForAction(const QString& key) const
+void KuubikRibbon::updateCollapsedPanels()
 {
-    return actionButtons.value(key, nullptr);
+    if (tabs == nullptr || tabs->currentWidget() == nullptr) return;
+    QWidget* page = tabs->currentWidget();
+    QList<int> candidates;
+    int requiredWidth = 0;
+    for (int index = 0; index < panels.size(); ++index) {
+        PanelInstance& panel = panels[index];
+        if (panel.page != page) continue;
+        setPanelCollapsed(panel, false);
+        requiredWidth += panel.frame->sizeHint().width();
+        if (panel.collapsePriority > 0) candidates.append(index);
+    }
+    std::sort(candidates.begin(), candidates.end(), [this](int left, int right) { return panels[left].collapsePriority > panels[right].collapsePriority; });
+    for (int index : candidates) {
+        if (requiredWidth <= page->contentsRect().width()) break;
+        PanelInstance& panel = panels[index];
+        const int before = panel.frame->sizeHint().width();
+        setPanelCollapsed(panel, true);
+        requiredWidth -= before - panel.frame->sizeHint().width();
+    }
 }
+
+void KuubikRibbon::resizeEvent(QResizeEvent* event)
+{
+    QWidget::resizeEvent(event);
+    updateCollapsedPanels();
+}
+
+QStringList KuubikRibbon::boundActionKeys() const { return actionButtons.keys(); }
+QStringList KuubikRibbon::missingActionKeys() const { return missingKeys; }
+QToolButton* KuubikRibbon::buttonForAction(const QString& key) const { return actionButtons.value(key, nullptr); }
 
 void KuubikRibbon::embedNativeToolbars(QMainWindow* mainWindow)
 {
-    if (mainWindow == nullptr) {
-        return;
-    }
+    if (mainWindow == nullptr) return;
     if (optionToolbar != nullptr && optionToolbarLayout != nullptr) {
         mainWindow->removeToolBar(optionToolbar);
         optionToolbar->setParent(optionToolbarHost);
@@ -253,9 +356,7 @@ void KuubikRibbon::embedNativeToolbars(QMainWindow* mainWindow)
 
 void KuubikRibbon::releaseNativeToolbars(QMainWindow* mainWindow)
 {
-    if (mainWindow == nullptr) {
-        return;
-    }
+    if (mainWindow == nullptr) return;
     if (optionToolbar != nullptr) {
         optionToolbarLayout->removeWidget(optionToolbar);
         optionToolbar->setParent(mainWindow);
