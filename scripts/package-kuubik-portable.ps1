@@ -58,6 +58,24 @@ Write-Host 'Deploying Qt runtime...'
 & windeployqt.exe --release --compiler-runtime --force --verbose 1 $sourceExe | Out-Host
 Assert-Success 'windeployqt'
 
+# windeployqt places the Visual C++ redistributable installer beside MSVC
+# builds.  A portable preview must not require an installer or administrator
+# rights, so copy the redistributable CRT DLLs from the active Visual Studio
+# toolchain and remove the installer from the payload.
+$vcRedistRoot = $env:VCToolsRedistDir
+if ([string]::IsNullOrWhiteSpace($vcRedistRoot) -or -not (Test-Path -LiteralPath $vcRedistRoot)) {
+    throw 'VCToolsRedistDir is unavailable; cannot create a self-contained MSVC package.'
+}
+$vcRuntimeDirectory = Get-ChildItem -LiteralPath (Join-Path $vcRedistRoot 'x64') -Directory -Filter 'Microsoft.VC*.CRT' |
+    Sort-Object Name -Descending |
+    Select-Object -First 1
+if ($null -eq $vcRuntimeDirectory) {
+    throw "No x64 Visual C++ CRT directory found below $vcRedistRoot"
+}
+Copy-Item -Path (Join-Path $vcRuntimeDirectory.FullName '*.dll') -Destination $buildDirectory -Force
+Get-ChildItem -LiteralPath $buildDirectory -Filter 'vc_redist*.exe' -File -ErrorAction SilentlyContinue |
+    Remove-Item -Force
+
 Ensure-Directory $packageDirectory
 Copy-Item -Path (Join-Path $buildDirectory '*') -Destination $packageDirectory -Recurse -Force
 
@@ -104,6 +122,8 @@ if (Test-Path -LiteralPath (Join-Path $qtPrefix 'LICENSES')) {
 $forbiddenExtensions = @('.pdb', '.ilk', '.obj', '.exp', '.lib', '.idb', '.tlog')
 Get-ChildItem -LiteralPath $packageDirectory -Recurse -File |
     Where-Object { $forbiddenExtensions -contains $_.Extension.ToLowerInvariant() } |
+    Remove-Item -Force
+Get-ChildItem -LiteralPath $packageDirectory -Filter 'vc_redist*.exe' -Recurse -File -ErrorAction SilentlyContinue |
     Remove-Item -Force
 
 $sourceCommit = (& git -C $repository rev-parse HEAD).Trim()

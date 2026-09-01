@@ -36,6 +36,8 @@ $exe = Join-Path $package 'KuubikDraw.exe'
 Require-Path $exe
 Require-Path (Join-Path $package 'platforms\qwindows.dll')
 Require-Path (Join-Path $package 'imageformats\qsvg.dll')
+Require-Path (Join-Path $package 'msvcp140.dll')
+Require-Path (Join-Path $package 'vcruntime140.dll')
 Require-Path (Join-Path $package 'resources\fonts')
 Require-Path (Join-Path $package 'resources\patterns')
 Require-Path (Join-Path $package 'resources\library')
@@ -47,7 +49,7 @@ Require-Path (Join-Path $package 'build-manifest.json')
 
 $forbidden = Get-ChildItem -LiteralPath $package -Recurse -File | Where-Object {
     $_.Extension.ToLowerInvariant() -in @('.pdb', '.ilk', '.obj', '.exp', '.lib', '.idb', '.tlog') -or
-    $_.Name.ToLowerInvariant() -in @('node.exe', 'python.exe', 'python3.exe', 'uninstall.exe')
+    $_.Name.ToLowerInvariant() -in @('node.exe', 'python.exe', 'python3.exe', 'uninstall.exe', 'vc_redist.x64.exe', 'vc_redist.x86.exe')
 }
 if ($forbidden) {
     throw "Forbidden build/install files found: $($forbidden.FullName -join ', ')"
