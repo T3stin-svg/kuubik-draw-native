@@ -7,6 +7,18 @@ on:
       - kuubik/visual-v0.2
     tags:
       - v0.2.0-preview.2
+    paths-ignore:
+      - 'docs/**'
+      - 'evidence/**'
+      - 'AI_START.md'
+      - 'AGENTS.md'
+      - 'NEXT_TASKS.md'
+      - 'PROMPT_FOR_NEXT_AI.md'
+      - 'README.md'
+      - 'README_TEST.md'
+      - 'FORK_NOTICE.md'
+      - 'THIRD_PARTY_NOTICES.md'
+      - 'scripts/build-ai-handoff.ps1'
 
 permissions:
   contents: read

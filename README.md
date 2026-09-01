@@ -12,6 +12,10 @@ open/save and vector PDF export are the guaranteed v0.2 file workflows;
 DWG roundtrip is explicitly not certified.
 
 - [Fork and license notice](FORK_NOTICE.md)
+- [AI start and cross-computer handoff](AI_START.md)
+- [Copy-paste prompt for another AI](PROMPT_FOR_NEXT_AI.md)
+- [Current project state](docs/PROJECT_STATE.md)
+- [Roadmap and next tasks](docs/ROADMAP.md)
 - [Preview test guide](README_TEST.md)
 - [0.2.0-preview.2 release report](docs/releases/v0.2.0-preview.2.md)
 - [0.2.0-preview.2 public GUI evidence](evidence/releases/v0.2.0-preview.2/README.md)
