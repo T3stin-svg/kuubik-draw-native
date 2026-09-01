@@ -32,6 +32,7 @@
 #include <QApplication>
 #include <QByteArray>
 #include <QDebug>
+#include <QDir>
 #include <QSplashScreen>
 #include <QSettings>
 #include <QMessageBox>
@@ -98,6 +99,20 @@ int main(int argc, char** argv)
     QCoreApplication::setApplicationName(KUUBIK_DRAW_PRODUCT_NAME);
     QCoreApplication::setApplicationVersion(KUUBIK_DRAW_VERSION);
 
+    const QString uiContractPath = qEnvironmentVariable("KUUBIK_UI_CONTRACT_PATH");
+    const QString guiSmokeDirectory = qEnvironmentVariable("KUUBIK_GUI_SMOKE_DIR");
+    const bool kuubikAutomationRun = !uiContractPath.isEmpty()
+                                     || !guiSmokeDirectory.isEmpty();
+    if (kuubikAutomationRun) {
+        const QString outputRoot = !guiSmokeDirectory.isEmpty()
+                                       ? guiSmokeDirectory
+                                       : QFileInfo(uiContractPath).absolutePath();
+        const QString settingsRoot = QDir(outputRoot).filePath(QStringLiteral("settings"));
+        QDir().mkpath(settingsRoot);
+        QSettings::setDefaultFormat(QSettings::IniFormat);
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsRoot);
+    }
+
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 7, 0))
     QGuiApplication::setDesktopFileName("librecad.desktop");
 #endif
@@ -105,8 +120,7 @@ int main(int argc, char** argv)
     QSettings settings;
 
     bool first_load = settings.value("Startup/FirstLoad", 1).toBool();
-    const QString uiContractPath = qEnvironmentVariable("KUUBIK_UI_CONTRACT_PATH");
-    if (!uiContractPath.isEmpty()) {
+    if (kuubikAutomationRun) {
         first_load = false;
     }
 
@@ -257,7 +271,7 @@ int main(int argc, char** argv)
     auto splash = new QSplashScreen;
 
     bool show_splash = settings.value("Startup/ShowSplash", 1).toBool()
-                       && uiContractPath.isEmpty();
+                       && !kuubikAutomationRun;
 
     if (show_splash)
     {
@@ -354,7 +368,8 @@ int main(int argc, char** argv)
     QString activeFile = RS_SETTINGS->readEntry("/LastOpenFilesActive", "");
     RS_SETTINGS->endGroup();
 
-    if (reopenLastFiles && fileList.isEmpty() && !lastFiles.isEmpty()){
+    if (!kuubikAutomationRun && reopenLastFiles
+        && fileList.isEmpty() && !lastFiles.isEmpty()) {
         foreach(const QString& filename, lastFiles.split(";")) {
             if (!filename.isEmpty() && QFileInfo::exists(filename))
                 fileList << filename;
@@ -375,7 +390,7 @@ int main(int argc, char** argv)
         files_loaded = true;
     }
 
-    if (reopenLastFiles){
+    if (!kuubikAutomationRun && reopenLastFiles) {
         appWin.activateWindowWithFile(activeFile);
     }
     RS_DEBUG->print("main: loading files: OK");
@@ -393,7 +408,11 @@ int main(int argc, char** argv)
     if (first_load)
         settings.setValue("Startup/FirstLoad", 0);
 
-    if (!uiContractPath.isEmpty()) {
+    if (!guiSmokeDirectory.isEmpty()) {
+        QTimer::singleShot(100, &app, [&app, &appWin, guiSmokeDirectory]() {
+            app.exit(appWin.runKuubikGuiSmoke(guiSmokeDirectory) ? 0 : 4);
+        });
+    } else if (!uiContractPath.isEmpty()) {
         QTimer::singleShot(0, &app, [&app, &appWin, uiContractPath]() {
             app.exit(appWin.writeKuubikUiContract(uiContractPath) ? 0 : 3);
         });

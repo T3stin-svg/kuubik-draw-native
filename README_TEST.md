@@ -1,4 +1,4 @@
-# Kuubik Draw 0.2.0-preview.1 test guide
+# Kuubik Draw 0.2.0-preview.2 test guide
 
 This is an experimental Windows x64 preview of Kuubik Draw, based on LibreCAD
 2.2.1.5. It is a native, offline 2D CAD application. It does not require
@@ -43,6 +43,11 @@ LibreCAD's settings or the old React Kuubik Draw data.
   vector PDF and confirm page size and visible geometry.
 - Portable: copy the extracted folder to another location, including a path
   containing spaces, and start it without internet.
+
+The Windows build also runs a native GUI smoke at 1920×1080. It sends a real
+mouse event to the ribbon `LINE` button, clicks two canvas points, requires
+exactly one new native LINE, saves the DXF and reads it through an independent
+parser, and publishes active/committed PNG evidence with the CI run.
 
 ## Scope and known limitations
 

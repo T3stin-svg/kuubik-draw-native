@@ -14,6 +14,7 @@ def main() -> None:
     dxf_path = smoke / "preview-smoke.dxf"
     pdf_path = smoke / "preview-smoke.pdf"
     svg_path = smoke / "preview-smoke.svg"
+    gui_dxf_path = smoke / "gui-evidence" / "line-gui-smoke.dxf"
 
     doc = ezdxf.readfile(dxf_path)
     types = [entity.dxftype() for entity in doc.modelspace()]
@@ -35,7 +36,17 @@ def main() -> None:
     assert root.tag.endswith("svg"), root.tag
     assert len(list(root.iter())) > 3
 
-    print(f"Independent read-back passed: {types}, one A4 PDF page, valid SVG")
+    gui_doc = ezdxf.readfile(gui_dxf_path)
+    gui_lines = [entity for entity in gui_doc.modelspace() if entity.dxftype() == "LINE"]
+    assert len(gui_lines) == 1, [entity.dxftype() for entity in gui_doc.modelspace()]
+    start = gui_lines[0].dxf.start
+    end = gui_lines[0].dxf.end
+    assert not start.isclose(end), (start, end)
+
+    print(
+        "Independent read-back passed: "
+        f"{types}, one A4 PDF page, valid SVG, one non-zero GUI LINE"
+    )
 
 
 if __name__ == "__main__":

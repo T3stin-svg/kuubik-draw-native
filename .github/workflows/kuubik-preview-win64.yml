@@ -6,7 +6,7 @@ on:
     branches:
       - kuubik/visual-v0.2
     tags:
-      - v0.2.0-preview.1
+      - v0.2.0-preview.2
 
 permissions:
   contents: read
@@ -92,7 +92,7 @@ jobs:
 
       - name: Test portable folder and native file outputs
         shell: pwsh
-        run: .\scripts\test-kuubik-portable.ps1 -PackageDirectory .\artifacts\KuubikDraw-0.2.0-preview.1-win64
+        run: .\scripts\test-kuubik-portable.ps1 -PackageDirectory .\artifacts\KuubikDraw-0.2.0-preview.2-win64
 
       - name: Independently read back DXF, PDF and SVG
         shell: pwsh
@@ -100,10 +100,22 @@ jobs:
           python -m pip install --disable-pip-version-check --quiet ezdxf pypdf
           python .\scripts\verify-preview-outputs.py "$env:RUNNER_TEMP\Kuubik Draw portable smoke"
 
+      - name: Upload native GUI evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: KuubikDraw-0.2.0-preview.2-gui-evidence
+          path: |
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-active.png
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-committed.png
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.json
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.dxf
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Verify archive payload and checksum
         shell: pwsh
         run: |
-          $zip = '.\artifacts\KuubikDraw-0.2.0-preview.1-win64.zip'
+          $zip = '.\artifacts\KuubikDraw-0.2.0-preview.2-win64.zip'
           if (-not (Test-Path -LiteralPath $zip)) { throw 'Portable ZIP is missing.' }
           $entries = tar -tf $zip
           $required = @('KuubikDraw.exe', 'README_TEST.md', 'FORK_NOTICE.md', 'build-manifest.json', 'SHA256SUMS.txt')
@@ -118,9 +130,9 @@ jobs:
       - name: Upload tested portable preview
         uses: actions/upload-artifact@v4
         with:
-          name: KuubikDraw-0.2.0-preview.1-win64
+          name: KuubikDraw-0.2.0-preview.2-win64
           path: |
-            artifacts/KuubikDraw-0.2.0-preview.1-win64.zip
-            artifacts/KuubikDraw-0.2.0-preview.1-win64.zip.sha256
+            artifacts/KuubikDraw-0.2.0-preview.2-win64.zip
+            artifacts/KuubikDraw-0.2.0-preview.2-win64.zip.sha256
           if-no-files-found: error
           retention-days: 30

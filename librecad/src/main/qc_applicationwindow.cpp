@@ -35,6 +35,7 @@
 #include <QApplication>
 #include <QByteArray>
 #include <QDockWidget>
+#include <QDir>
 #include <QFileDialog>
 #include <QFont>
 #include <QImageWriter>
@@ -45,6 +46,7 @@
 #include <QMdiArea>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include <QPagedPaintDevice>
 #include <QPluginLoader>
 #include <QPrinter>
@@ -80,6 +82,8 @@
 #include "rs_debug.h"
 #include "rs_dialogfactory.h"
 #include "rs_document.h"
+#include "rs_eventhandler.h"
+#include "rs_graphic.h"
 #include "rs_painterqt.h"
 #include "rs_pen.h"
 #include "rs_settings.h"
@@ -1333,6 +1337,143 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path) const
     }
     file.write(QJsonDocument(contract).toJson(QJsonDocument::Indented));
     return file.commit();
+}
+
+bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
+{
+    QDir output(outputDirectory);
+    if (!output.exists() && !QDir().mkpath(output.absolutePath())) {
+        return false;
+    }
+
+    // Keep the evidence viewport independent from the runner's physical
+    // display. QWidget::grab() records the actual rendered widgets.
+    setWindowState(windowState() & ~Qt::WindowMaximized);
+    resize(1920, 1080);
+    show();
+    QApplication::processEvents();
+
+    auto* mdi = getMDIWindow();
+    auto* view = mdi == nullptr ? nullptr : mdi->getGraphicView();
+    auto* graphic = mdi == nullptr ? nullptr : mdi->getGraphic();
+    auto* button = kuubikRibbon == nullptr
+                       ? nullptr
+                       : kuubikRibbon->buttonForAction(QStringLiteral("DrawLine"));
+
+    auto lineCount = [](RS_Graphic* currentGraphic) {
+        int count = 0;
+        if (currentGraphic != nullptr) {
+            for (auto* entity : currentGraphic->getEntityList()) {
+                if (entity != nullptr && entity->rtti() == RS2::EntityLine) {
+                    ++count;
+                }
+            }
+        }
+        return count;
+    };
+
+    auto sendClick = [](QWidget* target, const QPoint& point) {
+        QMouseEvent press(QEvent::MouseButtonPress, QPointF(point),
+                          Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(target, &press);
+        QMouseEvent release(QEvent::MouseButtonRelease, QPointF(point),
+                            Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+        QApplication::sendEvent(target, &release);
+        QApplication::processEvents();
+    };
+
+    QJsonObject report;
+    report.insert(QStringLiteral("schemaVersion"), 1);
+    report.insert(QStringLiteral("product"), qApp->applicationName());
+    report.insert(QStringLiteral("version"), qApp->applicationVersion());
+    report.insert(QStringLiteral("viewportRequestedWidth"), 1920);
+    report.insert(QStringLiteral("viewportRequestedHeight"), 1080);
+    report.insert(QStringLiteral("windowWidth"), width());
+    report.insert(QStringLiteral("windowHeight"), height());
+
+    const bool prerequisites = mdi != nullptr && view != nullptr
+                               && graphic != nullptr && button != nullptr
+                               && button->defaultAction() == a_map.value("DrawLine", nullptr)
+                               && view->width() >= 300 && view->height() >= 200;
+    report.insert(QStringLiteral("prerequisites"), prerequisites);
+    if (!prerequisites) {
+        report.insert(QStringLiteral("status"), QStringLiteral("FAIL"));
+        report.insert(QStringLiteral("failure"), QStringLiteral("GUI prerequisites unavailable"));
+    } else {
+        const int entitiesBefore = graphic->getEntityList().size();
+        const int linesBefore = lineCount(graphic);
+        const QPoint ribbonPoint = button->rect().center();
+        const QPoint firstPoint(view->width() / 3, view->height() / 3);
+        const QPoint previewPoint(view->width() / 2, view->height() / 2);
+        const QPoint secondPoint((view->width() * 2) / 3,
+                                 (view->height() * 2) / 3);
+
+        sendClick(button, ribbonPoint);
+        const bool actionActiveAfterRibbon = mdi->getEventHandler() != nullptr
+                                             && mdi->getEventHandler()->hasAction();
+        sendClick(view, firstPoint);
+
+        QMouseEvent move(QEvent::MouseMove, QPointF(previewPoint),
+                         Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+        QApplication::sendEvent(view, &move);
+        QApplication::processEvents();
+
+        const int entitiesAfterFirst = graphic->getEntityList().size();
+        const QString activeImagePath = output.filePath(QStringLiteral("line-active.png"));
+        const bool activeImageSaved = grab().save(activeImagePath, "PNG");
+
+        sendClick(view, secondPoint);
+        const int entitiesAfterSecond = graphic->getEntityList().size();
+        const int linesAfterSecond = lineCount(graphic);
+        const QString committedImagePath = output.filePath(QStringLiteral("line-committed.png"));
+        const bool committedImageSaved = grab().save(committedImagePath, "PNG");
+
+        slotKillAllActions();
+        QApplication::processEvents();
+
+        const QString dxfPath = output.filePath(QStringLiteral("line-gui-smoke.dxf"));
+        const bool dxfSaved = graphic->saveAs(dxfPath, RS2::FormatDXFRW, true);
+        const bool passed = actionActiveAfterRibbon
+                            && entitiesAfterFirst == entitiesBefore
+                            && entitiesAfterSecond == entitiesBefore + 1
+                            && linesAfterSecond == linesBefore + 1
+                            && activeImageSaved && committedImageSaved && dxfSaved;
+
+        report.insert(QStringLiteral("ribbonActionKey"), QStringLiteral("DrawLine"));
+        report.insert(QStringLiteral("ribbonMouseEvent"), true);
+        report.insert(QStringLiteral("actionActiveAfterRibbon"), actionActiveAfterRibbon);
+        report.insert(QStringLiteral("entitiesBefore"), entitiesBefore);
+        report.insert(QStringLiteral("entitiesAfterFirstClick"), entitiesAfterFirst);
+        report.insert(QStringLiteral("entitiesAfterSecondClick"), entitiesAfterSecond);
+        report.insert(QStringLiteral("linesBefore"), linesBefore);
+        report.insert(QStringLiteral("linesAfterSecondClick"), linesAfterSecond);
+        report.insert(QStringLiteral("activeImageSaved"), activeImageSaved);
+        report.insert(QStringLiteral("committedImageSaved"), committedImageSaved);
+        report.insert(QStringLiteral("dxfSaved"), dxfSaved);
+        report.insert(QStringLiteral("status"), passed ? QStringLiteral("PASS")
+                                                       : QStringLiteral("FAIL"));
+
+        auto pointObject = [](const QPoint& point) {
+            QJsonObject result;
+            result.insert(QStringLiteral("x"), point.x());
+            result.insert(QStringLiteral("y"), point.y());
+            return result;
+        };
+        report.insert(QStringLiteral("firstCanvasPoint"), pointObject(firstPoint));
+        report.insert(QStringLiteral("previewCanvasPoint"), pointObject(previewPoint));
+        report.insert(QStringLiteral("secondCanvasPoint"), pointObject(secondPoint));
+    }
+
+    const QString reportPath = output.filePath(QStringLiteral("line-gui-smoke.json"));
+    QSaveFile reportFile(reportPath);
+    if (!reportFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        return false;
+    }
+    reportFile.write(QJsonDocument(report).toJson(QJsonDocument::Indented));
+    if (!reportFile.commit()) {
+        return false;
+    }
+    return report.value(QStringLiteral("status")).toString() == QStringLiteral("PASS");
 }
 
 

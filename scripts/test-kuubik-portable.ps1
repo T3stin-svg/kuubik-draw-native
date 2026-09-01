@@ -57,7 +57,7 @@ if ($forbidden) {
 
 $manifest = Get-Content -LiteralPath (Join-Path $package 'build-manifest.json') -Raw | ConvertFrom-Json
 if ($manifest.executable -ne 'KuubikDraw.exe' -or
-    $manifest.version -ne '0.2.0-preview.1' -or
+    $manifest.version -ne '0.2.0-preview.2' -or
     $manifest.upstreamCommit -ne '7ebab007d9eb4c68609388b835a2487648f0877b') {
     throw 'Build manifest product or upstream provenance is incorrect.'
 }
@@ -97,7 +97,7 @@ Require-Path $uiContractPath
 
 $uiContract = Get-Content -LiteralPath $uiContractPath -Raw | ConvertFrom-Json
 if ($uiContract.product -ne 'Kuubik Draw' -or
-    $uiContract.version -ne '0.2.0-preview.1' -or
+    $uiContract.version -ne '0.2.0-preview.2' -or
     $uiContract.workspaceMode -ne 'kuubik' -or
     $uiContract.workspaceVersion -ne 1 -or
     $uiContract.theme -ne 'kuubik-dark' -or
@@ -123,6 +123,41 @@ if ($layerDock.Count -ne 1 -or $layerDock[0].area -ne 'right' -or
     throw 'Primary dock layout does not match the Kuubik workspace contract.'
 }
 
+$guiSmokeDirectory = Join-Path $smokeRoot 'gui-evidence'
+New-Item -ItemType Directory -Path $guiSmokeDirectory | Out-Null
+$env:KUUBIK_GUI_SMOKE_DIR = $guiSmokeDirectory
+Run-Native -Executable $portableExe -Arguments @() -Label 'Ribbon LINE mouse workflow smoke'
+Remove-Item Env:KUUBIK_GUI_SMOKE_DIR
+
+$guiSmokeReportPath = Join-Path $guiSmokeDirectory 'line-gui-smoke.json'
+$guiActiveImagePath = Join-Path $guiSmokeDirectory 'line-active.png'
+$guiCommittedImagePath = Join-Path $guiSmokeDirectory 'line-committed.png'
+$guiDxfPath = Join-Path $guiSmokeDirectory 'line-gui-smoke.dxf'
+Require-Path $guiSmokeReportPath
+Require-Path $guiActiveImagePath
+Require-Path $guiCommittedImagePath
+Require-Path $guiDxfPath
+
+$guiSmoke = Get-Content -LiteralPath $guiSmokeReportPath -Raw | ConvertFrom-Json
+if ($guiSmoke.status -ne 'PASS' -or
+    -not $guiSmoke.prerequisites -or
+    $guiSmoke.ribbonActionKey -ne 'DrawLine' -or
+    -not $guiSmoke.ribbonMouseEvent -or
+    -not $guiSmoke.actionActiveAfterRibbon -or
+    $guiSmoke.windowWidth -ne 1920 -or
+    $guiSmoke.windowHeight -ne 1080 -or
+    $guiSmoke.entitiesAfterFirstClick -ne $guiSmoke.entitiesBefore -or
+    $guiSmoke.entitiesAfterSecondClick -ne ($guiSmoke.entitiesBefore + 1) -or
+    $guiSmoke.linesAfterSecondClick -ne ($guiSmoke.linesBefore + 1) -or
+    -not $guiSmoke.dxfSaved) {
+    throw 'Ribbon LINE mouse workflow did not create exactly one native LINE.'
+}
+if ((Get-Item -LiteralPath $guiActiveImagePath).Length -lt 10000 -or
+    (Get-Item -LiteralPath $guiCommittedImagePath).Length -lt 10000 -or
+    (Get-Item -LiteralPath $guiDxfPath).Length -lt 500) {
+    throw 'Ribbon LINE evidence output is unexpectedly small.'
+}
+
 $guiProcess = Start-Process -FilePath $portableExe -PassThru
 Start-Sleep -Seconds 8
 if ($guiProcess.HasExited) {
@@ -135,3 +170,4 @@ Write-Host "Portable native smoke passed from a path containing spaces: $portabl
 Write-Host "PDF: $pdf"
 Write-Host "SVG: $(Join-Path $smokeRoot 'preview-smoke.svg')"
 Write-Host "UI contract: $uiContractPath"
+Write-Host "Ribbon LINE GUI evidence: $guiSmokeDirectory"

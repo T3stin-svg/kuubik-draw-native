@@ -75,7 +75,7 @@ def splash() -> Image.Image:
     draw.text((278, 126), "DRAW", font=font(39, True), fill=CYAN)
     draw.line((278, 184, 483, 184), fill=BLUE, width=3)
     draw.text((278, 202), "Native 2D CAD", font=font(20, False), fill=WHITE)
-    draw.text((278, 238), "0.2.0-preview.1", font=font(15, True), fill=MUTED)
+    draw.text((278, 238), "0.2.0-preview.2", font=font(15, True), fill=MUTED)
     draw.text((278, 266), "LibreCAD 2.2.1.5 base · GPLv2", font=font(12, False), fill=MUTED)
     return image
 

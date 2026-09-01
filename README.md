@@ -4,7 +4,7 @@ Kuubik Draw is an experimental native Windows 2D CAD application by Kuubik
 Projekt OÜ. This repository is a GPLv2 fork of LibreCAD `v2.2.1.5`, pinned to
 upstream commit `7ebab007d9eb4c68609388b835a2487648f0877b`.
 
-The current target is the portable prerelease `0.2.0-preview.1`: extract the ZIP
+The current target is the portable prerelease `0.2.0-preview.2`: extract the ZIP
 and run `KuubikDraw.exe` without an installer, Node.js, Python, or internet.
 It adds a compact, action-bound Kuubik ribbon, dark 2D workspace, right-side
 Layers/Blocks, bottom command line, and classic LibreCAD fallback. DXF

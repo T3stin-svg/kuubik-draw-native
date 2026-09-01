@@ -5,7 +5,7 @@ open-source 2D CAD application.
 
 - Upstream release: LibreCAD `v2.2.1.5`
 - Upstream base commit: `7ebab007d9eb4c68609388b835a2487648f0877b`
-- Kuubik preview: `0.2.0-preview.1`
+- Kuubik preview: `0.2.0-preview.2`
 - Fork repository: <https://github.com/T3stin-svg/kuubik-draw-native>
 - Upstream repository: <https://github.com/LibreCAD/LibreCAD>
 

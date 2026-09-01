@@ -112,6 +112,7 @@ public:
     bool eventFilter(QObject *obj, QEvent *event) override;
     QAction* getAction(const QString& name) const;
     bool writeKuubikUiContract(const QString& path) const;
+    bool runKuubikGuiSmoke(const QString& outputDirectory);
 
 public slots:
     void relayAction(QAction* q_action);
