@@ -96,7 +96,10 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
     optionToolbarLayout = new QGridLayout(optionToolbarHost);
     optionToolbarLayout->setContentsMargins(0, 0, 0, 0);
     optionToolbarLayout->setSpacing(0);
-    quickLayout->addWidget(optionToolbarHost, 1);
+    // Let the native Tool Options toolbar claim its size hint first. The
+    // preceding stretch then absorbs only the remaining space; sharing that
+    // space equally clipped the combined DimLinear option widgets at 1280 px.
+    quickLayout->addWidget(optionToolbarHost);
     quickLayout->addWidget(makeLabel(tr("Kuubik Draw · GPL"), "kuubikProductBadge", quickBar));
     root->addWidget(quickBar);
 
