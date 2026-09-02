@@ -65,12 +65,13 @@ void KuubikTheme::applyCanvasSettings()
 
 int KuubikTheme::ribbonMinimumHeight()
 {
-    return 112;
+    // Logical pixels: keep two compact command rows usable at 100-150% DPI.
+    return 148;
 }
 
 int KuubikTheme::ribbonMaximumHeight()
 {
-    return 118;
+    return 152;
 }
 
 int KuubikTheme::commandMinimumHeight()
