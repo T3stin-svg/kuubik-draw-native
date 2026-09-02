@@ -39,6 +39,8 @@ class QC_DialogFactory: public QG_DialogFactory {
 public:
 	QC_DialogFactory(QWidget* parent, QToolBar* ow);
 
+    void updateSelectionWidget(int num, double length) override;
+
     void requestEditBlockWindow(RS_BlockList* blockList = nullptr) override;
     void closeEditBlockWindow(RS_Block* block = nullptr) override;
 };

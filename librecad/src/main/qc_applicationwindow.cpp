@@ -38,10 +38,12 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFont>
+#include <QFrame>
 #include <QImageWriter>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QKeySequence>
 #include <QLabel>
 #include <QMdiArea>
 #include <QMenuBar>
@@ -53,6 +55,8 @@
 #include <QPrintDialog>
 #include <QRegExp>
 #include <QSaveFile>
+#include <QSet>
+#include <QShortcut>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QStyleFactory>
@@ -62,6 +66,7 @@
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
+#include <QVariant>
 #include <QtSvg>
 
 #include <boost/version.hpp>
@@ -73,6 +78,8 @@
 #include "textfileviewer.h"
 #include "twostackedlabels.h"
 #include "widgetcreator.h"
+#include "kuubikcurrentlayerselector.h"
+#include "kuubikpropertiespalette.h"
 #include "kuubikribbon.h"
 #include "kuubiktheme.h"
 
@@ -84,6 +91,8 @@
 #include "rs_document.h"
 #include "rs_eventhandler.h"
 #include "rs_graphic.h"
+#include "rs_layer.h"
+#include "rs_layerlist.h"
 #include "rs_painterqt.h"
 #include "rs_pen.h"
 #include "rs_settings.h"
@@ -358,6 +367,30 @@ QC_ApplicationWindow::QC_ApplicationWindow()
     kuubikRibbonToolbar->addWidget(kuubikRibbon);
     addToolBar(Qt::TopToolBarArea, kuubikRibbonToolbar);
 
+    kuubikCurrentLayerSelector = new KuubikCurrentLayerSelector(this);
+    kuubikRibbon->setCurrentLayerSelector(kuubikCurrentLayerSelector);
+    connect(kuubikCurrentLayerSelector, &KuubikCurrentLayerSelector::layerStateChanged,
+            this, [this]() {
+        QC_MDIWindow* mdi = getMDIWindow();
+        RS_Document* document = mdi == nullptr ? nullptr : mdi->getDocument();
+        if (document != nullptr) {
+            refreshKuubikProperties(document->countSelected(),
+                                    document->totalSelectedLength());
+        }
+    });
+
+    kuubikPropertiesDock = new QDockWidget(tr("Properties"), this);
+    kuubikPropertiesDock->setObjectName(QStringLiteral("kuubikPropertiesDock"));
+    kuubikPropertiesDock->setAllowedAreas(Qt::LeftDockWidgetArea | Qt::RightDockWidgetArea);
+    kuubikPropertiesDock->setMinimumWidth(280);
+    kuubikPropertiesPalette = new KuubikPropertiesPalette(kuubikPropertiesDock);
+    kuubikPropertiesPalette->setModifyEntityAction(a_map.value("ModifyEntity", nullptr));
+    kuubikPropertiesDock->setWidget(kuubikPropertiesPalette);
+    addDockWidget(Qt::RightDockWidgetArea, kuubikPropertiesDock);
+    if (auto* dockMenu = menuBar()->findChild<QMenu*>("dockwidgets_menu")) {
+        dockMenu->addAction(kuubikPropertiesDock->toggleViewAction());
+    }
+
     if (auto* toolbarsMenu = menuBar()->findChild<QMenu*>("toolbars_menu")) {
         toolbarsMenu->addAction(kuubikRibbonToolbar->toggleViewAction());
     }
@@ -597,6 +630,14 @@ void QC_ApplicationWindow::doClose(QC_MDIWindow * w, bool activateNext)
 {
 	RS_DEBUG->print("QC_ApplicationWindow::doClose begin");
 	w->getGraphicView()->killAllActions();
+	if (!activedMdiSubWindow || activedMdiSubWindow == w) {
+        if (kuubikCurrentLayerSelector != nullptr) {
+            kuubikCurrentLayerSelector->setLayerList(nullptr);
+        }
+        if (kuubikPropertiesPalette != nullptr) {
+            kuubikPropertiesPalette->setDocument(nullptr);
+        }
+    }
 	QC_MDIWindow* parentWindow = w->getParentWindow();
 	if (parentWindow)
 	{
@@ -831,6 +872,13 @@ w->getGraphicView()->redraw();
 QC_ApplicationWindow::~QC_ApplicationWindow() {
     RS_DEBUG->print("QC_ApplicationWindow::~QC_ApplicationWindow");
 
+    if (kuubikCurrentLayerSelector != nullptr) {
+        kuubikCurrentLayerSelector->setLayerList(nullptr);
+    }
+    if (kuubikPropertiesPalette != nullptr) {
+        kuubikPropertiesPalette->setDocument(nullptr);
+    }
+
     RS_DEBUG->print("QC_ApplicationWindow::~QC_ApplicationWindow: "
                     "deleting dialog factory");
 
@@ -995,6 +1043,9 @@ void QC_ApplicationWindow::createKuubikWorkspaceMenu()
     workspaceGroup->setExclusive(true);
     kuubikWorkspaceAction = workspaceMenu->addAction(tr("Kuubik workspace"));
     classicWorkspaceAction = workspaceMenu->addAction(tr("Classic workspace"));
+    kuubikWorkspaceAction->setObjectName(QStringLiteral("KuubikWorkspace"));
+    classicWorkspaceAction->setObjectName(QStringLiteral("ClassicWorkspace"));
+    classicWorkspaceAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+Shift+C")));
     kuubikWorkspaceAction->setCheckable(true);
     classicWorkspaceAction->setCheckable(true);
     workspaceGroup->addAction(kuubikWorkspaceAction);
@@ -1027,6 +1078,9 @@ void QC_ApplicationWindow::createKuubikWorkspaceMenu()
     connect(resetAction, &QAction::triggered, this, [this]() {
         applyKuubikWorkspace(true);
     });
+    if (kuubikRibbon != nullptr) {
+        kuubikRibbon->setWorkspaceActions(kuubikWorkspaceAction, classicWorkspaceAction);
+    }
 }
 
 void QC_ApplicationWindow::createKuubikStatusControls()
@@ -1061,7 +1115,7 @@ void QC_ApplicationWindow::initializeKuubikVisuals()
 {
     QSettings settings;
     if (!qEnvironmentVariable("KUUBIK_UI_CONTRACT_PATH").isEmpty()) {
-        settings.setValue("Workspace/Version", 1);
+        settings.setValue("Workspace/Version", 2);
         settings.setValue("Workspace/Mode", "kuubik");
         settings.setValue("Workspace/PaletteSide", "right");
         applyKuubikWorkspace(true);
@@ -1071,9 +1125,9 @@ void QC_ApplicationWindow::initializeKuubikVisuals()
     const int workspaceVersion = settings.value("Workspace/Version", 0).toInt();
     const QString workspaceMode = settings.value("Workspace/Mode", "kuubik").toString();
 
-    if (workspaceVersion < 1) {
+    if (workspaceVersion < 2) {
         settings.setValue("Appearance/Theme", "kuubik-dark");
-        settings.setValue("Workspace/Version", 1);
+        settings.setValue("Workspace/Version", 2);
         settings.setValue("Workspace/Mode", "kuubik");
         settings.setValue("Workspace/PaletteSide", "right");
         applyKuubikWorkspace(true);
@@ -1100,7 +1154,7 @@ void QC_ApplicationWindow::applyKuubikTheme()
 void QC_ApplicationWindow::applyKuubikWorkspace(bool resetLayout)
 {
     QSettings settings;
-    settings.setValue("Workspace/Version", 1);
+    settings.setValue("Workspace/Version", 2);
     settings.setValue("Workspace/Mode", "kuubik");
     settings.setValue("Startup/TabMode", 1);
 
@@ -1111,6 +1165,7 @@ void QC_ApplicationWindow::applyKuubikWorkspace(bool resetLayout)
     if (kuubikRibbonToolbar != nullptr) {
         kuubikRibbonToolbar->show();
     }
+    menuBar()->hide();
 
     mdiAreaCAD->setViewMode(QMdiArea::TabbedView);
     mdiAreaCAD->setTabsClosable(true);
@@ -1148,7 +1203,8 @@ void QC_ApplicationWindow::applyKuubikWorkspace(bool resetLayout)
         }
 
         const QStringList primaryDocks {
-            "layer_dockwidget", "block_dockwidget", "command_dockwidget"
+            "kuubikPropertiesDock", "layer_dockwidget", "block_dockwidget",
+            "command_dockwidget"
         };
         const auto docks = findChildren<QDockWidget*>();
         for (auto* dock : docks) {
@@ -1183,6 +1239,7 @@ void QC_ApplicationWindow::applyClassicWorkspace()
     if (kuubikRibbonToolbar != nullptr) {
         kuubikRibbonToolbar->hide();
     }
+    menuBar()->show();
 
     const QStringList classicToolbars {
         "file_toolbar", "edit_toolbar", "view_toolbar", "pen_toolbar",
@@ -1224,18 +1281,23 @@ void QC_ApplicationWindow::setKuubikPaletteSide(Qt::DockWidgetArea area,
 
     auto* layerDock = findChild<QDockWidget*>("layer_dockwidget");
     auto* blockDock = findChild<QDockWidget*>("block_dockwidget");
-    if (layerDock == nullptr || blockDock == nullptr) {
+    if (kuubikPropertiesDock == nullptr || layerDock == nullptr || blockDock == nullptr) {
         return;
     }
 
+    removeDockWidget(kuubikPropertiesDock);
     removeDockWidget(layerDock);
     removeDockWidget(blockDock);
+    addDockWidget(area, kuubikPropertiesDock);
     addDockWidget(area, layerDock);
     addDockWidget(area, blockDock);
-    tabifyDockWidget(layerDock, blockDock);
+    tabifyDockWidget(kuubikPropertiesDock, layerDock);
+    tabifyDockWidget(kuubikPropertiesDock, blockDock);
+    kuubikPropertiesDock->show();
     layerDock->show();
     blockDock->show();
-    layerDock->raise();
+    kuubikPropertiesDock->raise();
+    resizeDocks({kuubikPropertiesDock}, {320}, Qt::Horizontal);
 
     const bool onLeft = area == Qt::LeftDockWidgetArea;
     if (paletteLeftAction != nullptr) {
@@ -1250,11 +1312,24 @@ void QC_ApplicationWindow::setKuubikPaletteSide(Qt::DockWidgetArea area,
     }
 }
 
-bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path) const
+bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
 {
     QJsonObject contract;
     QSettings settings;
-    contract.insert("schemaVersion", 1);
+    const QString previousWorkspaceMode = settings.value(
+        "Workspace/Mode", QStringLiteral("kuubik")).toString();
+    const bool kuubikMenuBarVisible = menuBar()->isVisible();
+    applyClassicWorkspace();
+    QApplication::processEvents();
+    const bool classicMenuBarVisible = menuBar()->isVisible();
+    if (previousWorkspaceMode == QStringLiteral("classic")) {
+        applyClassicWorkspace();
+    } else {
+        applyKuubikWorkspace(false);
+    }
+    QApplication::processEvents();
+
+    contract.insert("schemaVersion", 2);
     contract.insert("product", qApp->applicationName());
     contract.insert("version", qApp->applicationVersion());
     contract.insert("workspaceMode", settings.value("Workspace/Mode", "kuubik").toString());
@@ -1263,6 +1338,32 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path) const
     contract.insert("paletteSide", settings.value("Workspace/PaletteSide", "right").toString());
     contract.insert("ribbonVisible", kuubikRibbonToolbar != nullptr
                                       && kuubikRibbonToolbar->isVisible());
+    contract.insert("menuBarVisible", kuubikMenuBarVisible);
+    contract.insert("classicMenuBarVisible", classicMenuBarVisible);
+
+    QJsonObject selectorObject;
+    selectorObject.insert("present", kuubikCurrentLayerSelector != nullptr);
+    selectorObject.insert("enabled", kuubikCurrentLayerSelector != nullptr
+                                         && kuubikCurrentLayerSelector->isEnabled());
+    const QString selectorLayer = kuubikCurrentLayerSelector == nullptr
+                                      ? QString()
+                                      : kuubikCurrentLayerSelector->currentText();
+    const QString nativeLayer = kuubikCurrentLayerSelector == nullptr
+                                    || kuubikCurrentLayerSelector->layerList() == nullptr
+                                    || kuubikCurrentLayerSelector->layerList()->getActive() == nullptr
+                                    ? QString()
+                                    : kuubikCurrentLayerSelector->layerList()->getActive()->getName();
+    selectorObject.insert("currentLayer", selectorLayer);
+    selectorObject.insert("nativeCurrentLayer", nativeLayer);
+    selectorObject.insert("width", kuubikCurrentLayerSelector == nullptr
+                                       ? 0 : kuubikCurrentLayerSelector->width());
+    selectorObject.insert("minimumWidth", kuubikCurrentLayerSelector == nullptr
+                                              ? 0 : kuubikCurrentLayerSelector->minimumWidth());
+    selectorObject.insert("embeddedInRibbon", kuubikRibbon != nullptr
+                                               && kuubikCurrentLayerSelector != nullptr
+                                               && kuubikRibbon->isAncestorOf(
+                                                      kuubikCurrentLayerSelector));
+    contract.insert("kuubikCurrentLayerSelector", selectorObject);
 
     QJsonArray bindings;
     QJsonArray mismatches;
@@ -1295,6 +1396,42 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path) const
     contract.insert("bindings", bindings);
     contract.insert("bindingMismatches", mismatches);
 
+    QJsonArray ribbonPanels;
+    if (kuubikRibbon != nullptr) {
+        const auto frames = kuubikRibbon->findChildren<QFrame*>(
+            QStringLiteral("kuubikRibbonGroup"));
+        for (QFrame* frame : frames) {
+            const QString title = frame->property("kuubikPanelTitle").toString();
+            if (title.isEmpty()) continue;
+            QWidget* page = frame->parentWidget();
+            const QString tab = page == nullptr
+                                    ? QString()
+                                    : page->property("kuubikTabTitle").toString();
+            const QStringList actionKeys = frame->property("kuubikActionKeys").toStringList();
+            bool identityValid = !tab.isEmpty() && !actionKeys.isEmpty();
+            const auto buttons = frame->findChildren<QToolButton*>();
+            for (const QString& key : actionKeys) {
+                bool keyValid = false;
+                for (QToolButton* panelButton : buttons) {
+                    if (panelButton->property("kuubikActionKey").toString() == key
+                        && panelButton->defaultAction() == a_map.value(key, nullptr)) {
+                        keyValid = true;
+                        break;
+                    }
+                }
+                identityValid = identityValid && keyValid;
+            }
+            QJsonObject panelObject;
+            panelObject.insert("tab", tab);
+            panelObject.insert("title", title);
+            panelObject.insert("collapsed", frame->property("kuubikCollapsed").toBool());
+            panelObject.insert("actionKeys", QJsonArray::fromStringList(actionKeys));
+            panelObject.insert("actionIdentityValid", identityValid);
+            ribbonPanels.append(panelObject);
+        }
+    }
+    contract.insert("ribbonPanels", ribbonPanels);
+
     QJsonArray visibleToolbars;
     const auto toolbars = findChildren<QToolBar*>();
     for (auto* toolbar : toolbars) {
@@ -1323,6 +1460,91 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path) const
         docks.append(dockObject);
     }
     contract.insert("docks", docks);
+
+    QJsonObject propertiesDockObject;
+    propertiesDockObject.insert("present", kuubikPropertiesDock != nullptr);
+    propertiesDockObject.insert("area", kuubikPropertiesDock == nullptr
+                                             ? QStringLiteral("floating")
+                                             : areaName(dockWidgetArea(kuubikPropertiesDock)));
+    propertiesDockObject.insert("width", kuubikPropertiesDock == nullptr
+                                           ? 0 : kuubikPropertiesDock->width());
+    propertiesDockObject.insert("minimumWidth", kuubikPropertiesDock == nullptr
+                                                  ? 0 : kuubikPropertiesDock->minimumWidth());
+    auto* fullPropertiesButton = kuubikPropertiesPalette == nullptr
+                                     ? nullptr
+                                     : kuubikPropertiesPalette->findChild<QToolButton*>(
+                                           QStringLiteral("kuubikOpenFullProperties"));
+    propertiesDockObject.insert("modifyEntityNativeBinding",
+                                fullPropertiesButton != nullptr
+                                && fullPropertiesButton->defaultAction()
+                                       == a_map.value("ModifyEntity", nullptr));
+    QStringList tabGroupNames;
+    QString activeTabObjectName;
+    if (kuubikPropertiesDock != nullptr) {
+        tabGroupNames.append(kuubikPropertiesDock->objectName());
+        const auto tabified = tabifiedDockWidgets(kuubikPropertiesDock);
+        for (QDockWidget* dock : tabified) tabGroupNames.append(dock->objectName());
+        tabGroupNames.removeDuplicates();
+        tabGroupNames.sort();
+        for (const QString& objectName : tabGroupNames) {
+            QDockWidget* dock = findChild<QDockWidget*>(objectName);
+            if (dock != nullptr && dock->isVisible() && dock->widget() != nullptr
+                && dock->widget()->isVisible()) {
+                activeTabObjectName = objectName;
+            }
+        }
+    }
+    propertiesDockObject.insert("tabGroupObjectNames",
+                                QJsonArray::fromStringList(tabGroupNames));
+    propertiesDockObject.insert("activeTabObjectName", activeTabObjectName);
+    contract.insert("kuubikPropertiesDock", propertiesDockObject);
+
+    QJsonObject classicSampleAction;
+    const QString classicSampleKey = QStringLiteral("DrawLineBisector");
+    QAction* classicSample = a_map.value(classicSampleKey, nullptr);
+    bool classicSampleInMenu = false;
+    if (classicSample != nullptr) {
+        for (QWidget* associated : classicSample->associatedWidgets()) {
+            if (qobject_cast<QMenu*>(associated) != nullptr) {
+                classicSampleInMenu = true;
+                break;
+            }
+        }
+    }
+    classicSampleAction.insert("key", classicSampleKey);
+    classicSampleAction.insert("presentInMenu", classicSampleInMenu);
+    contract.insert("classicSampleAction", classicSampleAction);
+
+    QJsonObject commandLineObject;
+    auto* commandDock = findChild<QDockWidget*>(QStringLiteral("command_dockwidget"));
+    commandLineObject.insert("present", commandWidget != nullptr && commandDock != nullptr);
+    commandLineObject.insert("nativeBinding", commandWidget != nullptr
+                                              && commandDock != nullptr
+                                              && commandDock->widget() == commandWidget);
+    contract.insert("commandLine", commandLineObject);
+
+    QJsonArray statusControls;
+    const auto statusButtons = statusBar()->findChildren<QToolButton*>(
+        QStringLiteral("kuubikStatusToggle"));
+    for (QToolButton* statusButton : statusButtons) {
+        const QString key = statusButton->property("kuubikActionKey").toString();
+        QJsonObject statusObject;
+        statusObject.insert("objectName", statusButton->objectName());
+        statusObject.insert("actionKey", key);
+        statusObject.insert("nativeBinding", !key.isEmpty()
+                                             && statusButton->defaultAction()
+                                                    == a_map.value(key, nullptr));
+        statusControls.append(statusObject);
+    }
+    contract.insert("statusControls", statusControls);
+
+    QJsonObject dpiObject;
+    dpiObject.insert("logicalDpiX", logicalDpiX());
+    dpiObject.insert("logicalDpiY", logicalDpiY());
+    dpiObject.insert("devicePixelRatio", devicePixelRatioF());
+    dpiObject.insert("windowLogicalWidth", width());
+    dpiObject.insert("windowLogicalHeight", height());
+    contract.insert("dpi", dpiObject);
 
     QJsonObject colors;
     const auto colorTokens = KuubikTheme::colors();
@@ -1382,8 +1604,27 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         QApplication::processEvents();
     };
 
+    auto propertiesStateObject = [](const QVariantMap& state, bool nativeCallback) {
+        QJsonObject summary;
+        for (const QString& key : {QStringLiteral("document"),
+                                   QStringLiteral("currentLayer"),
+                                   QStringLiteral("type"),
+                                   QStringLiteral("layer"),
+                                   QStringLiteral("color"),
+                                   QStringLiteral("linetype"),
+                                   QStringLiteral("lineweight")}) {
+            summary.insert(key, state.value(key).toString());
+        }
+        QJsonObject result;
+        result.insert(QStringLiteral("nativeCallback"), nativeCallback);
+        result.insert(QStringLiteral("mode"), state.value("mode").toString());
+        result.insert(QStringLiteral("count"), state.value("selectionCount").toInt());
+        result.insert(QStringLiteral("summary"), summary);
+        return result;
+    };
+
     QJsonObject report;
-    report.insert(QStringLiteral("schemaVersion"), 1);
+    report.insert(QStringLiteral("schemaVersion"), 2);
     report.insert(QStringLiteral("product"), qApp->applicationName());
     report.insert(QStringLiteral("version"), qApp->applicationVersion());
     report.insert(QStringLiteral("viewportRequestedWidth"), 1920);
@@ -1394,12 +1635,29 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
     const bool prerequisites = mdi != nullptr && view != nullptr
                                && graphic != nullptr && button != nullptr
                                && button->defaultAction() == a_map.value("DrawLine", nullptr)
+                               && kuubikCurrentLayerSelector != nullptr
+                               && kuubikPropertiesPalette != nullptr
                                && view->width() >= 300 && view->height() >= 200;
     report.insert(QStringLiteral("prerequisites"), prerequisites);
     if (!prerequisites) {
         report.insert(QStringLiteral("status"), QStringLiteral("FAIL"));
         report.insert(QStringLiteral("failure"), QStringLiteral("GUI prerequisites unavailable"));
     } else {
+        const QString smokeLayerName = QStringLiteral("KUUBIK-SMOKE-LAYER");
+        RS_LayerList* layerList = graphic->getLayerList();
+        if (layerList->find(smokeLayerName) == nullptr) {
+            graphic->addLayer(new RS_Layer(smokeLayerName));
+        }
+        const int smokeLayerIndex = kuubikCurrentLayerSelector->findText(smokeLayerName);
+        if (smokeLayerIndex >= 0) {
+            kuubikCurrentLayerSelector->setCurrentIndex(smokeLayerIndex);
+        }
+        QApplication::processEvents();
+
+        const QString selectedLayer = kuubikCurrentLayerSelector->currentText();
+        const QString nativeCurrentLayer = layerList->getActive() == nullptr
+                                               ? QString()
+                                               : layerList->getActive()->getName();
         const int entitiesBefore = graphic->getEntityList().size();
         const int linesBefore = lineCount(graphic);
         const QPoint ribbonPoint = button->rect().center();
@@ -1431,13 +1689,112 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         slotKillAllActions();
         QApplication::processEvents();
 
+        RS_Entity* firstCreatedLine = nullptr;
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            if (entity != nullptr && entity->rtti() == RS2::EntityLine) {
+                firstCreatedLine = entity;
+            }
+        }
+        const QString createdLineLayer = firstCreatedLine == nullptr
+                                             || firstCreatedLine->getLayer(true) == nullptr
+                                             ? QString()
+                                             : firstCreatedLine->getLayer(true)->getName();
         const QString dxfPath = output.filePath(QStringLiteral("line-gui-smoke.dxf"));
         const bool dxfSaved = graphic->saveAs(dxfPath, RS2::FormatDXFRW, true);
+
+        const int entitiesBeforePropertyLine = graphic->getEntityList().size();
+        const int linesBeforePropertyLine = lineCount(graphic);
+        QSet<RS_Entity*> entitiesBeforePropertyLineSet;
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            entitiesBeforePropertyLineSet.insert(entity);
+        }
+        const QPoint propertyFirstPoint(view->width() / 4, (view->height() * 2) / 3);
+        const QPoint propertySecondPoint(view->width() / 2, (view->height() * 3) / 4);
+        sendClick(button, ribbonPoint);
+        sendClick(view, propertyFirstPoint);
+        sendClick(view, propertySecondPoint);
+        slotKillAllActions();
+        QApplication::processEvents();
+
+        RS_Entity* secondCreatedLine = nullptr;
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            if (entity != nullptr && !entitiesBeforePropertyLineSet.contains(entity)
+                && entity->rtti() == RS2::EntityLine) {
+                secondCreatedLine = entity;
+            }
+            if (entity != nullptr) entity->setSelected(false);
+        }
+
+        int refreshGeneration = kuubikPropertiesPalette->state()
+                                    .value("selectionRefreshGeneration").toInt();
+        RS_DIALOGFACTORY->updateSelectionWidget(0, 0.0);
+        const QVariantMap noneState = kuubikPropertiesPalette->state();
+        const bool noneCallback = noneState.value("selectionRefreshGeneration").toInt()
+                                  > refreshGeneration;
+
+        if (firstCreatedLine != nullptr) firstCreatedLine->setSelected(true);
+        refreshGeneration = noneState.value("selectionRefreshGeneration").toInt();
+        RS_DIALOGFACTORY->updateSelectionWidget(
+            graphic->countSelected(), graphic->totalSelectedLength());
+        const QVariantMap singleState = kuubikPropertiesPalette->state();
+        const bool singleCallback = singleState.value("selectionRefreshGeneration").toInt()
+                                    > refreshGeneration;
+
+        if (secondCreatedLine != nullptr) secondCreatedLine->setSelected(true);
+        refreshGeneration = singleState.value("selectionRefreshGeneration").toInt();
+        RS_DIALOGFACTORY->updateSelectionWidget(
+            graphic->countSelected(), graphic->totalSelectedLength());
+        const QVariantMap multipleState = kuubikPropertiesPalette->state();
+        const bool multipleCallback = multipleState.value("selectionRefreshGeneration").toInt()
+                                      > refreshGeneration;
+
+        QJsonObject propertiesStates;
+        propertiesStates.insert(QStringLiteral("none"),
+                                propertiesStateObject(noneState, noneCallback));
+        propertiesStates.insert(QStringLiteral("single"),
+                                propertiesStateObject(singleState, singleCallback));
+        propertiesStates.insert(QStringLiteral("multiple"),
+                                propertiesStateObject(multipleState, multipleCallback));
+        report.insert(QStringLiteral("propertiesStates"), propertiesStates);
+
+        QJsonObject layerSelectorObject;
+        layerSelectorObject.insert(QStringLiteral("present"), true);
+        layerSelectorObject.insert(QStringLiteral("enabled"),
+                                   kuubikCurrentLayerSelector->isEnabled());
+        layerSelectorObject.insert(QStringLiteral("selectedLayer"), selectedLayer);
+        layerSelectorObject.insert(QStringLiteral("nativeCurrentLayer"), nativeCurrentLayer);
+        layerSelectorObject.insert(QStringLiteral("createdLineLayer"), createdLineLayer);
+        report.insert(QStringLiteral("layerSelector"), layerSelectorObject);
+
+        const bool selectorPassed = kuubikCurrentLayerSelector->isEnabled()
+                                    && selectedLayer == smokeLayerName
+                                    && selectedLayer == nativeCurrentLayer
+                                    && selectedLayer == createdLineLayer;
+        const bool propertiesPassed = firstCreatedLine != nullptr
+                                      && secondCreatedLine != nullptr
+                                      && graphic->getEntityList().size()
+                                             == entitiesBeforePropertyLine + 1
+                                      && lineCount(graphic) == linesBeforePropertyLine + 1
+                                      && secondCreatedLine->getLayer(true) != nullptr
+                                      && secondCreatedLine->getLayer(true)->getName()
+                                             == smokeLayerName
+                                      && noneState.value("selectionCount").toInt() == 0
+                                      && noneState.value("mode").toString() == "none"
+                                      && noneCallback
+                                      && singleState.value("selectionCount").toInt() == 1
+                                      && singleState.value("mode").toString() == "single"
+                                      && singleState.value("type").toString() == tr("Line")
+                                      && singleState.value("layer").toString() == smokeLayerName
+                                      && singleCallback
+                                      && multipleState.value("selectionCount").toInt() == 2
+                                      && multipleState.value("mode").toString() == "multiple"
+                                      && multipleCallback;
         const bool passed = actionActiveAfterRibbon
                             && entitiesAfterFirst == entitiesBefore
                             && entitiesAfterSecond == entitiesBefore + 1
                             && linesAfterSecond == linesBefore + 1
-                            && activeImageSaved && committedImageSaved && dxfSaved;
+                            && activeImageSaved && committedImageSaved && dxfSaved
+                            && selectorPassed && propertiesPassed;
 
         report.insert(QStringLiteral("ribbonActionKey"), QStringLiteral("DrawLine"));
         report.insert(QStringLiteral("ribbonMouseEvent"), true);
@@ -1450,6 +1807,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         report.insert(QStringLiteral("activeImageSaved"), activeImageSaved);
         report.insert(QStringLiteral("committedImageSaved"), committedImageSaved);
         report.insert(QStringLiteral("dxfSaved"), dxfSaved);
+        report.insert(QStringLiteral("selectorPassed"), selectorPassed);
+        report.insert(QStringLiteral("propertiesPassed"), propertiesPassed);
         report.insert(QStringLiteral("status"), passed ? QStringLiteral("PASS")
                                                        : QStringLiteral("FAIL"));
 
@@ -1567,6 +1926,21 @@ void QC_ApplicationWindow::slotError(const QString& msg) {
         commandWidget->appendHistory(msg);
 }
 
+void QC_ApplicationWindow::refreshKuubikProperties(int selectedCount, double totalLength)
+{
+    Q_UNUSED(selectedCount)
+    Q_UNUSED(totalLength)
+    if (kuubikPropertiesPalette == nullptr) return;
+    QC_MDIWindow* mdi = getMDIWindow();
+    RS_Document* document = mdi == nullptr ? nullptr : mdi->getDocument();
+    if (kuubikPropertiesPalette->document() != document) {
+        kuubikPropertiesPalette->setDocument(document);
+    }
+    if (document == nullptr) return;
+    kuubikPropertiesPalette->refreshSelection(document->countSelected(),
+                                               document->totalSelectedLength());
+}
+
 /**
  * Hands focus back to the application window. In the rare event
  * of a escape press from the layer widget (e.g after switching desktops
@@ -1589,6 +1963,12 @@ void QC_ApplicationWindow::slotWindowActivated(QMdiSubWindow* w, bool forced)
     RS_DEBUG->print("QC_ApplicationWindow::slotWindowActivated begin");
 
     if(w==nullptr) {
+        if (kuubikCurrentLayerSelector != nullptr) {
+            kuubikCurrentLayerSelector->setLayerList(nullptr);
+        }
+        if (kuubikPropertiesPalette != nullptr) {
+            kuubikPropertiesPalette->setDocument(nullptr);
+        }
         emit windowsChanged(false);
         activedMdiSubWindow=w;
         return;
@@ -1597,8 +1977,18 @@ void QC_ApplicationWindow::slotWindowActivated(QMdiSubWindow* w, bool forced)
     QC_MDIWindow* m = qobject_cast<QC_MDIWindow*>(w);
     if(w==activedMdiSubWindow) {
         // Issue #2332 : still need to update File menu entries for the file name
-        if (m != nullptr && m->getDocument() != nullptr)
+        if (m != nullptr && m->getDocument() != nullptr) {
             enableFileActions(m);
+            if (kuubikCurrentLayerSelector != nullptr) {
+                kuubikCurrentLayerSelector->setLayerList(m->getDocument()->getLayerList());
+            }
+            if (kuubikPropertiesPalette != nullptr) {
+                kuubikPropertiesPalette->setDocument(m->getDocument());
+                kuubikPropertiesPalette->refreshSelection(
+                    m->getDocument()->countSelected(),
+                    m->getDocument()->totalSelectedLength());
+            }
+        }
         return;
     }
     activedMdiSubWindow=w;
@@ -1613,6 +2003,16 @@ void QC_ApplicationWindow::slotWindowActivated(QMdiSubWindow* w, bool forced)
         bool showByBlock = m->getDocument()->rtti()==RS2::EntityBlock;
 
         RS_LayerList *layerList = m->getDocument()->getLayerList();
+
+        if (kuubikCurrentLayerSelector != nullptr) {
+            kuubikCurrentLayerSelector->setLayerList(layerList);
+        }
+        if (kuubikPropertiesPalette != nullptr) {
+            kuubikPropertiesPalette->setDocument(m->getDocument());
+            kuubikPropertiesPalette->refreshSelection(
+                m->getDocument()->countSelected(),
+                m->getDocument()->totalSelectedLength());
+        }
 
         layerWidget->setLayerList(layerList,showByBlock);
 

@@ -45,6 +45,8 @@ class LC_PenWizard;
 class LC_PenPaletteWidget;
 class LC_SimpleTests;
 class KuubikRibbon;
+class KuubikCurrentLayerSelector;
+class KuubikPropertiesPalette;
 class QC_DialogFactory;
 class QC_MDIWindow;
 class QC_PluginInterface;
@@ -62,6 +64,7 @@ class QG_PenToolBar;
 class QG_RecentFiles;
 class QG_SelectionWidget;
 class QG_SnapToolBar;
+class QDockWidget;
 class QMdiArea;
 class QMdiSubWindow;
 class RS_Block;
@@ -111,8 +114,9 @@ public:
 
     bool eventFilter(QObject *obj, QEvent *event) override;
     QAction* getAction(const QString& name) const;
-    bool writeKuubikUiContract(const QString& path) const;
+    bool writeKuubikUiContract(const QString& path);
     bool runKuubikGuiSmoke(const QString& outputDirectory);
+    void refreshKuubikProperties(int selectedCount, double totalLength);
 
 public slots:
     void relayAction(QAction* q_action);
@@ -437,6 +441,9 @@ private:
     QG_PenToolBar* penToolBar {nullptr}; //!< for selecting the current pen
     QToolBar* optionWidget {nullptr}; //!< for individual tool options
     KuubikRibbon* kuubikRibbon {nullptr};
+    KuubikCurrentLayerSelector* kuubikCurrentLayerSelector {nullptr};
+    KuubikPropertiesPalette* kuubikPropertiesPalette {nullptr};
+    QDockWidget* kuubikPropertiesDock {nullptr};
     QToolBar* kuubikRibbonToolbar {nullptr};
     QAction* kuubikWorkspaceAction {nullptr};
     QAction* classicWorkspaceAction {nullptr};

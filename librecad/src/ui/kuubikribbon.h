@@ -21,6 +21,7 @@ class QAction;
 class QFrame;
 class QGridLayout;
 class QMainWindow;
+class QMenu;
 class QResizeEvent;
 class QTabWidget;
 class QToolBar;
@@ -37,6 +38,7 @@ public:
     QStringList boundActionKeys() const;
     QStringList missingActionKeys() const;
     QToolButton* buttonForAction(const QString& key) const;
+    void setWorkspaceActions(QAction* kuubikAction, QAction* classicAction);
 
     void embedNativeToolbars(QMainWindow* mainWindow);
     void releaseNativeToolbars(QMainWindow* mainWindow);
@@ -88,6 +90,8 @@ private:
     QStringList missingKeys;
     QList<PanelInstance> panels;
     QTabWidget* tabs {nullptr};
+    QMenu* applicationMenu {nullptr};
+    bool workspaceActionsAdded {false};
     QToolBar* penToolbar {nullptr};
     QToolBar* optionToolbar {nullptr};
     QFrame* penToolbarHost {nullptr};

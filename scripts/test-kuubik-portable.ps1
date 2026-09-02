@@ -14,6 +14,39 @@ function Require-Path([string]$Path) {
     }
 }
 
+function Require-JsonProperty([object]$Object, [string]$Name, [string]$Context) {
+    if ($null -eq $Object -or $null -eq $Object.PSObject.Properties[$Name]) {
+        throw "Required producer field is missing: $Context.$Name"
+    }
+    return $Object.$Name
+}
+
+function Require-JsonBoolean([object]$Object, [string]$Name, [string]$Context) {
+    $value = Require-JsonProperty $Object $Name $Context
+    if ($value -isnot [bool]) {
+        throw "Producer field must be boolean: $Context.$Name"
+    }
+    return $value
+}
+
+function Require-JsonString([object]$Object, [string]$Name, [string]$Context) {
+    $value = Require-JsonProperty $Object $Name $Context
+    if ($value -isnot [string] -or [string]::IsNullOrWhiteSpace($value)) {
+        throw "Producer field must be a non-empty string: $Context.$Name"
+    }
+    return $value
+}
+
+function Require-JsonNumber([object]$Object, [string]$Name, [string]$Context) {
+    $value = Require-JsonProperty $Object $Name $Context
+    if ($value -isnot [byte] -and $value -isnot [int16] -and $value -isnot [int32] -and
+        $value -isnot [int64] -and $value -isnot [single] -and $value -isnot [double] -and
+        $value -isnot [decimal]) {
+        throw "Producer field must be numeric: $Context.$Name"
+    }
+    return $value
+}
+
 function Run-Native(
     [string]$Executable,
     [string[]]$Arguments,
@@ -113,13 +146,21 @@ Remove-Item Env:KUUBIK_UI_CONTRACT_PATH
 Require-Path $uiContractPath
 
 $uiContract = Get-Content -LiteralPath $uiContractPath -Raw | ConvertFrom-Json
-if ($uiContract.product -ne 'Kuubik Draw' -or
+foreach ($key in @(
+    'schemaVersion', 'product', 'version', 'workspaceMode', 'workspaceVersion',
+    'theme', 'paletteSide', 'ribbonVisible', 'boundActionKeys', 'missingActionKeys',
+    'bindings', 'bindingMismatches', 'visibleToolbars', 'docks'
+)) {
+    [void](Require-JsonProperty $uiContract $key 'uiContract')
+}
+if ($uiContract.schemaVersion -ne 2 -or
+    $uiContract.product -ne 'Kuubik Draw' -or
     $uiContract.version -ne '0.2.0-preview.2' -or
     $uiContract.workspaceMode -ne 'kuubik' -or
-    $uiContract.workspaceVersion -ne 1 -or
+    $uiContract.workspaceVersion -ne 2 -or
     $uiContract.theme -ne 'kuubik-dark' -or
     $uiContract.paletteSide -ne 'right' -or
-    -not $uiContract.ribbonVisible) {
+    -not (Require-JsonBoolean $uiContract 'ribbonVisible' 'uiContract')) {
     throw 'Kuubik UI contract identity, theme, ribbon, or workspace state is incorrect.'
 }
 if (@($uiContract.missingActionKeys).Count -ne 0 -or
@@ -140,6 +181,111 @@ if ($layerDock.Count -ne 1 -or $layerDock[0].area -ne 'right' -or
     throw 'Primary dock layout does not match the Kuubik workspace contract.'
 }
 
+if ((Require-JsonBoolean $uiContract 'menuBarVisible' 'uiContract') -or
+    -not (Require-JsonBoolean $uiContract 'classicMenuBarVisible' 'uiContract')) {
+    throw 'Menu bar must be hidden in Kuubik workspace and visible in Classic workspace.'
+}
+
+$layerSelector = Require-JsonProperty $uiContract 'kuubikCurrentLayerSelector' 'uiContract'
+if (-not (Require-JsonBoolean $layerSelector 'present' 'uiContract.kuubikCurrentLayerSelector') -or
+    -not (Require-JsonBoolean $layerSelector 'enabled' 'uiContract.kuubikCurrentLayerSelector') -or
+    -not (Require-JsonBoolean $layerSelector 'embeddedInRibbon' 'uiContract.kuubikCurrentLayerSelector') -or
+    (Require-JsonNumber $layerSelector 'width' 'uiContract.kuubikCurrentLayerSelector') -lt 100) {
+    throw 'Kuubik current-layer selector is absent or disabled.'
+}
+$selectorCurrentLayer = Require-JsonString $layerSelector 'currentLayer' 'uiContract.kuubikCurrentLayerSelector'
+$selectorNativeLayer = Require-JsonString $layerSelector 'nativeCurrentLayer' 'uiContract.kuubikCurrentLayerSelector'
+if ($selectorCurrentLayer -ne $selectorNativeLayer) {
+    throw 'Kuubik current-layer selector does not match the native current layer.'
+}
+
+$propertiesDock = Require-JsonProperty $uiContract 'kuubikPropertiesDock' 'uiContract'
+if (-not (Require-JsonBoolean $propertiesDock 'present' 'uiContract.kuubikPropertiesDock') -or
+    (Require-JsonString $propertiesDock 'area' 'uiContract.kuubikPropertiesDock') -ne 'right' -or
+    -not (Require-JsonBoolean $propertiesDock 'modifyEntityNativeBinding' 'uiContract.kuubikPropertiesDock') -or
+    (Require-JsonNumber $propertiesDock 'width' 'uiContract.kuubikPropertiesDock') -lt 280) {
+    throw 'Kuubik Properties dock is absent or not on the right.'
+}
+$propertiesTabGroup = @(Require-JsonProperty $propertiesDock 'tabGroupObjectNames' 'uiContract.kuubikPropertiesDock')
+if ($propertiesTabGroup.Count -lt 3 -or
+    'kuubikPropertiesDock' -notin $propertiesTabGroup -or
+    'layer_dockwidget' -notin $propertiesTabGroup -or
+    'block_dockwidget' -notin $propertiesTabGroup -or
+    (Require-JsonString $propertiesDock 'activeTabObjectName' 'uiContract.kuubikPropertiesDock') -ne 'kuubikPropertiesDock') {
+    throw 'Properties, Layers, and Blocks must share a right-side tab group with Properties selected by default.'
+}
+
+$ribbonPanels = @(Require-JsonProperty $uiContract 'ribbonPanels' 'uiContract')
+if ($ribbonPanels.Count -eq 0) {
+    throw 'UI contract has no ribbon panel collapse/action records.'
+}
+foreach ($panel in $ribbonPanels) {
+    $panelContext = 'uiContract.ribbonPanels'
+    [void](Require-JsonString $panel 'tab' $panelContext)
+    [void](Require-JsonString $panel 'title' $panelContext)
+    [void](Require-JsonBoolean $panel 'collapsed' $panelContext)
+    if (@(Require-JsonProperty $panel 'actionKeys' $panelContext).Count -eq 0 -or
+        -not (Require-JsonBoolean $panel 'actionIdentityValid' $panelContext)) {
+        throw "Ribbon panel action identity is incomplete or invalid: $($panel.tab)/$($panel.title)"
+    }
+}
+$panelKeys = @($ribbonPanels | ForEach-Object { "$($_.tab)/$($_.title)" })
+foreach ($expectedPanel in @(
+    'Home/Draw', 'Home/Modify', 'Home/Annotation', 'Home/Layers', 'Home/Block',
+    'Home/Properties', 'Insert/Blocks', 'Annotate/Text', 'Annotate/Dimensions',
+    'Annotate/Lines', 'Annotate/Cuts & Details', 'View/Navigate', 'View/Display',
+    'View/Snaps', 'Manage/Layers', 'Manage/Blocks', 'Manage/Properties',
+    'Output/File', 'Output/Plot'
+)) {
+    if ($expectedPanel -notin $panelKeys) {
+        throw "Required ribbon panel is missing: $expectedPanel"
+    }
+}
+
+$classicSampleAction = Require-JsonProperty $uiContract 'classicSampleAction' 'uiContract'
+if ((Require-JsonString $classicSampleAction 'key' 'uiContract.classicSampleAction') -ne 'DrawLineBisector' -or
+    -not (Require-JsonBoolean $classicSampleAction 'presentInMenu' 'uiContract.classicSampleAction')) {
+    throw 'Classic workspace does not retain the sampled inherited LibreCAD menu command.'
+}
+
+$commandLine = Require-JsonProperty $uiContract 'commandLine' 'uiContract'
+if (-not (Require-JsonBoolean $commandLine 'present' 'uiContract.commandLine') -or
+    -not (Require-JsonBoolean $commandLine 'nativeBinding' 'uiContract.commandLine')) {
+    throw 'Command line is absent or not bound to the native command path.'
+}
+$statusControls = @(Require-JsonProperty $uiContract 'statusControls' 'uiContract')
+if ($statusControls.Count -eq 0) {
+    throw 'UI contract has no native status-control bindings.'
+}
+foreach ($control in $statusControls) {
+    $controlContext = 'uiContract.statusControls'
+    [void](Require-JsonString $control 'objectName' $controlContext)
+    [void](Require-JsonString $control 'actionKey' $controlContext)
+    if (-not (Require-JsonBoolean $control 'nativeBinding' $controlContext)) {
+        throw "Status control is not bound to its native QAction: $($control.objectName)"
+    }
+}
+$expectedStatusActions = @(
+    'ViewGrid', 'RestrictOrthogonal', 'SnapEnd', 'SnapMiddle', 'SnapCenter', 'SnapIntersection'
+)
+$actualStatusActions = @($statusControls | ForEach-Object actionKey | Sort-Object -Unique)
+if ($actualStatusActions.Count -ne $expectedStatusActions.Count) {
+    throw 'Kuubik status controls do not expose the complete native action set.'
+}
+foreach ($expectedAction in $expectedStatusActions) {
+    if ($expectedAction -notin $actualStatusActions) {
+        throw "Kuubik status control is missing: $expectedAction"
+    }
+}
+
+$dpi = Require-JsonProperty $uiContract 'dpi' 'uiContract'
+foreach ($key in @('logicalDpiX', 'logicalDpiY', 'devicePixelRatio', 'windowLogicalWidth', 'windowLogicalHeight')) {
+    $value = Require-JsonNumber $dpi $key 'uiContract.dpi'
+    if ($value -le 0) {
+        throw "DPI metadata must be positive: uiContract.dpi.$key"
+    }
+}
+
 $guiSmokeDirectory = Join-Path $smokeRoot 'gui-evidence'
 New-Item -ItemType Directory -Path $guiSmokeDirectory | Out-Null
 $env:KUUBIK_GUI_SMOKE_DIR = $guiSmokeDirectory
@@ -156,7 +302,16 @@ Require-Path $guiCommittedImagePath
 Require-Path $guiDxfPath
 
 $guiSmoke = Get-Content -LiteralPath $guiSmokeReportPath -Raw | ConvertFrom-Json
-if ($guiSmoke.status -ne 'PASS' -or
+foreach ($key in @(
+    'schemaVersion', 'status', 'prerequisites', 'ribbonActionKey', 'ribbonMouseEvent',
+    'actionActiveAfterRibbon', 'windowWidth', 'windowHeight', 'entitiesBefore',
+    'entitiesAfterFirstClick', 'entitiesAfterSecondClick', 'linesBefore',
+    'linesAfterSecondClick', 'dxfSaved'
+)) {
+    [void](Require-JsonProperty $guiSmoke $key 'guiSmoke')
+}
+if ($guiSmoke.schemaVersion -ne 2 -or
+    $guiSmoke.status -ne 'PASS' -or
     -not $guiSmoke.prerequisites -or
     $guiSmoke.ribbonActionKey -ne 'DrawLine' -or
     -not $guiSmoke.ribbonMouseEvent -or
@@ -168,6 +323,41 @@ if ($guiSmoke.status -ne 'PASS' -or
     $guiSmoke.linesAfterSecondClick -ne ($guiSmoke.linesBefore + 1) -or
     -not $guiSmoke.dxfSaved) {
     throw 'Ribbon LINE mouse workflow did not create exactly one native LINE.'
+}
+$guiLayerSelector = Require-JsonProperty $guiSmoke 'layerSelector' 'guiSmoke'
+if (-not (Require-JsonBoolean $guiLayerSelector 'present' 'guiSmoke.layerSelector') -or
+    -not (Require-JsonBoolean $guiLayerSelector 'enabled' 'guiSmoke.layerSelector')) {
+    throw 'GUI smoke did not use an enabled native current-layer selector.'
+}
+$selectedLayer = Require-JsonString $guiLayerSelector 'selectedLayer' 'guiSmoke.layerSelector'
+$nativeCurrentLayer = Require-JsonString $guiLayerSelector 'nativeCurrentLayer' 'guiSmoke.layerSelector'
+$createdLineLayer = Require-JsonString $guiLayerSelector 'createdLineLayer' 'guiSmoke.layerSelector'
+if ($selectedLayer -ne $nativeCurrentLayer -or $selectedLayer -ne $createdLineLayer) {
+    throw 'Layer selector, native document, and created LINE layer do not match.'
+}
+
+$propertiesStates = Require-JsonProperty $guiSmoke 'propertiesStates' 'guiSmoke'
+foreach ($expected in @(
+    @{ Name = 'none'; Mode = 'none'; Count = 0 },
+    @{ Name = 'single'; Mode = 'single'; Count = 1 },
+    @{ Name = 'multiple'; Mode = 'multiple'; Count = 2 }
+)) {
+    $stateContext = "guiSmoke.propertiesStates.$($expected.Name)"
+    $state = Require-JsonProperty $propertiesStates $expected.Name 'guiSmoke.propertiesStates'
+    if (-not (Require-JsonBoolean $state 'nativeCallback' $stateContext) -or
+        (Require-JsonString $state 'mode' $stateContext) -ne $expected.Mode -or
+        (Require-JsonNumber $state 'count' $stateContext) -lt $expected.Count -or
+        $null -eq (Require-JsonProperty $state 'summary' $stateContext)) {
+        throw "Properties smoke state is incomplete: $stateContext"
+    }
+    if ($expected.Name -eq 'none' -and (Require-JsonNumber $state 'count' $stateContext) -ne 0) {
+        throw 'Properties none-selection state must have zero selected entities.'
+    }
+    if ($expected.Name -eq 'single') {
+        $summary = Require-JsonProperty $state 'summary' $stateContext
+        [void](Require-JsonString $summary 'type' "$stateContext.summary")
+        [void](Require-JsonString $summary 'layer' "$stateContext.summary")
+    }
 }
 if ((Get-Item -LiteralPath $guiActiveImagePath).Length -lt 10000 -or
     (Get-Item -LiteralPath $guiCommittedImagePath).Length -lt 10000 -or

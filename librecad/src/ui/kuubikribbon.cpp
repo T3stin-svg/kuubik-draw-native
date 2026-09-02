@@ -21,6 +21,7 @@
 #include <QMenu>
 #include <QResizeEvent>
 #include <QSizePolicy>
+#include <QStyle>
 #include <QTabWidget>
 #include <QTimer>
 #include <QToolBar>
@@ -65,7 +66,7 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
     applicationButton->setText(tr("Application"));
     applicationButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
     applicationButton->setPopupMode(QToolButton::InstantPopup);
-    auto* applicationMenu = new QMenu(applicationButton);
+    applicationMenu = new QMenu(applicationButton);
     for (const QString& key : {QStringLiteral("FileNew"), QStringLiteral("FileOpen"),
                                QStringLiteral("FileSave"), QStringLiteral("FileSaveAs"),
                                QStringLiteral("FileExport"), QStringLiteral("FilePrintPreview"),
@@ -108,7 +109,7 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
             {tr("Draw"), {{"DrawLine", ItemSize::Large}, {"DrawPolyline", ItemSize::Large}, {"DrawLineRectangle", ItemSize::Small}, {"DrawCircle", ItemSize::Medium}, {"DrawArc", ItemSize::Small}, {"DrawHatch", ItemSize::Small}}, -1},
             {tr("Modify"), {{"ModifyMove", ItemSize::Large}, {"ModifyDuplicate", ItemSize::Large}, {"ModifyTrim", ItemSize::Large}, {"ModifyTrim2", ItemSize::Small}, {"ModifyCut", ItemSize::Small}, {"ModifyOffset", ItemSize::Medium}, {"ModifyRotate", ItemSize::Medium}, {"ModifyMirror", ItemSize::Small}, {"ModifyScale", ItemSize::Small}, {"ModifyRound", ItemSize::Small}, {"ModifyDeleteQuick", ItemSize::Small}}, -1},
             {tr("Annotation"), {{"DrawText", ItemSize::Medium}, {"DrawMText", ItemSize::Medium}, {"DimLinear", ItemSize::Small}, {"DimAligned", ItemSize::Small}, {"DimLinearHor", ItemSize::Small}, {"DimLinearVer", ItemSize::Small}, {"DimRadial", ItemSize::Small}, {"DimDiametric", ItemSize::Small}, {"DimAngular", ItemSize::Small}, {"DimLeader", ItemSize::Small}}, 200},
-            {tr("Layers"), {{"LayersAdd", ItemSize::Medium}, {"LayersEdit", ItemSize::Medium}, {"LayersToggleView", ItemSize::Small}, {"LayersToggleLock", ItemSize::Small}}, -1},
+            {tr("Layers"), {{"LayersAdd", ItemSize::Medium}, {"LayersEdit", ItemSize::Medium}, {"LayersToggleView", ItemSize::Small}, {"LayersToggleLock", ItemSize::Small}}, 600},
             {tr("Block"), {{"BlocksInsert", ItemSize::Large}, {"BlocksCreate", ItemSize::Medium}, {"BlocksEdit", ItemSize::Small}, {"BlocksExplode", ItemSize::Small}, {"BlocksImport", ItemSize::Small}}, 300},
             {tr("Properties"), {{"ModifyEntity", ItemSize::Medium}}, 100},
             {tr("Utilities"), {{"InfoDist", ItemSize::Small}, {"InfoAngle", ItemSize::Small}, {"InfoArea", ItemSize::Small}, {"InfoTotalLength", ItemSize::Small}}, 400},
@@ -118,7 +119,8 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
         {tr("Annotate"), {
             {tr("Text"), {{"DrawText", ItemSize::Large}, {"DrawMText", ItemSize::Medium}}, -1},
             {tr("Dimensions"), {{"DimLinear", ItemSize::Large}, {"DimAligned", ItemSize::Medium}, {"DimLinearHor", ItemSize::Small}, {"DimLinearVer", ItemSize::Small}, {"DimRadial", ItemSize::Small}, {"DimDiametric", ItemSize::Small}, {"DimAngular", ItemSize::Small}, {"DimLeader", ItemSize::Small}}, 100},
-            {tr("Detail"), {{"DrawHatch", ItemSize::Medium}}, 200}
+            {tr("Lines"), {{"DrawLine", ItemSize::Large}, {"DrawLineAngle", ItemSize::Small}, {"DrawLineHorizontal", ItemSize::Small}, {"DrawLineVertical", ItemSize::Small}, {"DrawLineParallel", ItemSize::Small}, {"DrawLineOrthogonal", ItemSize::Small}}, 200},
+            {tr("Cuts & Details"), {{"DrawHatch", ItemSize::Large}, {"ModifyOffset", ItemSize::Medium}, {"ModifyTrim", ItemSize::Medium}, {"ModifyCut", ItemSize::Small}, {"DrawText", ItemSize::Small}, {"DrawMText", ItemSize::Small}, {"DimLinear", ItemSize::Small}, {"DimLeader", ItemSize::Small}, {"BlocksInsert", ItemSize::Small}}, 300}
         }},
         {tr("View"), {
             {tr("Navigate"), {{"ZoomAuto", ItemSize::Large}, {"ZoomIn", ItemSize::Medium}, {"ZoomOut", ItemSize::Medium}, {"ZoomPrevious", ItemSize::Small}, {"ZoomWindow", ItemSize::Small}, {"ZoomPan", ItemSize::Small}}, -1},
@@ -145,11 +147,10 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
     auto* homePage = tabs->widget(0);
     auto* homeLayout = qobject_cast<QHBoxLayout*>(homePage->layout());
     currentLayerHost = createCurrentLayerHost(homePage);
-    homeLayout->addWidget(currentLayerHost);
+    homeLayout->insertWidget(4, currentLayerHost);
     penToolbarHost = createEmbeddedToolbarGroup(tr("Pen"), penToolbar, homePage);
     penToolbarLayout = qobject_cast<QGridLayout*>(penToolbarHost->layout());
-    homeLayout->addWidget(penToolbarHost);
-    homeLayout->addStretch(1);
+    homeLayout->insertWidget(5, penToolbarHost);
     root->addWidget(tabs, 1);
     QTimer::singleShot(0, this, [this] { updateCollapsedPanels(); });
 }
@@ -190,6 +191,11 @@ QFrame* KuubikRibbon::createActionGroup(const PanelSpec& spec, QWidget* parent, 
     auto* frame = new QFrame(parent);
     frame->setObjectName("kuubikRibbonGroup");
     frame->setProperty("kuubikCollapsePriority", spec.collapsePriority);
+    frame->setProperty("kuubikPanelTitle", spec.title);
+    QStringList actionKeys;
+    for (const ItemSpec& item : spec.items) actionKeys.append(item.actionKey);
+    frame->setProperty("kuubikActionKeys", actionKeys);
+    frame->setProperty("kuubikCollapsed", false);
     auto* layout = new QVBoxLayout(frame);
     layout->setContentsMargins(4, 3, 4, 1);
     layout->setSpacing(1);
@@ -269,6 +275,7 @@ QWidget* KuubikRibbon::createPage(const TabSpec& spec)
 {
     auto* page = new QWidget(this);
     page->setObjectName("kuubikRibbonPage");
+    page->setProperty("kuubikTabTitle", spec.title);
     auto* layout = new QHBoxLayout(page);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
@@ -310,6 +317,8 @@ void KuubikRibbon::setPanelCollapsed(PanelInstance& panel, bool collapsed)
     if (panel.collapsed == collapsed) return;
     panel.collapsed = collapsed;
     panel.frame->setProperty("kuubikCollapsed", collapsed);
+    panel.frame->style()->unpolish(panel.frame);
+    panel.frame->style()->polish(panel.frame);
     for (QToolButton* button : panel.itemButtons) button->setVisible(!collapsed);
     panel.overflowButton->setVisible(collapsed);
     panel.frame->layout()->invalidate();
@@ -328,6 +337,19 @@ void KuubikRibbon::updateCollapsedPanels()
         setPanelCollapsed(panel, false);
         requiredWidth += panel.frame->sizeHint().width();
         if (panel.collapsePriority > 0) candidates.append(index);
+    }
+    for (QWidget* fixedHost : {static_cast<QWidget*>(currentLayerHost),
+                               static_cast<QWidget*>(penToolbarHost)}) {
+        if (fixedHost != nullptr && fixedHost->parentWidget() == page
+            && fixedHost->isVisible()) {
+            requiredWidth += fixedHost->sizeHint().width();
+        }
+    }
+    if (page->layout() != nullptr) {
+        const QMargins margins = page->layout()->contentsMargins();
+        requiredWidth += margins.left() + margins.right();
+        requiredWidth += qMax(0, page->layout()->count() - 1)
+                         * page->layout()->spacing();
     }
     std::sort(candidates.begin(), candidates.end(), [this](int left, int right) { return panels[left].collapsePriority > panels[right].collapsePriority; });
     for (int index : candidates) {
@@ -348,6 +370,15 @@ void KuubikRibbon::resizeEvent(QResizeEvent* event)
 QStringList KuubikRibbon::boundActionKeys() const { return actionButtons.keys(); }
 QStringList KuubikRibbon::missingActionKeys() const { return missingKeys; }
 QToolButton* KuubikRibbon::buttonForAction(const QString& key) const { return actionButtons.value(key, nullptr); }
+
+void KuubikRibbon::setWorkspaceActions(QAction* kuubikAction, QAction* classicAction)
+{
+    if (applicationMenu == nullptr || workspaceActionsAdded) return;
+    applicationMenu->addSeparator();
+    if (kuubikAction != nullptr) applicationMenu->addAction(kuubikAction);
+    if (classicAction != nullptr) applicationMenu->addAction(classicAction);
+    workspaceActionsAdded = true;
+}
 
 void KuubikRibbon::embedNativeToolbars(QMainWindow* mainWindow)
 {

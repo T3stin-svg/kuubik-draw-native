@@ -65,6 +65,7 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
 }
 #kuubikApplicationButton:hover { background-color: #2188BD; }
 #kuubikApplicationButton:pressed { background-color: #105B85; border-color: #A8D9F5; }
+#kuubikApplicationButton:focus { border-color: #4CC2FF; }
 #kuubikWorkspaceLabel {
     min-width: 172px;
     padding: 2px 8px;
@@ -88,6 +89,7 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
     border: 1px solid transparent;
 }
 #kuubikQuickButton:hover { background: #3B4248; border-color: #59636C; }
+#kuubikQuickButton:focus { border-color: #4CC2FF; }
 #kuubikQuickButton:pressed, #kuubikQuickButton:checked {
     background: #176F9F;
     border-color: #68B4DF;
@@ -144,6 +146,7 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
     text-align: left;
 }
 #kuubikRibbonButton:hover { background: #48515A; border-color: #707B85; }
+#kuubikRibbonButton:focus { border-color: #4CC2FF; }
 #kuubikRibbonButton:pressed, #kuubikRibbonButton:checked {
     color: #FFFFFF;
     background: #176F9F;

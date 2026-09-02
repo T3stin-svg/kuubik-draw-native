@@ -816,6 +816,8 @@ HEADERS += ui/lc_actionfactory.h \
     ui/forms/qg_widgetpen.h \
     ui/lc_centralwidget.h \
     ui/lc_widgetfactory.h \
+    ui/kuubikcurrentlayerselector.h \
+    ui/kuubikpropertiespalette.h \
     ui/kuubikribbon.h \
     ui/kuubikiconregistry.h \
     ui/kuubiktheme.h \
@@ -923,6 +925,8 @@ SOURCES += ui/lc_actionfactory.cpp \
     ui/forms/qg_widgetpen.cpp \
     ui/lc_centralwidget.cpp \
     ui/lc_widgetfactory.cpp \
+    ui/kuubikcurrentlayerselector.cpp \
+    ui/kuubikpropertiespalette.cpp \
     ui/kuubikribbon.cpp \
     ui/kuubikiconregistry.cpp \
     ui/kuubiktheme.cpp \

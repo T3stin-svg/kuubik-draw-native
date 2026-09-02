@@ -44,6 +44,15 @@ QC_DialogFactory::QC_DialogFactory(QWidget* parent, QToolBar* ow) :
   QG_DialogFactory(parent, ow)
 {}
 
+void QC_DialogFactory::updateSelectionWidget(int num, double length)
+{
+    QG_DialogFactory::updateSelectionWidget(num, length);
+    auto& appWindow = QC_ApplicationWindow::getAppWindow();
+    if (appWindow) {
+        appWindow->refreshKuubikProperties(num, length);
+    }
+}
+
 
 
 /**
