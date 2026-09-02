@@ -140,8 +140,9 @@ The goal remains active. Before completion it still requires:
 - Reio's accept/deny decision for the 1280-pixel Draw/Modify overflow layout;
 - Reio's accept/deny decision on a separate qwindows LINE visual-capture gate;
 - a decision on the native Tool Options toolbar placement at narrow widths;
-- completion or explicit owner acceptance of the remaining original-icon and
-  primary Draw/Modify/Annotation/Blocks workflow evidence in Phases 1 and 2;
+- explicit owner acceptance of the current 66-icon Kuubik technical-line set
+  and completion or owner acceptance of the remaining primary
+  Draw/Modify/Annotation/Blocks workflow evidence in Phases 1 and 2;
 - a final exact-source artifact and handoff after those decisions are closed.
 
 ## Out of scope

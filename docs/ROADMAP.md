@@ -30,7 +30,8 @@ new percentage claim.
 
 ## Then — visual/product refinement
 
-- replace inherited ribbon icons with original Kuubik SVG icons and provenance;
+- complete Reio's visual acceptance of the current 66 mapped Kuubik SVGs and
+  preserve inherited LibreCAD fallbacks with their existing licences;
 - refine ribbon density, labels, active/disabled states and keyboard access;
 - preserve the existing read-only Properties dock and delegate editing to the
   existing native `ModifyEntity` workflow rather than adding another editor;

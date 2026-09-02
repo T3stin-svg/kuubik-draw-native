@@ -31,7 +31,8 @@ or selection → native document → undo/file output, with no silent failure.
 
 ## P1 — Kuubik visual refinement
 
-- [ ] original Kuubik icon set with provenance;
+- [ ] Reio accept/deny the current 66 mapped Kuubik technical-line SVGs and
+  recorded provenance; keep inherited LibreCAD fallbacks where unmapped;
 - [ ] validate the existing native `ModifyEntity` edit dialog on Reio's real
   selections; keep the right Properties summary read-only;
 - [ ] ribbon keyboard/focus/disabled/checked states;

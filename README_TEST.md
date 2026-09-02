@@ -75,8 +75,12 @@ display-scale check on owner-controlled hardware.
   Properties/`ModifyEntity` workflow rather than a second editor.
 - The compact ribbon covers the everyday tools only. Every other inherited
   LibreCAD function remains available from the menus or Classic workspace.
-- The v0.2 ribbon uses the existing GPL LibreCAD icons. A complete custom icon
-  redraw with recorded Kuubik provenance is still deferred.
+- 66 direct ribbon/Quick Access action keys use the repository's mapped Kuubik
+  technical-line SVGs. Five direct Annotate/Lines keys and all menus, Classic,
+  and native status/pen/options toolbars retain inherited LibreCAD fallback
+  icons under their existing repository licences. Kuubik icon provenance and
+  licence are recorded under `librecad/res/icons/kuubik`; Reio's visual
+  acceptance remains open.
 
 Report a problem with the exact command, input values, smallest non-confidential
 DXF that reproduces it, and a screenshot. Do not upload client drawings.

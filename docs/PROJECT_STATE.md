@@ -77,6 +77,8 @@ The development checkpoint additionally provides:
   existing LibreCAD `QAction` identities;
 - responsive Home panels that collapse to their same-action overflow menus at
   narrow widths;
+- 66 mapped Kuubik technical-line SVGs covering 66 direct ribbon/Quick Access
+  action keys, with recorded repository provenance and automated validation;
 - a real native current-layer selector embedded in the ribbon;
 - a right-side read-only Properties dock tabbed with Layers and Blocks;
 - native no/single/multiple selection summaries and `ModifyEntity` delegation;
@@ -120,7 +122,10 @@ For development commit `d7e3b58c4`, run `33641126389` additionally verified:
 - The permanent right Properties palette is read-only; full entity editing is
   still delegated to LibreCAD's existing native dialog/action.
 - The ribbon covers common tools; inherited commands remain in menus/Classic.
-- The ribbon currently uses inherited GPL LibreCAD icons.
+- Of 71 distinct direct ribbon/Quick Access action keys, 66 use the current
+  Kuubik technical-line SVG set. Five Annotate/Lines keys plus menus, Classic,
+  status, pen, and Tool Options surfaces retain inherited LibreCAD icons; Reio
+  has not yet accepted or rejected this mixed visual system.
 - The automated 125% and 150% screenshots use qwindows with
   `QT_SCALE_FACTOR`; real Windows Settings display-scale checks at 100%, 125%,
   and 150% remain pending on controlled Windows hardware.

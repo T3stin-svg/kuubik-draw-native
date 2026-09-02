@@ -5,6 +5,15 @@ AutoCAD-familiar visual wave. They depict generic drafting concepts only; no
 Autodesk logos, icon files, path data, reference images, or other proprietary
 artwork were used.
 
+## Provenance and licence
+
+- Introduced in Kuubik Draw Native commit
+  `174069898a21ed41ca67c30f822cbd359f60358c` on 2026-09-01.
+- Git author recorded on that commit: Olav.
+- The SVG files in this directory are distributed under `GPL-2.0-only`; see the
+  repository root `LICENSE` file. This explicit icon licence does not change
+  the existing licences or notices of inherited LibreCAD assets elsewhere.
+
 ## Visual contract
 
 - `viewBox="0 0 24 24"` on every asset;
