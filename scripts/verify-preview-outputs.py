@@ -3,6 +3,7 @@
 
 import sys
 import xml.etree.ElementTree as ET
+from collections import Counter
 import json
 import re
 from pathlib import Path
@@ -62,6 +63,9 @@ def main() -> None:
     copy_before_path = smoke / "gui-evidence" / "copy-before-undo.dxf"
     copy_undo_path = smoke / "gui-evidence" / "copy-after-undo.dxf"
     copy_redo_path = smoke / "gui-evidence" / "copy-after-redo.dxf"
+    move_before_path = smoke / "gui-evidence" / "move-before-undo.dxf"
+    move_undo_path = smoke / "gui-evidence" / "move-after-undo.dxf"
+    move_redo_path = smoke / "gui-evidence" / "move-after-redo.dxf"
     tool_options_root = smoke / "tool-options-evidence"
     tool_options_report_path = tool_options_root / "tool-options-1280.json"
 
@@ -135,7 +139,7 @@ def main() -> None:
 
     with gui_report_path.open(encoding="utf-8") as report_file:
         gui_report = json.load(report_file)
-    require(gui_report["schemaVersion"] == 4, gui_report.get("schemaVersion"))
+    require(gui_report["schemaVersion"] == 5, gui_report.get("schemaVersion"))
     require(gui_report["sourceDxfLoaded"] is True, gui_report.get("sourceDxfLoaded"))
     require_ribbon_mouse_invocation(
         gui_report["ribbonInvocation"], "ribbonInvocation"
@@ -445,6 +449,231 @@ def main() -> None:
         require(action_state["actionTriggeredByMouse"] is True, action_state)
         require(action_state["firstLineStillActive"] is True, action_state)
         require(action_state["priorPolylineStillActive"] is True, action_state)
+
+    def line_geometry(line):
+        return (
+            tuple(round(value, 6) for value in line.dxf.start),
+            tuple(round(value, 6) for value in line.dxf.end),
+        )
+
+    def read_move_state(path: Path):
+        state_doc = ezdxf.readfile(path)
+        state_entities = list(state_doc.modelspace())
+        state_types = [entity.dxftype() for entity in state_entities]
+        require(state_types.count("CIRCLE") == 1, (path.name, state_types))
+        require(state_types.count("LINE") == 4, (path.name, state_types))
+        require(state_types.count("LWPOLYLINE") == 2, (path.name, state_types))
+        require("KUUBIK_TEST" in state_doc.layers, (path.name, list(state_doc.layers)))
+        require(
+            "KUUBIK-SMOKE-LAYER" in state_doc.layers,
+            (path.name, list(state_doc.layers)),
+        )
+
+        state_circle = next(
+            entity for entity in state_entities if entity.dxftype() == "CIRCLE"
+        )
+        require(
+            state_circle.dxf.center.isclose((60.0, 40.0, 0.0)),
+            (path.name, state_circle.dxf.center),
+        )
+        require(
+            abs(state_circle.dxf.radius - 20.0) < 1e-9,
+            (path.name, state_circle.dxf.radius),
+        )
+        fixture_lines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LINE" and entity.dxf.layer == "0"
+        ]
+        require(len(fixture_lines) == 1, (path.name, fixture_lines))
+        require(
+            fixture_lines[0].dxf.start.isclose((0.0, 0.0, 0.0)),
+            (path.name, fixture_lines[0].dxf.start),
+        )
+        require(
+            fixture_lines[0].dxf.end.isclose((120.0, 80.0, 0.0)),
+            (path.name, fixture_lines[0].dxf.end),
+        )
+        fixture_polylines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LWPOLYLINE" and entity.dxf.layer == "KUUBIK_TEST"
+        ]
+        require(len(fixture_polylines) == 1, (path.name, fixture_polylines))
+        require(fixture_polylines[0].closed, path.name)
+        fixture_points = [
+            (round(point[0], 6), round(point[1], 6))
+            for point in fixture_polylines[0].get_points("xy")
+        ]
+        require(
+            fixture_points
+            == [(0.0, 0.0), (120.0, 0.0), (120.0, 80.0), (0.0, 80.0)],
+            (path.name, fixture_points),
+        )
+        smoke_polylines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LWPOLYLINE"
+            and entity.dxf.layer == "KUUBIK-SMOKE-LAYER"
+        ]
+        require(len(smoke_polylines) == 1, (path.name, smoke_polylines))
+        smoke_polyline_points = [
+            (round(point[0], 6), round(point[1], 6))
+            for point in smoke_polylines[0].get_points("xy")
+        ]
+        require(
+            smoke_polyline_points == before_points,
+            (path.name, smoke_polyline_points, before_points),
+        )
+        smoke_lines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LINE"
+            and entity.dxf.layer == "KUUBIK-SMOKE-LAYER"
+        ]
+        require(len(smoke_lines) == 3, (path.name, smoke_lines))
+        geometries = Counter(line_geometry(line) for line in smoke_lines)
+        require(
+            geometries[before_smoke_line] == 2,
+            (path.name, geometries, before_smoke_line),
+        )
+        return geometries
+
+    move_before_lines = read_move_state(move_before_path)
+    move_undo_lines = read_move_state(move_undo_path)
+    move_redo_lines = read_move_state(move_redo_path)
+    require(move_before_lines == move_redo_lines, (move_before_lines, move_redo_lines))
+    source_only = list((move_undo_lines - move_before_lines).elements())
+    moved_only = list((move_before_lines - move_undo_lines).elements())
+    require(len(source_only) == 1, (move_undo_lines, move_before_lines, source_only))
+    require(len(moved_only) == 1, (move_before_lines, move_undo_lines, moved_only))
+    source_geometry = source_only[0]
+    moved_geometry = moved_only[0]
+    start_offset = tuple(
+        round(moved_geometry[0][index] - source_geometry[0][index], 6)
+        for index in range(3)
+    )
+    end_offset = tuple(
+        round(moved_geometry[1][index] - source_geometry[1][index], 6)
+        for index in range(3)
+    )
+    require(start_offset == end_offset, (source_geometry, moved_geometry))
+    require(any(abs(value) > 1e-6 for value in start_offset[:2]), start_offset)
+
+    move_undo_redo = gui_report["moveUndoRedo"]
+    require(move_undo_redo["passed"] is True, move_undo_redo)
+    require_ribbon_mouse_invocation(
+        move_undo_redo["ribbon"], "moveUndoRedo.ribbon"
+    )
+    move_ribbon = move_undo_redo["ribbon"]
+    require(move_ribbon["actionKey"] == "ModifyMove", move_ribbon)
+    for flag in ("nativeIdentity", "selectionActionActive", "nativeActionActive"):
+        require(move_ribbon[flag] is True, (flag, move_ribbon))
+    require(
+        move_ribbon["initialActionType"]
+        == move_ribbon["expectedSelectionActionType"],
+        move_ribbon,
+    )
+    require(
+        move_ribbon["actionTypeAfterSelection"]
+        == move_ribbon["expectedMoveActionType"],
+        move_ribbon,
+    )
+
+    moved_line = move_undo_redo["move"]
+    for flag in (
+        "created",
+        "sourceUnselectedBeforeAction",
+        "sourceSelectedByCanvas",
+        "offsetNonZero",
+        "offsetMatchesBothEndpoints",
+        "sourceUndoneBeforeUndo",
+        "sourceActiveAfterUndo",
+        "movedUndoneAfterUndo",
+        "sourceUndoneAfterRedo",
+        "movedActiveAfterRedo",
+        "snapModeTemporarilyCleared",
+        "snapModeRestored",
+    ):
+        require(moved_line[flag] is True, (flag, moved_line))
+    require(moved_line["candidateCount"] == 1, moved_line)
+    require(moved_line["movedUndoneBeforeUndo"] is False, moved_line)
+    require(
+        moved_line["activeLayerBeforeAction"]
+        == moved_line["sourceLayer"]
+        == moved_line["movedLayer"]
+        == "KUUBIK-SMOKE-LAYER",
+        moved_line,
+    )
+    require(
+        moved_line["activeCountBeforeMove"]
+        == moved_line["activeCountBeforeUndo"]
+        == moved_line["activeCountAfterUndo"]
+        == moved_line["activeCountAfterRedo"],
+        moved_line,
+    )
+    report_source_geometry = (
+        (
+            round(float(moved_line["sourceStart"]["x"]), 6),
+            round(float(moved_line["sourceStart"]["y"]), 6),
+            0.0,
+        ),
+        (
+            round(float(moved_line["sourceEnd"]["x"]), 6),
+            round(float(moved_line["sourceEnd"]["y"]), 6),
+            0.0,
+        ),
+    )
+    report_moved_geometry = (
+        (
+            round(float(moved_line["movedStart"]["x"]), 6),
+            round(float(moved_line["movedStart"]["y"]), 6),
+            0.0,
+        ),
+        (
+            round(float(moved_line["movedEnd"]["x"]), 6),
+            round(float(moved_line["movedEnd"]["y"]), 6),
+            0.0,
+        ),
+    )
+    require(report_source_geometry == source_geometry, (report_source_geometry, source_geometry))
+    require(report_moved_geometry == moved_geometry, (report_moved_geometry, moved_geometry))
+    report_offset = (
+        round(float(moved_line["offset"]["x"]), 6),
+        round(float(moved_line["offset"]["y"]), 6),
+        0.0,
+    )
+    require(report_offset == start_offset, (report_offset, start_offset))
+    for point_name in (
+        "selectionCanvasPoint",
+        "referenceCanvasPoint",
+        "targetCanvasPoint",
+    ):
+        point = moved_line[point_name]
+        require(point["inside"] is True, (point_name, point))
+        require(isinstance(point["x"], (int, float)), (point_name, point))
+        require(isinstance(point["y"], (int, float)), (point_name, point))
+
+    move_dialog = move_undo_redo["dialog"]
+    require(move_dialog["objectName"] == "QG_DlgMove", move_dialog)
+    for flag in (
+        "timerRan",
+        "found",
+        "visible",
+        "moveModeControlFound",
+        "moveModeClickedByMouse",
+        "moveModeSelected",
+        "okFound",
+        "okClickedByMouse",
+        "acceptedByMouse",
+    ):
+        require(move_dialog[flag] is True, (flag, move_dialog))
+    require(move_dialog["safetyTriggered"] is False, move_dialog)
+    for action_name in ("undo", "redo"):
+        action_state = move_undo_redo[action_name]
+        for flag in (
+            "actionTriggeredByMouse",
+            "firstLineStillActive",
+            "copyStillActive",
+            "priorPolylineStillActive",
+        ):
+            require(action_state[flag] is True, (action_name, flag, action_state))
 
     dpi_root = smoke / "dpi-evidence"
     for percent, factor, width, height in (

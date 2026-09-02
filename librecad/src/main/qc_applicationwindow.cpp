@@ -34,6 +34,8 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QByteArray>
+#include <QAbstractButton>
+#include <QDialogButtonBox>
 #include <QDockWidget>
 #include <QDir>
 #include <QFileDialog>
@@ -44,6 +46,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QKeyEvent>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMdiArea>
@@ -56,6 +59,7 @@
 #include <QPixmap>
 #include <QPrinter>
 #include <QPrintDialog>
+#include <QRadioButton>
 #include <QRegExp>
 #include <QSaveFile>
 #include <QSet>
@@ -1957,9 +1961,13 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                : kuubikRibbon->buttonForAction(
                                      QStringLiteral("DrawPolyline"));
     auto* modifyDuplicateButton = kuubikRibbon == nullptr
-                                      ? nullptr
-                                      : kuubikRibbon->buttonForAction(
-                                            QStringLiteral("ModifyDuplicate"));
+                                       ? nullptr
+                                       : kuubikRibbon->buttonForAction(
+                                             QStringLiteral("ModifyDuplicate"));
+    auto* modifyMoveButton = kuubikRibbon == nullptr
+                                 ? nullptr
+                                 : kuubikRibbon->buttonForAction(
+                                       QStringLiteral("ModifyMove"));
     auto* undoQuickButton = kuubikRibbon == nullptr
                                 ? nullptr
                                 : kuubikRibbon->buttonForAction(
@@ -2187,7 +2195,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
     };
 
     QJsonObject report;
-    report.insert(QStringLiteral("schemaVersion"), 4);
+    report.insert(QStringLiteral("schemaVersion"), 5);
     report.insert(QStringLiteral("product"), qApp->applicationName());
     report.insert(QStringLiteral("version"), qApp->applicationVersion());
     report.insert(QStringLiteral("viewportRequestedWidth"), 1920);
@@ -2209,6 +2217,9 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                && modifyDuplicateButton != nullptr
                                && modifyDuplicateButton->defaultAction()
                                       == a_map.value("ModifyDuplicate", nullptr)
+                               && modifyMoveButton != nullptr
+                               && modifyMoveButton->defaultAction()
+                                      == a_map.value("ModifyMove", nullptr)
                                && undoQuickButton != nullptr
                                && undoQuickButton->defaultAction()
                                       == a_map.value("EditUndo", nullptr)
@@ -3054,6 +3065,580 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                       && multipleState.value("selectionCount").toInt() == 2
                                       && multipleState.value("mode").toString() == "multiple"
                                       && multipleCallback;
+
+        // Exercise MOVE through the native ModifyMove QAction with no
+        // preselection. One canvas click selects the unique Properties-smoke
+        // LINE, Enter advances LibreCAD's selection action, two more canvas
+        // clicks provide the reference and target points, and the native move
+        // dialog is completed through real widget mouse events.
+        slotKillAllActions();
+        QApplication::processEvents();
+        RS_Line* moveSourceLine = secondCreatedLine != nullptr
+                                          && secondCreatedLine->rtti()
+                                                 == RS2::EntityLine
+                                      ? static_cast<RS_Line*>(secondCreatedLine)
+                                      : nullptr;
+        const bool moveSourceUnselectedBeforeAction = moveSourceLine != nullptr
+                                                      && !moveSourceLine
+                                                            ->isSelected()
+                                                      && graphic->countSelected()
+                                                             == 0;
+        const RS_Vector moveSourceStart = moveSourceLine == nullptr
+                                              ? RS_Vector(false)
+                                              : moveSourceLine->getStartpoint();
+        const RS_Vector moveSourceEnd = moveSourceLine == nullptr
+                                            ? RS_Vector(false)
+                                            : moveSourceLine->getEndpoint();
+        const QString moveSourceLayer = moveSourceLine == nullptr
+                                                || moveSourceLine->getLayer(true)
+                                                       == nullptr
+                                            ? QString()
+                                            : moveSourceLine->getLayer(true)
+                                                  ->getName();
+        const QString moveActiveLayerBeforeAction = layerList->getActive()
+                                                        == nullptr
+                                                    ? QString()
+                                                    : layerList->getActive()
+                                                          ->getName();
+        QSet<RS_Entity*> entitiesBeforeMoveSet;
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            entitiesBeforeMoveSet.insert(entity);
+        }
+        const int activeLinesBeforeMove = activeLineCount(graphic);
+
+        const RS_SnapMode moveSavedSnapMode = view->getDefaultSnapMode();
+        RS_SnapMode moveSmokeSnapMode = moveSavedSnapMode;
+        moveSmokeSnapMode.clear();
+        view->setDefaultSnapMode(moveSmokeSnapMode);
+        const bool moveSnapModeTemporarilyCleared =
+            view->getDefaultSnapMode() == moveSmokeSnapMode;
+
+        const QJsonObject moveRibbonInvocation = invokeRibbonActionWithMouse(
+            modifyMoveButton, a_map.value("ModifyMove", nullptr));
+        RS_ActionInterface* moveSelectionAction = mdi->getEventHandler() == nullptr
+                                                      ? nullptr
+                                                      : mdi->getEventHandler()
+                                                            ->getCurrentAction();
+        const int moveInitialActionType = moveSelectionAction == nullptr
+                                              ? static_cast<int>(RS2::ActionNone)
+                                              : static_cast<int>(
+                                                    moveSelectionAction->rtti());
+        const bool moveSelectionActionActive = moveSelectionAction != nullptr
+                                               && moveSelectionAction->rtti()
+                                                      == RS2::ActionSelectSingle;
+        const RS_Vector moveSelectionGraphPoint = moveSourceLine == nullptr
+                                                      ? RS_Vector(false)
+                                                      : moveSourceStart.lerp(
+                                                            moveSourceEnd, 0.5);
+        const RS_Vector moveSelectionGuiPoint = moveSelectionGraphPoint.valid
+                                                    ? view->toGui(
+                                                          moveSelectionGraphPoint)
+                                                    : RS_Vector(false);
+        const QPoint moveSelectionPoint(qRound(moveSelectionGuiPoint.x),
+                                        qRound(moveSelectionGuiPoint.y));
+        const bool moveSelectionPointInside = moveSelectionGuiPoint.valid
+                                              && view->rect().contains(
+                                                   moveSelectionPoint);
+        if (moveSelectionActionActive && moveSelectionPointInside) {
+            sendClick(view, moveSelectionPoint);
+        }
+        const bool moveSourceSelectedByCanvas = moveSourceLine != nullptr
+                                                && moveSourceLine->isSelected()
+                                                && graphic->countSelected() == 1;
+        if (moveSourceSelectedByCanvas) {
+            QKeyEvent moveEnterPress(QEvent::KeyPress, Qt::Key_Enter,
+                                     Qt::NoModifier);
+            QApplication::sendEvent(view, &moveEnterPress);
+            QApplication::processEvents();
+        }
+        RS_ActionInterface* moveActionAfterSelection =
+            mdi->getEventHandler() == nullptr
+                ? nullptr
+                : mdi->getEventHandler()->getCurrentAction();
+        const int moveActionTypeAfterSelection = moveActionAfterSelection == nullptr
+                                                     ? static_cast<int>(
+                                                           RS2::ActionNone)
+                                                     : static_cast<int>(
+                                                           moveActionAfterSelection
+                                                               ->rtti());
+        const bool moveNativeActionActive = moveActionAfterSelection != nullptr
+                                            && moveActionAfterSelection->rtti()
+                                                   == RS2::ActionModifyMove;
+
+        const RS_Vector moveReferenceGuiPoint = moveSourceStart.valid
+                                                    ? view->toGui(moveSourceStart)
+                                                    : RS_Vector(false);
+        const QPoint moveReferencePoint(qRound(moveReferenceGuiPoint.x),
+                                        qRound(moveReferenceGuiPoint.y));
+        const QPoint moveTargetPoint(moveReferencePoint.x() + 96,
+                                     moveReferencePoint.y() - 72);
+        const bool moveReferencePointInside = moveReferenceGuiPoint.valid
+                                              && view->rect().contains(
+                                                   moveReferencePoint);
+        const bool moveTargetPointInside = view->rect().contains(moveTargetPoint)
+                                           && moveTargetPoint
+                                                  != moveReferencePoint;
+        if (moveNativeActionActive && moveReferencePointInside
+            && moveTargetPointInside) {
+            sendClick(view, moveReferencePoint);
+        }
+        RS_ActionInterface* moveActionAfterReference =
+            mdi->getEventHandler() == nullptr
+                ? nullptr
+                : mdi->getEventHandler()->getCurrentAction();
+        const bool moveActionActiveAfterReference =
+            moveActionAfterReference != nullptr
+            && moveActionAfterReference->rtti() == RS2::ActionModifyMove;
+
+        bool moveDialogTimerRan = false;
+        bool moveDialogFound = false;
+        bool moveDialogVisible = false;
+        bool moveModeControlFound = false;
+        bool moveModeClickedByMouse = false;
+        bool moveModeSelected = false;
+        bool moveDialogOkFound = false;
+        bool moveDialogOkClickedByMouse = false;
+        bool moveDialogAcceptedByMouse = false;
+        bool moveDialogSafetyTriggered = false;
+        QTimer moveDialogTimer;
+        moveDialogTimer.setSingleShot(true);
+        connect(&moveDialogTimer, &QTimer::timeout, &moveDialogTimer,
+                [&sendClick, &moveDialogTimerRan, &moveDialogFound,
+                 &moveDialogVisible, &moveModeControlFound,
+                 &moveModeClickedByMouse, &moveModeSelected,
+                 &moveDialogOkFound, &moveDialogOkClickedByMouse,
+                 &moveDialogAcceptedByMouse] {
+            moveDialogTimerRan = true;
+            QWidget* dialog = QApplication::activeModalWidget();
+            moveDialogFound = dialog != nullptr
+                              && dialog->objectName()
+                                     == QStringLiteral("QG_DlgMove");
+            moveDialogVisible = moveDialogFound && dialog->isVisible();
+            if (!moveDialogVisible) return;
+
+            auto* moveMode = dialog->findChild<QRadioButton*>(
+                QStringLiteral("rbMove"));
+            auto* buttonBox = dialog->findChild<QDialogButtonBox*>(
+                QStringLiteral("buttonBox"));
+            moveModeControlFound = moveMode != nullptr
+                                   && moveMode->isVisible()
+                                   && moveMode->isEnabled();
+            if (moveModeControlFound) {
+                sendClick(moveMode, moveMode->rect().center());
+                moveModeClickedByMouse = true;
+                moveModeSelected = moveMode->isChecked();
+            }
+
+            QAbstractButton* okButton = nullptr;
+            if (buttonBox != nullptr) {
+                for (QAbstractButton* candidate : buttonBox->buttons()) {
+                    if (buttonBox->standardButton(candidate)
+                        == QDialogButtonBox::Ok) {
+                        okButton = candidate;
+                        break;
+                    }
+                }
+            }
+            moveDialogOkFound = okButton != nullptr
+                                && okButton->isVisible()
+                                && okButton->isEnabled();
+            if (moveModeSelected && moveDialogOkFound) {
+                sendClick(okButton, okButton->rect().center());
+                moveDialogOkClickedByMouse = true;
+                moveDialogAcceptedByMouse = !dialog->isVisible();
+            }
+        });
+        QTimer moveDialogSafetyTimer;
+        moveDialogSafetyTimer.setSingleShot(true);
+        connect(&moveDialogSafetyTimer, &QTimer::timeout,
+                &moveDialogSafetyTimer, [&sendClick,
+                                         &moveDialogSafetyTriggered] {
+            QWidget* dialog = QApplication::activeModalWidget();
+            if (dialog == nullptr
+                || dialog->objectName() != QStringLiteral("QG_DlgMove")
+                || !dialog->isVisible()) {
+                return;
+            }
+            moveDialogSafetyTriggered = true;
+            auto* buttonBox = dialog->findChild<QDialogButtonBox*>(
+                QStringLiteral("buttonBox"));
+            if (buttonBox != nullptr) {
+                for (QAbstractButton* candidate : buttonBox->buttons()) {
+                    if (buttonBox->standardButton(candidate)
+                        == QDialogButtonBox::Cancel) {
+                        sendClick(candidate, candidate->rect().center());
+                        return;
+                    }
+                }
+            }
+            // This branch is only a hang-prevention fallback. The smoke fails
+            // whenever the safety timer fires, so a direct reject can never
+            // turn a missing native mouse path into passing evidence.
+            QMetaObject::invokeMethod(dialog, "reject", Qt::DirectConnection);
+        });
+        if (moveActionActiveAfterReference && moveTargetPointInside) {
+            moveDialogTimer.start(0);
+            moveDialogSafetyTimer.start(2000);
+            sendClick(view, moveTargetPoint);
+            moveDialogTimer.stop();
+            moveDialogSafetyTimer.stop();
+        }
+        view->setDefaultSnapMode(moveSavedSnapMode);
+        const bool moveSnapModeRestored =
+            view->getDefaultSnapMode() == moveSavedSnapMode;
+        slotKillAllActions();
+        QApplication::processEvents();
+
+        RS_Line* movedLine = nullptr;
+        int moveCandidateCount = 0;
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            if (entity != nullptr && !entitiesBeforeMoveSet.contains(entity)
+                && entity->rtti() == RS2::EntityLine) {
+                movedLine = static_cast<RS_Line*>(entity);
+                ++moveCandidateCount;
+            }
+        }
+        const QString movedLineLayer = movedLine == nullptr
+                                               || movedLine->getLayer(true)
+                                                      == nullptr
+                                           ? QString()
+                                           : movedLine->getLayer(true)
+                                                 ->getName();
+        const RS_Vector moveOffsetFromStart = movedLine == nullptr
+                                                  ? RS_Vector(false)
+                                                  : movedLine->getStartpoint()
+                                                        - moveSourceStart;
+        const RS_Vector moveOffsetFromEnd = movedLine == nullptr
+                                                ? RS_Vector(false)
+                                                : movedLine->getEndpoint()
+                                                      - moveSourceEnd;
+        const bool moveOffsetNonZero = moveOffsetFromStart.valid
+                                       && moveOffsetFromStart.magnitude()
+                                              > 1.0e-6;
+        const bool moveOffsetMatches = moveOffsetFromStart.valid
+                                       && moveOffsetFromEnd.valid
+                                       && moveOffsetFromStart.distanceTo(
+                                            moveOffsetFromEnd)
+                                              <= 1.0e-9;
+        const bool moveSourceUndoneBeforeUndo = moveSourceLine != nullptr
+                                                && moveSourceLine->isUndone();
+        const bool movedLineUndoneBeforeUndo = movedLine == nullptr
+                                               || movedLine->isUndone();
+        const int activeLinesBeforeMoveUndo = activeLineCount(graphic);
+        const bool moveReadyForUndo = moveCandidateCount == 1
+                                      && movedLine != nullptr
+                                      && movedLine != moveSourceLine
+                                      && moveSourceUndoneBeforeUndo
+                                      && !movedLineUndoneBeforeUndo
+                                      && moveOffsetNonZero
+                                      && moveOffsetMatches
+                                      && activeLinesBeforeMoveUndo
+                                             == activeLinesBeforeMove;
+        const QString moveBeforeUndoPath = output.filePath(
+            QStringLiteral("move-before-undo.dxf"));
+        const bool moveBeforeUndoSaved = graphic->saveAs(
+            moveBeforeUndoPath, RS2::FormatDXFRW, true);
+
+        const bool moveUndoNativeIdentity = undoQuickButton->defaultAction()
+                                            == a_map.value("EditUndo", nullptr)
+                                            && undoQuickButton->property(
+                                                   "kuubikActionKey").toString()
+                                                   == QStringLiteral("EditUndo");
+        const bool moveUndoQuickAccessButton = undoQuickButton->objectName()
+                                               == QStringLiteral(
+                                                    "kuubikQuickButton");
+        const bool moveUndoVisible = undoQuickButton->isVisible();
+        const bool moveUndoEnabledBeforeClick = undoQuickButton->isEnabled();
+        bool moveUndoActionTriggeredByMouse = false;
+        const QMetaObject::Connection moveUndoConnection = connect(
+            a_map.value("EditUndo", nullptr), &QAction::triggered, this,
+            [&moveUndoActionTriggeredByMouse](bool) {
+                moveUndoActionTriggeredByMouse = true;
+            });
+        if (moveReadyForUndo && moveUndoEnabledBeforeClick) {
+            sendClick(undoQuickButton, undoQuickButton->rect().center());
+        }
+        disconnect(moveUndoConnection);
+        QApplication::processEvents();
+        const bool moveSourceActiveAfterUndo = moveSourceLine != nullptr
+                                               && !moveSourceLine->isUndone();
+        const bool movedLineUndoneAfterUndo = movedLine != nullptr
+                                              && movedLine->isUndone();
+        const bool firstLineActiveAfterMoveUndo = firstCreatedLine != nullptr
+                                                  && !firstCreatedLine
+                                                        ->isUndone();
+        const bool copyActiveAfterMoveUndo = copiedLine != nullptr
+                                             && !copiedLine->isUndone();
+        const bool priorPolylineActiveAfterMoveUndo = createdPolyline != nullptr
+                                                      && !createdPolyline
+                                                            ->isUndone();
+        const int activeLinesAfterMoveUndo = activeLineCount(graphic);
+        const QString moveAfterUndoPath = output.filePath(
+            QStringLiteral("move-after-undo.dxf"));
+        const bool moveAfterUndoSaved = graphic->saveAs(
+            moveAfterUndoPath, RS2::FormatDXFRW, true);
+
+        const bool moveRedoNativeIdentity = redoQuickButton->defaultAction()
+                                            == a_map.value("EditRedo", nullptr)
+                                            && redoQuickButton->property(
+                                                   "kuubikActionKey").toString()
+                                                   == QStringLiteral("EditRedo");
+        const bool moveRedoQuickAccessButton = redoQuickButton->objectName()
+                                               == QStringLiteral(
+                                                    "kuubikQuickButton");
+        const bool moveRedoVisible = redoQuickButton->isVisible();
+        const bool moveRedoEnabledBeforeClick = redoQuickButton->isEnabled();
+        bool moveRedoActionTriggeredByMouse = false;
+        const QMetaObject::Connection moveRedoConnection = connect(
+            a_map.value("EditRedo", nullptr), &QAction::triggered, this,
+            [&moveRedoActionTriggeredByMouse](bool) {
+                moveRedoActionTriggeredByMouse = true;
+            });
+        if (moveSourceActiveAfterUndo && movedLineUndoneAfterUndo
+            && moveRedoEnabledBeforeClick) {
+            sendClick(redoQuickButton, redoQuickButton->rect().center());
+        }
+        disconnect(moveRedoConnection);
+        QApplication::processEvents();
+        const bool moveSourceUndoneAfterRedo = moveSourceLine != nullptr
+                                               && moveSourceLine->isUndone();
+        const bool movedLineActiveAfterRedo = movedLine != nullptr
+                                              && !movedLine->isUndone();
+        const bool firstLineActiveAfterMoveRedo = firstCreatedLine != nullptr
+                                                  && !firstCreatedLine
+                                                        ->isUndone();
+        const bool copyActiveAfterMoveRedo = copiedLine != nullptr
+                                             && !copiedLine->isUndone();
+        const bool priorPolylineActiveAfterMoveRedo = createdPolyline != nullptr
+                                                      && !createdPolyline
+                                                            ->isUndone();
+        const int activeLinesAfterMoveRedo = activeLineCount(graphic);
+        const QString moveAfterRedoPath = output.filePath(
+            QStringLiteral("move-after-redo.dxf"));
+        const bool moveAfterRedoSaved = graphic->saveAs(
+            moveAfterRedoPath, RS2::FormatDXFRW, true);
+
+        const bool moveRibbonIdentity = modifyMoveButton->defaultAction()
+                                        == a_map.value("ModifyMove", nullptr)
+                                        && modifyMoveButton->property(
+                                               "kuubikActionKey").toString()
+                                               == QStringLiteral("ModifyMove");
+        const bool movePassed = moveRibbonIdentity
+                                && moveRibbonInvocation.value(
+                                     QStringLiteral("passed")).toBool()
+                                && moveSourceUnselectedBeforeAction
+                                && moveSelectionActionActive
+                                && moveSelectionPointInside
+                                && moveSourceSelectedByCanvas
+                                && moveNativeActionActive
+                                && moveReferencePointInside
+                                && moveTargetPointInside
+                                && moveActionActiveAfterReference
+                                && moveDialogTimerRan && moveDialogFound
+                                && moveDialogVisible && moveModeControlFound
+                                && moveModeClickedByMouse && moveModeSelected
+                                && moveDialogOkFound
+                                && moveDialogOkClickedByMouse
+                                && moveDialogAcceptedByMouse
+                                && !moveDialogSafetyTriggered
+                                && moveSnapModeTemporarilyCleared
+                                && moveSnapModeRestored
+                                && moveCandidateCount == 1
+                                && movedLine != moveSourceLine
+                                && moveSourceLayer == smokeLayerName
+                                && moveActiveLayerBeforeAction == smokeLayerName
+                                && movedLineLayer == moveSourceLayer
+                                && moveOffsetNonZero && moveOffsetMatches
+                                && moveSourceUndoneBeforeUndo
+                                && !movedLineUndoneBeforeUndo
+                                && activeLinesBeforeMoveUndo
+                                       == activeLinesBeforeMove
+                                && moveUndoNativeIdentity
+                                && moveUndoQuickAccessButton
+                                && moveUndoVisible
+                                && moveUndoEnabledBeforeClick
+                                && moveUndoActionTriggeredByMouse
+                                && moveSourceActiveAfterUndo
+                                && movedLineUndoneAfterUndo
+                                && firstLineActiveAfterMoveUndo
+                                && copyActiveAfterMoveUndo
+                                && priorPolylineActiveAfterMoveUndo
+                                && activeLinesAfterMoveUndo
+                                       == activeLinesBeforeMove
+                                && moveRedoNativeIdentity
+                                && moveRedoQuickAccessButton
+                                && moveRedoVisible
+                                && moveRedoEnabledBeforeClick
+                                && moveRedoActionTriggeredByMouse
+                                && moveSourceUndoneAfterRedo
+                                && movedLineActiveAfterRedo
+                                && firstLineActiveAfterMoveRedo
+                                && copyActiveAfterMoveRedo
+                                && priorPolylineActiveAfterMoveRedo
+                                && activeLinesAfterMoveRedo
+                                       == activeLinesBeforeMove
+                                && moveBeforeUndoSaved
+                                && moveAfterUndoSaved
+                                && moveAfterRedoSaved;
+
+        QJsonObject moveRibbonObject = moveRibbonInvocation;
+        moveRibbonObject.insert(QStringLiteral("actionKey"),
+                                QStringLiteral("ModifyMove"));
+        moveRibbonObject.insert(QStringLiteral("nativeIdentity"),
+                                moveRibbonIdentity);
+        moveRibbonObject.insert(QStringLiteral("selectionActionActive"),
+                                moveSelectionActionActive);
+        moveRibbonObject.insert(QStringLiteral("initialActionType"),
+                                moveInitialActionType);
+        moveRibbonObject.insert(QStringLiteral("expectedSelectionActionType"),
+                                static_cast<int>(RS2::ActionSelectSingle));
+        moveRibbonObject.insert(QStringLiteral("nativeActionActive"),
+                                moveNativeActionActive);
+        moveRibbonObject.insert(QStringLiteral("actionTypeAfterSelection"),
+                                moveActionTypeAfterSelection);
+        moveRibbonObject.insert(QStringLiteral("expectedMoveActionType"),
+                                static_cast<int>(RS2::ActionModifyMove));
+
+        auto vectorObject = [](const RS_Vector& vector) {
+            QJsonObject object;
+            object.insert(QStringLiteral("valid"), vector.valid);
+            object.insert(QStringLiteral("x"), vector.x);
+            object.insert(QStringLiteral("y"), vector.y);
+            return object;
+        };
+        auto guiPointObject = [&view](const QPoint& point) {
+            QJsonObject object;
+            object.insert(QStringLiteral("x"), point.x());
+            object.insert(QStringLiteral("y"), point.y());
+            object.insert(QStringLiteral("inside"),
+                          view->rect().contains(point));
+            return object;
+        };
+        QJsonObject moveEntityObject;
+        moveEntityObject.insert(QStringLiteral("created"), movedLine != nullptr);
+        moveEntityObject.insert(QStringLiteral("candidateCount"),
+                                moveCandidateCount);
+        moveEntityObject.insert(QStringLiteral("sourceUnselectedBeforeAction"),
+                                moveSourceUnselectedBeforeAction);
+        moveEntityObject.insert(QStringLiteral("sourceSelectedByCanvas"),
+                                moveSourceSelectedByCanvas);
+        moveEntityObject.insert(QStringLiteral("sourceLayer"), moveSourceLayer);
+        moveEntityObject.insert(QStringLiteral("activeLayerBeforeAction"),
+                                moveActiveLayerBeforeAction);
+        moveEntityObject.insert(QStringLiteral("movedLayer"), movedLineLayer);
+        moveEntityObject.insert(QStringLiteral("sourceStart"),
+                                vectorObject(moveSourceStart));
+        moveEntityObject.insert(QStringLiteral("sourceEnd"),
+                                vectorObject(moveSourceEnd));
+        moveEntityObject.insert(QStringLiteral("movedStart"),
+                                vectorObject(movedLine == nullptr
+                                                 ? RS_Vector(false)
+                                                 : movedLine->getStartpoint()));
+        moveEntityObject.insert(QStringLiteral("movedEnd"),
+                                vectorObject(movedLine == nullptr
+                                                 ? RS_Vector(false)
+                                                 : movedLine->getEndpoint()));
+        moveEntityObject.insert(QStringLiteral("offset"),
+                                vectorObject(moveOffsetFromStart));
+        moveEntityObject.insert(QStringLiteral("offsetNonZero"),
+                                moveOffsetNonZero);
+        moveEntityObject.insert(QStringLiteral("offsetMatchesBothEndpoints"),
+                                moveOffsetMatches);
+        moveEntityObject.insert(QStringLiteral("selectionCanvasPoint"),
+                                guiPointObject(moveSelectionPoint));
+        moveEntityObject.insert(QStringLiteral("referenceCanvasPoint"),
+                                guiPointObject(moveReferencePoint));
+        moveEntityObject.insert(QStringLiteral("targetCanvasPoint"),
+                                guiPointObject(moveTargetPoint));
+        moveEntityObject.insert(QStringLiteral("sourceUndoneBeforeUndo"),
+                                moveSourceUndoneBeforeUndo);
+        moveEntityObject.insert(QStringLiteral("movedUndoneBeforeUndo"),
+                                movedLineUndoneBeforeUndo);
+        moveEntityObject.insert(QStringLiteral("sourceActiveAfterUndo"),
+                                moveSourceActiveAfterUndo);
+        moveEntityObject.insert(QStringLiteral("movedUndoneAfterUndo"),
+                                movedLineUndoneAfterUndo);
+        moveEntityObject.insert(QStringLiteral("sourceUndoneAfterRedo"),
+                                moveSourceUndoneAfterRedo);
+        moveEntityObject.insert(QStringLiteral("movedActiveAfterRedo"),
+                                movedLineActiveAfterRedo);
+        moveEntityObject.insert(QStringLiteral("activeCountBeforeMove"),
+                                activeLinesBeforeMove);
+        moveEntityObject.insert(QStringLiteral("activeCountBeforeUndo"),
+                                activeLinesBeforeMoveUndo);
+        moveEntityObject.insert(QStringLiteral("activeCountAfterUndo"),
+                                activeLinesAfterMoveUndo);
+        moveEntityObject.insert(QStringLiteral("activeCountAfterRedo"),
+                                activeLinesAfterMoveRedo);
+        moveEntityObject.insert(QStringLiteral("snapModeTemporarilyCleared"),
+                                moveSnapModeTemporarilyCleared);
+        moveEntityObject.insert(QStringLiteral("snapModeRestored"),
+                                moveSnapModeRestored);
+
+        QJsonObject moveDialogObject;
+        moveDialogObject.insert(QStringLiteral("objectName"),
+                                QStringLiteral("QG_DlgMove"));
+        moveDialogObject.insert(QStringLiteral("timerRan"),
+                                moveDialogTimerRan);
+        moveDialogObject.insert(QStringLiteral("found"), moveDialogFound);
+        moveDialogObject.insert(QStringLiteral("visible"), moveDialogVisible);
+        moveDialogObject.insert(QStringLiteral("moveModeControlFound"),
+                                moveModeControlFound);
+        moveDialogObject.insert(QStringLiteral("moveModeClickedByMouse"),
+                                moveModeClickedByMouse);
+        moveDialogObject.insert(QStringLiteral("moveModeSelected"),
+                                moveModeSelected);
+        moveDialogObject.insert(QStringLiteral("okFound"), moveDialogOkFound);
+        moveDialogObject.insert(QStringLiteral("okClickedByMouse"),
+                                moveDialogOkClickedByMouse);
+        moveDialogObject.insert(QStringLiteral("acceptedByMouse"),
+                                moveDialogAcceptedByMouse);
+        moveDialogObject.insert(QStringLiteral("safetyTriggered"),
+                                moveDialogSafetyTriggered);
+
+        QJsonObject moveUndoObject = undoRedoActionObject(
+            QStringLiteral("EditUndo"), moveUndoNativeIdentity,
+            moveUndoQuickAccessButton, moveUndoVisible,
+            moveUndoEnabledBeforeClick, moveUndoActionTriggeredByMouse,
+            firstLineActiveAfterMoveUndo);
+        moveUndoObject.insert(QStringLiteral("copyStillActive"),
+                              copyActiveAfterMoveUndo);
+        moveUndoObject.insert(QStringLiteral("priorPolylineStillActive"),
+                              priorPolylineActiveAfterMoveUndo);
+        QJsonObject moveRedoObject = undoRedoActionObject(
+            QStringLiteral("EditRedo"), moveRedoNativeIdentity,
+            moveRedoQuickAccessButton, moveRedoVisible,
+            moveRedoEnabledBeforeClick, moveRedoActionTriggeredByMouse,
+            firstLineActiveAfterMoveRedo);
+        moveRedoObject.insert(QStringLiteral("copyStillActive"),
+                              copyActiveAfterMoveRedo);
+        moveRedoObject.insert(QStringLiteral("priorPolylineStillActive"),
+                              priorPolylineActiveAfterMoveRedo);
+
+        QJsonObject moveFilesObject;
+        moveFilesObject.insert(QStringLiteral("beforeUndo"),
+                               QStringLiteral("move-before-undo.dxf"));
+        moveFilesObject.insert(QStringLiteral("afterUndo"),
+                               QStringLiteral("move-after-undo.dxf"));
+        moveFilesObject.insert(QStringLiteral("afterRedo"),
+                               QStringLiteral("move-after-redo.dxf"));
+        moveFilesObject.insert(QStringLiteral("beforeUndoSaved"),
+                               moveBeforeUndoSaved);
+        moveFilesObject.insert(QStringLiteral("afterUndoSaved"),
+                               moveAfterUndoSaved);
+        moveFilesObject.insert(QStringLiteral("afterRedoSaved"),
+                               moveAfterRedoSaved);
+
+        QJsonObject moveUndoRedoObject;
+        moveUndoRedoObject.insert(QStringLiteral("ribbon"), moveRibbonObject);
+        moveUndoRedoObject.insert(QStringLiteral("move"), moveEntityObject);
+        moveUndoRedoObject.insert(QStringLiteral("dialog"), moveDialogObject);
+        moveUndoRedoObject.insert(QStringLiteral("undo"), moveUndoObject);
+        moveUndoRedoObject.insert(QStringLiteral("redo"), moveRedoObject);
+        moveUndoRedoObject.insert(QStringLiteral("files"), moveFilesObject);
+        moveUndoRedoObject.insert(QStringLiteral("passed"), movePassed);
+        report.insert(QStringLiteral("moveUndoRedo"), moveUndoRedoObject);
+
         const bool passed = lineRibbonMouseEvent && actionActiveAfterRibbon
                             && entitiesAfterFirst == entitiesBefore
                             && entitiesAfterSecond == entitiesBefore + 1
@@ -3061,7 +3646,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                             && activeImageSaved && committedImageSaved && dxfSaved
                             && selectorPassed && propertiesPassed
                             && documentLifecyclePassed && polylinePassed
-                            && copyPassed;
+                            && copyPassed && movePassed;
 
         report.insert(QStringLiteral("ribbonActionKey"), QStringLiteral("DrawLine"));
         report.insert(QStringLiteral("ribbonMouseEvent"), lineRibbonMouseEvent);

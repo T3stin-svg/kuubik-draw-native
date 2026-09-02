@@ -500,11 +500,11 @@ foreach ($key in @(
     'entitiesAfterFirstClick', 'entitiesAfterSecondClick', 'linesBefore',
     'linesAfterSecondClick', 'dxfSaved', 'sourceDxfLoaded', 'documentLifecycle',
     'fullPropertiesAction', 'ribbonInvocation', 'propertiesLineRibbonInvocation',
-    'polylineUndoRedo', 'copyUndoRedo'
+    'polylineUndoRedo', 'copyUndoRedo', 'moveUndoRedo'
 )) {
     [void](Require-JsonProperty $guiSmoke $key 'guiSmoke')
 }
-if ($guiSmoke.schemaVersion -ne 4 -or
+if ($guiSmoke.schemaVersion -ne 5 -or
     $guiSmoke.status -ne 'PASS' -or
     -not $guiSmoke.prerequisites -or
     $guiSmoke.ribbonActionKey -ne 'DrawLine' -or
@@ -703,6 +703,116 @@ foreach ($fileState in @(
     Require-Path $copyDxf
     if ((Get-Item -LiteralPath $copyDxf).Length -lt 500) {
         throw "COPY Undo/Redo DXF is unexpectedly small: $($fileState.File)"
+    }
+}
+
+$moveUndoRedo = Require-JsonProperty $guiSmoke 'moveUndoRedo' 'guiSmoke'
+if (-not (Require-JsonBoolean $moveUndoRedo 'passed' 'guiSmoke.moveUndoRedo')) {
+    throw 'Native MOVE, move dialog, and quick-access Undo/Redo workflow failed.'
+}
+$moveRibbon = Require-JsonProperty $moveUndoRedo 'ribbon' 'guiSmoke.moveUndoRedo'
+if ((Require-JsonString $moveRibbon 'actionKey' 'guiSmoke.moveUndoRedo.ribbon') -ne 'ModifyMove' -or
+    -not (Require-JsonBoolean $moveRibbon 'nativeIdentity' 'guiSmoke.moveUndoRedo.ribbon') -or
+    -not (Require-JsonBoolean $moveRibbon 'selectionActionActive' 'guiSmoke.moveUndoRedo.ribbon') -or
+    (Require-JsonNumber $moveRibbon 'initialActionType' 'guiSmoke.moveUndoRedo.ribbon') -ne
+        (Require-JsonNumber $moveRibbon 'expectedSelectionActionType' 'guiSmoke.moveUndoRedo.ribbon') -or
+    -not (Require-JsonBoolean $moveRibbon 'nativeActionActive' 'guiSmoke.moveUndoRedo.ribbon') -or
+    (Require-JsonNumber $moveRibbon 'actionTypeAfterSelection' 'guiSmoke.moveUndoRedo.ribbon') -ne
+        (Require-JsonNumber $moveRibbon 'expectedMoveActionType' 'guiSmoke.moveUndoRedo.ribbon')) {
+    throw 'Ribbon MOVE did not advance from native SelectSingle to native ModifyMove.'
+}
+Assert-RibbonMouseInvocation $moveRibbon 'guiSmoke.moveUndoRedo.ribbon'
+
+$moveEntity = Require-JsonProperty $moveUndoRedo 'move' 'guiSmoke.moveUndoRedo'
+if (-not (Require-JsonBoolean $moveEntity 'created' 'guiSmoke.moveUndoRedo.move') -or
+    (Require-JsonNumber $moveEntity 'candidateCount' 'guiSmoke.moveUndoRedo.move') -ne 1 -or
+    -not (Require-JsonBoolean $moveEntity 'sourceUnselectedBeforeAction' 'guiSmoke.moveUndoRedo.move') -or
+    -not (Require-JsonBoolean $moveEntity 'sourceSelectedByCanvas' 'guiSmoke.moveUndoRedo.move') -or
+    (Require-JsonString $moveEntity 'activeLayerBeforeAction' 'guiSmoke.moveUndoRedo.move') -ne 'KUUBIK-SMOKE-LAYER' -or
+    (Require-JsonString $moveEntity 'sourceLayer' 'guiSmoke.moveUndoRedo.move') -ne 'KUUBIK-SMOKE-LAYER' -or
+    (Require-JsonString $moveEntity 'movedLayer' 'guiSmoke.moveUndoRedo.move') -ne
+        (Require-JsonString $moveEntity 'sourceLayer' 'guiSmoke.moveUndoRedo.move') -or
+    -not (Require-JsonBoolean $moveEntity 'offsetNonZero' 'guiSmoke.moveUndoRedo.move') -or
+    -not (Require-JsonBoolean $moveEntity 'offsetMatchesBothEndpoints' 'guiSmoke.moveUndoRedo.move') -or
+    -not (Require-JsonBoolean $moveEntity 'sourceUndoneBeforeUndo' 'guiSmoke.moveUndoRedo.move') -or
+    (Require-JsonBoolean $moveEntity 'movedUndoneBeforeUndo' 'guiSmoke.moveUndoRedo.move') -or
+    -not (Require-JsonBoolean $moveEntity 'sourceActiveAfterUndo' 'guiSmoke.moveUndoRedo.move') -or
+    -not (Require-JsonBoolean $moveEntity 'movedUndoneAfterUndo' 'guiSmoke.moveUndoRedo.move') -or
+    -not (Require-JsonBoolean $moveEntity 'sourceUndoneAfterRedo' 'guiSmoke.moveUndoRedo.move') -or
+    -not (Require-JsonBoolean $moveEntity 'movedActiveAfterRedo' 'guiSmoke.moveUndoRedo.move') -or
+    -not (Require-JsonBoolean $moveEntity 'snapModeTemporarilyCleared' 'guiSmoke.moveUndoRedo.move') -or
+    -not (Require-JsonBoolean $moveEntity 'snapModeRestored' 'guiSmoke.moveUndoRedo.move') -or
+    (Require-JsonNumber $moveEntity 'activeCountBeforeUndo' 'guiSmoke.moveUndoRedo.move') -ne
+        (Require-JsonNumber $moveEntity 'activeCountBeforeMove' 'guiSmoke.moveUndoRedo.move') -or
+    (Require-JsonNumber $moveEntity 'activeCountAfterUndo' 'guiSmoke.moveUndoRedo.move') -ne
+        (Require-JsonNumber $moveEntity 'activeCountBeforeMove' 'guiSmoke.moveUndoRedo.move') -or
+    (Require-JsonNumber $moveEntity 'activeCountAfterRedo' 'guiSmoke.moveUndoRedo.move') -ne
+        (Require-JsonNumber $moveEntity 'activeCountBeforeMove' 'guiSmoke.moveUndoRedo.move')) {
+    throw 'Native MOVE entity, layer, geometry, snap fixture, or undo state is incorrect.'
+}
+foreach ($pointName in @('selectionCanvasPoint', 'referenceCanvasPoint', 'targetCanvasPoint')) {
+    $canvasPoint = Require-JsonProperty $moveEntity $pointName 'guiSmoke.moveUndoRedo.move'
+    if (-not (Require-JsonBoolean $canvasPoint 'inside' "guiSmoke.moveUndoRedo.move.$pointName")) {
+        throw "Native MOVE canvas point was outside the graphic view: $pointName"
+    }
+    foreach ($coordinate in @('x', 'y')) {
+        [void](Require-JsonNumber $canvasPoint $coordinate "guiSmoke.moveUndoRedo.move.$pointName")
+    }
+}
+foreach ($vectorName in @('sourceStart', 'sourceEnd', 'movedStart', 'movedEnd', 'offset')) {
+    $vector = Require-JsonProperty $moveEntity $vectorName 'guiSmoke.moveUndoRedo.move'
+    if (-not (Require-JsonBoolean $vector 'valid' "guiSmoke.moveUndoRedo.move.$vectorName")) {
+        throw "Native MOVE vector is invalid: $vectorName"
+    }
+    foreach ($coordinate in @('x', 'y')) {
+        [void](Require-JsonNumber $vector $coordinate "guiSmoke.moveUndoRedo.move.$vectorName")
+    }
+}
+
+$moveDialog = Require-JsonProperty $moveUndoRedo 'dialog' 'guiSmoke.moveUndoRedo'
+if ((Require-JsonString $moveDialog 'objectName' 'guiSmoke.moveUndoRedo.dialog') -ne 'QG_DlgMove' -or
+    -not (Require-JsonBoolean $moveDialog 'timerRan' 'guiSmoke.moveUndoRedo.dialog') -or
+    -not (Require-JsonBoolean $moveDialog 'found' 'guiSmoke.moveUndoRedo.dialog') -or
+    -not (Require-JsonBoolean $moveDialog 'visible' 'guiSmoke.moveUndoRedo.dialog') -or
+    -not (Require-JsonBoolean $moveDialog 'moveModeControlFound' 'guiSmoke.moveUndoRedo.dialog') -or
+    -not (Require-JsonBoolean $moveDialog 'moveModeClickedByMouse' 'guiSmoke.moveUndoRedo.dialog') -or
+    -not (Require-JsonBoolean $moveDialog 'moveModeSelected' 'guiSmoke.moveUndoRedo.dialog') -or
+    -not (Require-JsonBoolean $moveDialog 'okFound' 'guiSmoke.moveUndoRedo.dialog') -or
+    -not (Require-JsonBoolean $moveDialog 'okClickedByMouse' 'guiSmoke.moveUndoRedo.dialog') -or
+    -not (Require-JsonBoolean $moveDialog 'acceptedByMouse' 'guiSmoke.moveUndoRedo.dialog') -or
+    (Require-JsonBoolean $moveDialog 'safetyTriggered' 'guiSmoke.moveUndoRedo.dialog')) {
+    throw 'Native QG_DlgMove was not completed through the expected mouse path.'
+}
+
+foreach ($undoRedoName in @('undo', 'redo')) {
+    $actionState = Require-JsonProperty $moveUndoRedo $undoRedoName 'guiSmoke.moveUndoRedo'
+    $expectedActionKey = if ($undoRedoName -eq 'undo') { 'EditUndo' } else { 'EditRedo' }
+    if ((Require-JsonString $actionState 'actionKey' "guiSmoke.moveUndoRedo.$undoRedoName") -ne $expectedActionKey -or
+        -not (Require-JsonBoolean $actionState 'nativeIdentity' "guiSmoke.moveUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'quickAccessButton' "guiSmoke.moveUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'visible' "guiSmoke.moveUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'enabledBeforeClick' "guiSmoke.moveUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'actionTriggeredByMouse' "guiSmoke.moveUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'firstLineStillActive' "guiSmoke.moveUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'copyStillActive' "guiSmoke.moveUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'priorPolylineStillActive' "guiSmoke.moveUndoRedo.$undoRedoName")) {
+        throw "Quick-access $expectedActionKey did not isolate the native MOVE undo cycle."
+    }
+}
+$moveFiles = Require-JsonProperty $moveUndoRedo 'files' 'guiSmoke.moveUndoRedo'
+foreach ($fileState in @(
+    @{ Name = 'beforeUndo'; Saved = 'beforeUndoSaved'; File = 'move-before-undo.dxf' },
+    @{ Name = 'afterUndo'; Saved = 'afterUndoSaved'; File = 'move-after-undo.dxf' },
+    @{ Name = 'afterRedo'; Saved = 'afterRedoSaved'; File = 'move-after-redo.dxf' }
+)) {
+    if ((Require-JsonString $moveFiles $fileState.Name 'guiSmoke.moveUndoRedo.files') -ne $fileState.File -or
+        -not (Require-JsonBoolean $moveFiles $fileState.Saved 'guiSmoke.moveUndoRedo.files')) {
+        throw "MOVE Undo/Redo DXF producer state is incomplete: $($fileState.File)"
+    }
+    $moveDxf = Join-Path $guiSmokeDirectory $fileState.File
+    Require-Path $moveDxf
+    if ((Get-Item -LiteralPath $moveDxf).Length -lt 500) {
+        throw "MOVE Undo/Redo DXF is unexpectedly small: $($fileState.File)"
     }
 }
 if ((Get-Item -LiteralPath $guiActiveImagePath).Length -lt 10000 -or
