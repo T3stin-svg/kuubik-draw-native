@@ -1599,15 +1599,18 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     bool screenshotSaved = screenshotPath.isEmpty();
     int screenshotPixelWidth = 0;
     int screenshotPixelHeight = 0;
+    double screenshotDevicePixelRatio = 0.0;
     if (!screenshotPath.isEmpty()) {
         const QPixmap screenshot = grab();
         screenshotPixelWidth = screenshot.width();
         screenshotPixelHeight = screenshot.height();
+        screenshotDevicePixelRatio = screenshot.devicePixelRatioF();
         screenshotSaved = screenshot.save(screenshotPath, "PNG");
     }
     dpiObject.insert("screenshotSaved", screenshotSaved);
     dpiObject.insert("screenshotPixelWidth", screenshotPixelWidth);
     dpiObject.insert("screenshotPixelHeight", screenshotPixelHeight);
+    dpiObject.insert("screenshotDevicePixelRatio", screenshotDevicePixelRatio);
     contract.insert("dpi", dpiObject);
 
     QJsonObject colors;

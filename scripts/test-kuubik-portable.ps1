@@ -323,15 +323,25 @@ foreach ($dpiCase in @(
     $requestedScale = Require-JsonNumber $dpiState 'requestedScaleFactor' "dpiContract.$($dpiCase.Name).dpi"
     $screenshotPixelWidth = Require-JsonNumber $dpiState 'screenshotPixelWidth' "dpiContract.$($dpiCase.Name).dpi"
     $screenshotPixelHeight = Require-JsonNumber $dpiState 'screenshotPixelHeight' "dpiContract.$($dpiCase.Name).dpi"
+    $screenshotScale = Require-JsonNumber $dpiState 'screenshotDevicePixelRatio' "dpiContract.$($dpiCase.Name).dpi"
+    $logicalWidth = Require-JsonNumber $dpiState 'windowLogicalWidth' "dpiContract.$($dpiCase.Name).dpi"
+    $logicalHeight = Require-JsonNumber $dpiState 'windowLogicalHeight' "dpiContract.$($dpiCase.Name).dpi"
+    $screenshotSaved = Require-JsonBoolean $dpiState 'screenshotSaved' "dpiContract.$($dpiCase.Name).dpi"
+    $screenshotBytes = (Get-Item -LiteralPath $dpiScreenshotPath).Length
+    Write-Output ("Kuubik {0}% DPI evidence: requested={1}; windowDpr={2}; screenshotDpr={3}; logical={4}x{5}; pixels={6}x{7}; saved={8}; bytes={9}" -f
+        $dpiCase.Name, $requestedScale, $actualScale, $screenshotScale, $logicalWidth,
+        $logicalHeight, $screenshotPixelWidth, $screenshotPixelHeight, $screenshotSaved,
+        $screenshotBytes)
     if ([Math]::Abs($actualScale - $dpiCase.Expected) -gt 0.06 -or
         [Math]::Abs($requestedScale - $dpiCase.Expected) -gt 0.001 -or
-        (Require-JsonNumber $dpiState 'windowLogicalWidth' "dpiContract.$($dpiCase.Name).dpi") -ne 1280 -or
-        (Require-JsonNumber $dpiState 'windowLogicalHeight' "dpiContract.$($dpiCase.Name).dpi") -ne 800 -or
+        [Math]::Abs($screenshotScale - $dpiCase.Expected) -gt 0.06 -or
+        $logicalWidth -ne 1280 -or
+        $logicalHeight -ne 800 -or
         [Math]::Abs($screenshotPixelWidth - (1280 * $dpiCase.Expected)) -gt 2 -or
         [Math]::Abs($screenshotPixelHeight - (800 * $dpiCase.Expected)) -gt 2 -or
-        -not (Require-JsonBoolean $dpiState 'screenshotSaved' "dpiContract.$($dpiCase.Name).dpi") -or
-        (Get-Item -LiteralPath $dpiScreenshotPath).Length -lt 10000) {
-        throw "Kuubik $($dpiCase.Name)% DPI evidence is incomplete or uses the wrong scale."
+        -not $screenshotSaved -or
+        $screenshotBytes -lt 10000) {
+        throw "Kuubik $($dpiCase.Name)% DPI evidence is incomplete or uses the wrong scale; see the preceding measured values."
     }
 }
 

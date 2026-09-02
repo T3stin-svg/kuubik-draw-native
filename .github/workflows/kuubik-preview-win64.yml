@@ -139,6 +139,7 @@ jobs:
           python .\scripts\verify-preview-outputs.py "$env:RUNNER_TEMP\Kuubik Draw portable smoke"
 
       - name: Upload native GUI evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: KuubikDraw-0.2.0-preview.2-gui-evidence
