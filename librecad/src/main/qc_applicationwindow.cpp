@@ -59,6 +59,7 @@
 #include <QSaveFile>
 #include <QSet>
 #include <QShortcut>
+#include <QSizePolicy>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QStyleFactory>
@@ -367,6 +368,9 @@ QC_ApplicationWindow::QC_ApplicationWindow()
     kuubikRibbonToolbar->setMovable(false);
     kuubikRibbonToolbar->setFloatable(false);
     kuubikRibbonToolbar->setAllowedAreas(Qt::TopToolBarArea);
+    QSizePolicy ribbonToolbarPolicy = kuubikRibbonToolbar->sizePolicy();
+    ribbonToolbarPolicy.setHorizontalPolicy(QSizePolicy::Ignored);
+    kuubikRibbonToolbar->setSizePolicy(ribbonToolbarPolicy);
     kuubikRibbonToolbar->addWidget(kuubikRibbon);
     addToolBar(Qt::TopToolBarArea, kuubikRibbonToolbar);
 

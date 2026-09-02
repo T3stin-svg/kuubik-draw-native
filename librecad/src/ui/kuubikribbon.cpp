@@ -46,7 +46,9 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
     : QWidget(parent), actions(actionMap), penToolbar(nativePenToolbar), optionToolbar(nativeOptionToolbar)
 {
     setObjectName("kuubikRibbon");
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    // The outer toolbar must be able to assign a narrow width before the
+    // resize-driven panel collapse can reduce the ribbon's own size hint.
+    setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
     setMinimumHeight(KuubikTheme::ribbonMinimumHeight());
     setMaximumHeight(KuubikTheme::ribbonMaximumHeight());
 
@@ -100,14 +102,15 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
 
     tabs = new QTabWidget(this);
     tabs->setObjectName("kuubikRibbonTabs");
+    tabs->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
     tabs->setDocumentMode(true);
     tabs->setMovable(false);
     tabs->setUsesScrollButtons(true);
 
     const QList<TabSpec> specs {
         {tr("Home"), {
-            {tr("Draw"), {{"DrawLine", ItemSize::Large}, {"DrawPolyline", ItemSize::Large}, {"DrawLineRectangle", ItemSize::Small}, {"DrawCircle", ItemSize::Medium}, {"DrawArc", ItemSize::Small}, {"DrawHatch", ItemSize::Small}}, -1},
-            {tr("Modify"), {{"ModifyMove", ItemSize::Large}, {"ModifyDuplicate", ItemSize::Large}, {"ModifyTrim", ItemSize::Large}, {"ModifyTrim2", ItemSize::Small}, {"ModifyCut", ItemSize::Small}, {"ModifyOffset", ItemSize::Medium}, {"ModifyRotate", ItemSize::Medium}, {"ModifyMirror", ItemSize::Small}, {"ModifyScale", ItemSize::Small}, {"ModifyRound", ItemSize::Small}, {"ModifyDeleteQuick", ItemSize::Small}}, -1},
+            {tr("Draw"), {{"DrawLine", ItemSize::Large}, {"DrawPolyline", ItemSize::Large}, {"DrawLineRectangle", ItemSize::Small}, {"DrawCircle", ItemSize::Medium}, {"DrawArc", ItemSize::Small}, {"DrawHatch", ItemSize::Small}}, 1},
+            {tr("Modify"), {{"ModifyMove", ItemSize::Large}, {"ModifyDuplicate", ItemSize::Large}, {"ModifyTrim", ItemSize::Large}, {"ModifyTrim2", ItemSize::Small}, {"ModifyCut", ItemSize::Small}, {"ModifyOffset", ItemSize::Medium}, {"ModifyRotate", ItemSize::Medium}, {"ModifyMirror", ItemSize::Small}, {"ModifyScale", ItemSize::Small}, {"ModifyRound", ItemSize::Small}, {"ModifyDeleteQuick", ItemSize::Small}}, 2},
             {tr("Annotation"), {{"DrawText", ItemSize::Medium}, {"DrawMText", ItemSize::Medium}, {"DimLinear", ItemSize::Small}, {"DimAligned", ItemSize::Small}, {"DimLinearHor", ItemSize::Small}, {"DimLinearVer", ItemSize::Small}, {"DimRadial", ItemSize::Small}, {"DimDiametric", ItemSize::Small}, {"DimAngular", ItemSize::Small}, {"DimLeader", ItemSize::Small}}, 200},
             {tr("Layers"), {{"LayersAdd", ItemSize::Medium}, {"LayersEdit", ItemSize::Medium}, {"LayersToggleView", ItemSize::Small}, {"LayersToggleLock", ItemSize::Small}}, 600},
             {tr("Block"), {{"BlocksInsert", ItemSize::Large}, {"BlocksCreate", ItemSize::Medium}, {"BlocksEdit", ItemSize::Small}, {"BlocksExplode", ItemSize::Small}, {"BlocksImport", ItemSize::Small}}, 300},
@@ -275,6 +278,7 @@ QWidget* KuubikRibbon::createPage(const TabSpec& spec)
 {
     auto* page = new QWidget(this);
     page->setObjectName("kuubikRibbonPage");
+    page->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
     page->setProperty("kuubikTabTitle", spec.title);
     auto* layout = new QHBoxLayout(page);
     layout->setContentsMargins(0, 0, 0, 0);
