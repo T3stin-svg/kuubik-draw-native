@@ -10,7 +10,12 @@ The first owner-reported reproducible problem always outranks this list.
 - [x] Add a native GUI smoke for PLINE from a physically visible responsive
   ribbon surface to committed entity, quick-access Undo/Redo and three-state
   independent DXF read-back (`aaff14484`, run `33660926998`).
-- [ ] Add a native GUI smoke for MOVE or COPY including atomic Undo/Redo.
+- [x] Add a native GUI smoke for COPY from a physically visible responsive
+  ribbon surface through canvas source selection, atomic quick-access
+  Undo/Redo and three-state independent DXF read-back (`d17e8b23b`, run
+  `33665520217`).
+- [ ] Add a separate native GUI smoke for MOVE including its native modal
+  workflow and atomic Undo/Redo.
 - [x] Add an automated packaged-MSVC layer create/current workflow and verify
   the saved DXF layer (`ee8e29264`, run `33645437662`).
 - [x] Add automated DXF open → edit → save-as → close/reopen and independent

@@ -87,17 +87,17 @@ This section is branch evidence, not a release and not a replacement for the
 immutable public `v0.2.0-preview.2` artifact.
 
 - branch: `codex/autocad-visual-integration-root`
-- tested source: `aaff1448482b861c10ceb8b8cf47326c956284bc`
+- tested source: `d17e8b23bb702a7df8c4c106783b75fcd0ba9ea2`
 - Windows run:
-  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33660926998>
+  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33665520217>
 - tested portable ZIP SHA-256:
-  `9361e7f0cb612fb17cd2f4b36630c16bb76c9d7e272545245825dd0193864936`
+  `127b0558ab12a285a5abe639053b16418f5ba8f502789f4e46596bd0c0730365`
 - GUI evidence artifact SHA-256:
-  `18ebe32192445f2c71526fdd08dcbbf896c168f303f610b9065accb9d7e1ee37`
+  `c7c00f50d77907f2ccbffff3ee972e1857a993acf9c1c55cd8d8892e030d8e78`
 - portable artifact wrapper SHA-256:
-  `1665e1b8082ebebb590bcf74843746182cb97f34b26c4549155cb9a29ef3e94c`
-- GUI evidence artifact ID: `9859219845`
-- portable artifact ID: `9859221595`
+  `cf18225989c4f65abb36b817b397bc1f89eaf3098a87410cbafdd364370b1379`
+- GUI evidence artifact ID: `9861131852`
+- portable artifact ID: `9861134306`
 
 The MSVC x64 / Qt 5.15.2 build, package isolation, payload allowlist, Gitleaks,
 UI contract v2, native LINE canvas flow, native layer selector, Properties
@@ -107,6 +107,14 @@ it through the native adapter, and independently read back the result. It then
 created a native open PLINE with three canvas clicks, committed that command's
 single undo cycle, clicked the visible quick-access Undo and Redo buttons, and
 saved a DXF after each state.
+
+The same smoke then cleared native selection, activated the visible responsive
+Modify `More` route for the exact `ModifyDuplicate` QAction, and clicked the
+earlier LINE at graph point `(184.375, 82.25)`. The automation fixture pins the
+native action to in-place mode and reports that fact explicitly; this is not a
+claim that the Tool Options checkbox itself was mouse-tested. One distinct
+native LINE was created on `KUUBIK-SMOKE-LAYER`, then removed and restored by
+the visible quick-access Undo and Redo buttons.
 
 All three Draw invocations in the smoke—initial LINE, PLINE and the later
 Properties LINE—used the visible `collapsedPanelOverflow` route. The test
@@ -124,6 +132,13 @@ Independent `ezdxf` read-back verified:
 - the earlier smoke LINE remained exactly
   `(118.75, 114.75, 0.0)` → `(250.0, 49.75, 0.0)` in all three files;
 - the original fixture LINE, circle and closed polyline also remained intact.
+- `copy-before-undo.dxf` and `copy-after-redo.dxf` contain two identical smoke
+  LINE entities with geometry `(118.75, 114.75, 0.0)` →
+  `(250.0, 49.75, 0.0)`; `copy-after-undo.dxf` contains only the source smoke
+  LINE;
+- the smoke LINE counts are therefore `2 → 1 → 2` and total LINE counts,
+  including the original fixture, are `3 → 2 → 3`;
+- the earlier open smoke PLINE remains unchanged in all three COPY DXFs.
 
 The independent verifier also found a vector A4 PDF and valid SVG vectors.
 
@@ -141,9 +156,9 @@ and `f21de3e7c9f43e2a44cd2fe79433799bd877d20cfca3e226c63bd939e9a22acc`.
 The report measured a 299-pixel LINE options host with exactly one native
 `QG_LineOptions`. DIMLINEAR used a 621-pixel host containing one
 420-pixel `QG_DimOptions` and one 200-pixel `QG_DimLinearOptions`, with no
-clipping, stale widget or duplicate widget. Run `33660926998` repeated the same
-focused test successfully; its two Tool Options PNGs are byte-identical to the
-visually reviewed run above.
+clipping, stale widget or duplicate widget. Runs `33660926998` and
+`33665520217` repeated the same focused test successfully; run `33665520217`'s
+two Tool Options PNGs are byte-identical to the visually reviewed focused run.
 
 ### Corrected responsive-ribbon false interaction
 
@@ -152,8 +167,9 @@ Run `33657916794` on source
 PLINE smoke sent a synthetic event directly to a hidden Draw button. Qt emitted
 the QAction signal, but that was not a user-clickable path. Source `aaff14484`
 replaced that invalid interaction with the visible overflow button and popup
-menu-row mouse route described above. Only successful run `33660926998` is the
-current development gate.
+menu-row mouse route described above. Run `33660926998` proved the correction;
+successful run `33665520217` is the current development gate and extends it
+with the visible native COPY route.
 
 The render smoke first verified the hosted Windows desktop changed from
 1024×768 to 1920×1080, then recorded:

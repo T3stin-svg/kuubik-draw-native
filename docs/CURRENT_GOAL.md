@@ -122,22 +122,23 @@ The primary agent must:
 
 ## Evidence checkpoint — 2026-09-02
 
-Development source `aaff1448482b861c10ceb8b8cf47326c956284bc` passed the
-Windows MSVC x64 / Qt 5.15 workflow in run `33660926998`. The run verified the
+Development source `d17e8b23bb702a7df8c4c106783b75fcd0ba9ea2` passed the
+Windows MSVC x64 / Qt 5.15 workflow in run `33665520217`. The run verified the
 native current-layer selector, native Properties callbacks and
 `ModifyEntity` delegation, Kuubik-to-Classic restoration, native LINE and
 PLINE canvas flows, visible responsive-ribbon overflow selection, quick-access
-Undo/Redo, DXF save/reopen, independent DXF/PDF/SVG read-back, package
-isolation and exact SHA-256 output. The tested portable ZIP SHA-256 is
-`9361e7f0cb612fb17cd2f4b36630c16bb76c9d7e272545245825dd0193864936`.
+Undo/Redo, native in-place COPY selected from the canvas, DXF save/reopen,
+independent DXF/PDF/SVG read-back, package isolation and exact SHA-256 output.
+The tested portable ZIP SHA-256 is
+`127b0558ab12a285a5abe639053b16418f5ba8f502789f4e46596bd0c0730365`.
 This is a development checkpoint, not a release.
 
 The same run retained the qwindows + Qt scale-factor screenshot checks at
 100%, 125% and 150%. Focused run `33654660495` first proved that the native
 LINE and DIMLINEAR Tool Options widgets fit their 1280-pixel inline ribbon host
-without stale or duplicate option widgets; run `33660926998` repeated that
-test successfully. These tests do not prove that Windows Settings OS display
-scaling was changed.
+without stale or duplicate option widgets; runs `33660926998` and
+`33665520217` repeated that test successfully. These tests do not prove that
+Windows Settings OS display scaling was changed.
 
 The goal remains active. Before completion it still requires:
 
@@ -150,8 +151,8 @@ The goal remains active. Before completion it still requires:
   toolbar inline versus moving it to a separate row;
 - explicit owner acceptance of the current 66-icon Kuubik technical-line set
   and completion or owner acceptance of the remaining primary Draw,
-  Modify, Annotation and Blocks workflow evidence in Phases 1 and 2; PLINE and
-  quick-access Undo/Redo now have automated native evidence;
+  Modify, Annotation and Blocks workflow evidence in Phases 1 and 2; PLINE,
+  COPY and quick-access Undo/Redo now have automated native evidence;
 - a final exact-source artifact and handoff after those decisions are closed.
 
 ## Out of scope

@@ -76,20 +76,20 @@ does not certify DWG/DWT/XREF or full AutoCAD parity.
 
 - Integration branch: `codex/autocad-visual-integration-root`
 - Tested source commit:
-  `aaff1448482b861c10ceb8b8cf47326c956284bc`
+  `d17e8b23bb702a7df8c4c106783b75fcd0ba9ea2`
 - Successful Windows MSVC x64 / Qt 5.15 run:
-  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33660926998>
+  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33665520217>
 - Tested portable ZIP SHA-256:
-  `9361e7f0cb612fb17cd2f4b36630c16bb76c9d7e272545245825dd0193864936`
+  `127b0558ab12a285a5abe639053b16418f5ba8f502789f4e46596bd0c0730365`
 
 This development artifact verifies the native current-layer selector,
 Properties callbacks, Classic restoration, visible responsive-ribbon LINE and
-PLINE activation, quick-access Undo/Redo, native Tool Options at
-1280 logical pixels, and independent DXF/PDF/SVG read-back. It is an expiring
-workflow artifact and
+PLINE activation, visible responsive-ribbon native COPY with quick-access
+Undo/Redo, native Tool Options at 1280 logical pixels, and independent
+DXF/PDF/SVG read-back. It is an expiring workflow artifact and
 must not replace the immutable release without Reio's explicit approval.
 
-The first unfinished executable evidence item is a native MOVE or COPY
+The first unfinished executable evidence item is the native MOVE
 selection → document → atomic Undo/Redo workflow. Real Windows Settings
 100%/125%/150% validation and Reio's visual accept/deny decisions remain open.
 

@@ -40,15 +40,15 @@ immutable.
 
 - Integration branch: `codex/autocad-visual-integration-root`
 - Tested source commit:
-  `aaff1448482b861c10ceb8b8cf47326c956284bc`
+  `d17e8b23bb702a7df8c4c106783b75fcd0ba9ea2`
 - Successful Windows MSVC x64 / Qt 5.15 run:
-  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33660926998>
+  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33665520217>
 - Tested portable ZIP SHA-256:
-  `9361e7f0cb612fb17cd2f4b36630c16bb76c9d7e272545245825dd0193864936`
+  `127b0558ab12a285a5abe639053b16418f5ba8f502789f4e46596bd0c0730365`
 - GUI evidence artifact SHA-256:
-  `18ebe32192445f2c71526fdd08dcbbf896c168f303f610b9065accb9d7e1ee37`
+  `c7c00f50d77907f2ccbffff3ee972e1857a993acf9c1c55cd8d8892e030d8e78`
 - Portable artifact wrapper SHA-256:
-  `1665e1b8082ebebb590bcf74843746182cb97f34b26c4549155cb9a29ef3e94c`
+  `cf18225989c4f65abb36b817b397bc1f89eaf3098a87410cbafdd364370b1379`
 
 A later documentation-only handoff commit may follow on the branch without
 changing the tested executable source identified above.
@@ -89,7 +89,10 @@ The development checkpoint additionally provides:
 - native LINE and DIMLINEAR Tool Options widgets contained in the inline ribbon
   host at 1280 logical pixels without stale or duplicate widgets;
 - a native three-vertex open PLINE plus quick-access Undo/Redo workflow, with
-  three independently read-back DXF states.
+  three independently read-back DXF states;
+- native COPY through the existing `ModifyDuplicate` QAction, a real canvas
+  source click and quick-access Undo/Redo, with three independently read-back
+  DXF states.
 
 ## Verified behaviors
 
@@ -109,7 +112,7 @@ The development checkpoint additionally provides:
 Evidence is under `evidence/releases/v0.2.0-preview.2` and summarized in
 `docs/TEST_REPORT.md`.
 
-For development commit `aaff14484`, run `33660926998` additionally verified:
+For development commit `d17e8b23b`, run `33665520217` additionally verified:
 
 - 71 distinct ribbon `QAction` bindings/action keys retain their exact native
   identity;
@@ -122,6 +125,11 @@ For development commit `aaff14484`, run `33660926998` additionally verified:
 - an open three-vertex PLINE is present before Undo, absent after quick-access
   Undo, and restored with identical points after quick-access Redo; the earlier
   LINE retains identical start/end coordinates across all three parsed DXFs;
+- COPY uses the visible Modify overflow menu and exact native
+  `ModifyDuplicate` identity, catches an unselected source LINE with a canvas
+  click, adds one distinct in-place LINE, removes only that copy with
+  quick-access Undo and restores it with quick-access Redo; the earlier LINE
+  and PLINE remain active;
 - native LINE and DIMLINEAR Tool Options remain visible and contained at
   1280×600, with exactly one expected widget set per active action;
 - DXF open/edit/save/reopen, vector A4 PDF, and SVG pass independent read-back;
