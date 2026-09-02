@@ -297,9 +297,9 @@ foreach ($key in @('logicalDpiX', 'logicalDpiY', 'devicePixelRatio', 'windowLogi
 $dpiEvidenceRoot = Join-Path $smokeRoot 'dpi-evidence'
 New-Item -ItemType Directory -Path $dpiEvidenceRoot | Out-Null
 foreach ($dpiCase in @(
-    @{ Name = '100'; Factor = '1.00'; Expected = 1.0 },
-    @{ Name = '125'; Factor = '1.25'; Expected = 1.25 },
-    @{ Name = '150'; Factor = '1.50'; Expected = 1.5 }
+    @{ Name = '100'; Factor = '1.00'; Expected = 1.0; Width = 1280; Height = 600 },
+    @{ Name = '125'; Factor = '1.25'; Expected = 1.25; Width = 1280; Height = 600 },
+    @{ Name = '150'; Factor = '1.50'; Expected = 1.5; Width = 1200; Height = 600 }
 )) {
     $dpiDirectory = Join-Path $dpiEvidenceRoot $dpiCase.Name
     New-Item -ItemType Directory -Path $dpiDirectory | Out-Null
@@ -311,8 +311,8 @@ foreach ($dpiCase in @(
     $dpiEnvironment['QT_SCALE_FACTOR'] = $dpiCase.Factor
     $dpiEnvironment['KUUBIK_UI_CONTRACT_PATH'] = $dpiContractPath
     $dpiEnvironment['KUUBIK_UI_SCREENSHOT_PATH'] = $dpiScreenshotPath
-    $dpiEnvironment['KUUBIK_UI_CONTRACT_WIDTH'] = '1280'
-    $dpiEnvironment['KUUBIK_UI_CONTRACT_HEIGHT'] = '800'
+    $dpiEnvironment['KUUBIK_UI_CONTRACT_WIDTH'] = [string]$dpiCase.Width
+    $dpiEnvironment['KUUBIK_UI_CONTRACT_HEIGHT'] = [string]$dpiCase.Height
     Run-Native -Executable $portableExe -Arguments @() -Label "Kuubik $($dpiCase.Name)% DPI contract" -Environment $dpiEnvironment
     Require-Path $dpiContractPath
     Require-Path $dpiScreenshotPath
@@ -335,10 +335,10 @@ foreach ($dpiCase in @(
     if ([Math]::Abs($actualScale - $dpiCase.Expected) -gt 0.06 -or
         [Math]::Abs($requestedScale - $dpiCase.Expected) -gt 0.001 -or
         [Math]::Abs($screenshotScale - $dpiCase.Expected) -gt 0.06 -or
-        $logicalWidth -ne 1280 -or
-        $logicalHeight -ne 800 -or
-        [Math]::Abs($screenshotPixelWidth - (1280 * $dpiCase.Expected)) -gt 2 -or
-        [Math]::Abs($screenshotPixelHeight - (800 * $dpiCase.Expected)) -gt 2 -or
+        $logicalWidth -ne $dpiCase.Width -or
+        $logicalHeight -ne $dpiCase.Height -or
+        [Math]::Abs($screenshotPixelWidth - ($dpiCase.Width * $dpiCase.Expected)) -gt 2 -or
+        [Math]::Abs($screenshotPixelHeight - ($dpiCase.Height * $dpiCase.Expected)) -gt 2 -or
         -not $screenshotSaved -or
         $screenshotBytes -lt 10000) {
         throw "Kuubik $($dpiCase.Name)% DPI evidence is incomplete or uses the wrong scale; see the preceding measured values."

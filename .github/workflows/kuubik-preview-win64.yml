@@ -128,6 +128,24 @@ jobs:
         shell: pwsh
         run: .\scripts\package-kuubik-portable.ps1
 
+      - name: Set and verify Windows UI test resolution
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Command Set-DisplayResolution -ErrorAction SilentlyContinue) -or
+              -not (Get-Command Get-DisplayResolution -ErrorAction SilentlyContinue)) {
+            throw 'Windows display-resolution cmdlets are unavailable on this runner.'
+          }
+          $before = (Get-DisplayResolution | Out-String).Trim()
+          Write-Output "Windows display resolution before UI tests: $before"
+          Set-DisplayResolution -Width 1920 -Height 1080 -Force
+          Start-Sleep -Seconds 2
+          $actual = (Get-DisplayResolution | Out-String).Trim()
+          Write-Output "Windows display resolution for UI tests: $actual"
+          if ($actual -ne '1920x1080') {
+            throw "Windows UI test resolution did not become 1920x1080: $actual"
+          }
+
       - name: Test portable folder and native file outputs
         shell: pwsh
         run: .\scripts\test-kuubik-portable.ps1 -PackageDirectory .\artifacts\KuubikDraw-0.2.0-preview.2-win64

@@ -128,18 +128,22 @@ def main() -> None:
     require(single_summary["layer"], single_summary)
 
     dpi_root = smoke / "dpi-evidence"
-    for percent, factor in (("100", 1.0), ("125", 1.25), ("150", 1.5)):
+    for percent, factor, width, height in (
+        ("100", 1.0, 1280, 600),
+        ("125", 1.25, 1280, 600),
+        ("150", 1.5, 1200, 600),
+    ):
         dpi_directory = dpi_root / percent
         with (dpi_directory / "kuubik-ui-contract.json").open(encoding="utf-8") as contract_file:
             dpi_contract = json.load(contract_file)
         dpi = dpi_contract["dpi"]
         require(abs(float(dpi["devicePixelRatio"]) - factor) <= 0.06, dpi)
-        require(int(dpi["windowLogicalWidth"]) == 1280, dpi)
-        require(int(dpi["windowLogicalHeight"]) == 800, dpi)
+        require(int(dpi["windowLogicalWidth"]) == width, dpi)
+        require(int(dpi["windowLogicalHeight"]) == height, dpi)
         screenshot_path = dpi_directory / "workspace.png"
         with Image.open(screenshot_path) as screenshot:
             require(screenshot.format == "PNG", screenshot.format)
-            require(screenshot.size == (round(1280 * factor), round(800 * factor)), screenshot.size)
+            require(screenshot.size == (round(width * factor), round(height * factor)), screenshot.size)
             rgb = screenshot.convert("RGB")
             deviation = ImageStat.Stat(rgb).stddev
             require(max(deviation) > 5.0, (percent, deviation))
