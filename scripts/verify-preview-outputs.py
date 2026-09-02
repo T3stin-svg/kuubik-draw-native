@@ -59,6 +59,9 @@ def main() -> None:
     pline_before_path = smoke / "gui-evidence" / "pline-before-undo.dxf"
     pline_undo_path = smoke / "gui-evidence" / "pline-after-undo.dxf"
     pline_redo_path = smoke / "gui-evidence" / "pline-after-redo.dxf"
+    copy_before_path = smoke / "gui-evidence" / "copy-before-undo.dxf"
+    copy_undo_path = smoke / "gui-evidence" / "copy-after-undo.dxf"
+    copy_redo_path = smoke / "gui-evidence" / "copy-after-redo.dxf"
     tool_options_root = smoke / "tool-options-evidence"
     tool_options_report_path = tool_options_root / "tool-options-1280.json"
 
@@ -132,7 +135,7 @@ def main() -> None:
 
     with gui_report_path.open(encoding="utf-8") as report_file:
         gui_report = json.load(report_file)
-    require(gui_report["schemaVersion"] == 3, gui_report.get("schemaVersion"))
+    require(gui_report["schemaVersion"] == 4, gui_report.get("schemaVersion"))
     require(gui_report["sourceDxfLoaded"] is True, gui_report.get("sourceDxfLoaded"))
     require_ribbon_mouse_invocation(
         gui_report["ribbonInvocation"], "ribbonInvocation"
@@ -287,6 +290,161 @@ def main() -> None:
         polyline_undo_redo["redo"]["actionTriggeredByMouse"] is True,
         polyline_undo_redo["redo"],
     )
+
+    def read_copy_state(path: Path, expect_copy: bool):
+        state_doc = ezdxf.readfile(path)
+        state_entities = list(state_doc.modelspace())
+        state_types = [entity.dxftype() for entity in state_entities]
+        require(state_types.count("CIRCLE") == 1, (path.name, state_types))
+        require(
+            state_types.count("LINE") == (3 if expect_copy else 2),
+            (path.name, state_types),
+        )
+        require(state_types.count("LWPOLYLINE") == 2, (path.name, state_types))
+        require("KUUBIK_TEST" in state_doc.layers, (path.name, list(state_doc.layers)))
+        require(
+            "KUUBIK-SMOKE-LAYER" in state_doc.layers,
+            (path.name, list(state_doc.layers)),
+        )
+        state_circle = next(
+            entity for entity in state_entities if entity.dxftype() == "CIRCLE"
+        )
+        require(
+            state_circle.dxf.center.isclose((60.0, 40.0, 0.0)),
+            (path.name, state_circle.dxf.center),
+        )
+        require(
+            abs(state_circle.dxf.radius - 20.0) < 1e-9,
+            (path.name, state_circle.dxf.radius),
+        )
+        fixture_lines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LINE" and entity.dxf.layer == "0"
+        ]
+        require(len(fixture_lines) == 1, (path.name, fixture_lines))
+        require(
+            fixture_lines[0].dxf.start.isclose((0.0, 0.0, 0.0)),
+            (path.name, fixture_lines[0].dxf.start),
+        )
+        require(
+            fixture_lines[0].dxf.end.isclose((120.0, 80.0, 0.0)),
+            (path.name, fixture_lines[0].dxf.end),
+        )
+        fixture_polylines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LWPOLYLINE" and entity.dxf.layer == "KUUBIK_TEST"
+        ]
+        require(len(fixture_polylines) == 1, (path.name, fixture_polylines))
+        require(fixture_polylines[0].closed, path.name)
+        fixture_points = [
+            (round(point[0], 6), round(point[1], 6))
+            for point in fixture_polylines[0].get_points("xy")
+        ]
+        require(
+            fixture_points
+            == [(0.0, 0.0), (120.0, 0.0), (120.0, 80.0), (0.0, 80.0)],
+            (path.name, fixture_points),
+        )
+        smoke_polylines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LWPOLYLINE"
+            and entity.dxf.layer == "KUUBIK-SMOKE-LAYER"
+        ]
+        require(len(smoke_polylines) == 1, (path.name, smoke_polylines))
+        require(not smoke_polylines[0].closed, path.name)
+        smoke_polyline_points = [
+            (round(point[0], 6), round(point[1], 6))
+            for point in smoke_polylines[0].get_points("xy")
+        ]
+        require(
+            smoke_polyline_points == before_points,
+            (path.name, smoke_polyline_points, before_points),
+        )
+        smoke_lines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LINE"
+            and entity.dxf.layer == "KUUBIK-SMOKE-LAYER"
+        ]
+        require(
+            len(smoke_lines) == (2 if expect_copy else 1),
+            (path.name, smoke_lines),
+        )
+        smoke_line_geometries = [
+            (
+                tuple(round(value, 6) for value in line.dxf.start),
+                tuple(round(value, 6) for value in line.dxf.end),
+            )
+            for line in smoke_lines
+        ]
+        require(
+            all(geometry == before_smoke_line for geometry in smoke_line_geometries),
+            (path.name, smoke_line_geometries, before_smoke_line),
+        )
+        return smoke_line_geometries, smoke_polyline_points
+
+    copy_before_lines, copy_before_polyline = read_copy_state(copy_before_path, True)
+    copy_undo_lines, copy_undo_polyline = read_copy_state(copy_undo_path, False)
+    copy_redo_lines, copy_redo_polyline = read_copy_state(copy_redo_path, True)
+    require(copy_before_lines == copy_redo_lines, (copy_before_lines, copy_redo_lines))
+    require(len(copy_undo_lines) == 1, copy_undo_lines)
+    require(
+        copy_before_polyline == copy_undo_polyline == copy_redo_polyline,
+        (copy_before_polyline, copy_undo_polyline, copy_redo_polyline),
+    )
+    copy_undo_redo = gui_report["copyUndoRedo"]
+    require(copy_undo_redo["passed"] is True, copy_undo_redo)
+    require_ribbon_mouse_invocation(
+        copy_undo_redo["ribbon"], "copyUndoRedo.ribbon"
+    )
+    require(
+        copy_undo_redo["ribbon"]["actionKey"] == "ModifyDuplicate",
+        copy_undo_redo["ribbon"],
+    )
+    require(
+        copy_undo_redo["ribbon"]["nativeIdentity"] is True,
+        copy_undo_redo["ribbon"],
+    )
+    require(
+        copy_undo_redo["ribbon"]["nativeActionActive"] is True,
+        copy_undo_redo["ribbon"],
+    )
+    require(
+        copy_undo_redo["ribbon"]["activeActionType"]
+        == copy_undo_redo["ribbon"]["expectedActionType"],
+        copy_undo_redo["ribbon"],
+    )
+    copied_line = copy_undo_redo["copy"]
+    for flag in (
+        "created",
+        "duplicateInPlace",
+        "inPlaceForcedForSmoke",
+        "sourceUnselectedBeforeAction",
+        "canvasPointInside",
+        "sourceDistinct",
+        "startMatches",
+        "endMatches",
+        "entityUndoneAfterUndo",
+    ):
+        require(copied_line[flag] is True, (flag, copied_line))
+    require(copied_line["candidateCount"] == 1, copied_line)
+    require(copied_line["entityUndoneBeforeUndo"] is False, copied_line)
+    require(copied_line["entityUndoneAfterRedo"] is False, copied_line)
+    require(
+        copied_line["activeLayerBeforeAction"]
+        == copied_line["sourceLayer"]
+        == copied_line["duplicateLayer"]
+        == "KUUBIK-SMOKE-LAYER",
+        copied_line,
+    )
+    canvas_point = copied_line["canvasPoint"]
+    require(canvas_point["inside"] is True, canvas_point)
+    for coordinate in ("graphX", "graphY", "guiX", "guiY"):
+        require(isinstance(canvas_point[coordinate], (int, float)), canvas_point)
+    for action_name in ("undo", "redo"):
+        action_state = copy_undo_redo[action_name]
+        require(action_state["actionTriggeredByMouse"] is True, action_state)
+        require(action_state["firstLineStillActive"] is True, action_state)
+        require(action_state["priorPolylineStillActive"] is True, action_state)
 
     dpi_root = smoke / "dpi-evidence"
     for percent, factor, width, height in (

@@ -98,6 +98,7 @@
 #include "rs_graphic.h"
 #include "rs_layer.h"
 #include "rs_layerlist.h"
+#include "rs_line.h"
 #include "rs_painterqt.h"
 #include "rs_pen.h"
 #include "rs_polyline.h"
@@ -109,6 +110,7 @@
 
 #include "lc_actionfactory.h"
 #include "lc_actiongroupmanager.h"
+#include "lc_actionmodifyduplicate.h"
 #include "lc_centralwidget.h"
 #include "lc_penwizard.h"
 #include "lc_printing.h"
@@ -1954,6 +1956,10 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                ? nullptr
                                : kuubikRibbon->buttonForAction(
                                      QStringLiteral("DrawPolyline"));
+    auto* modifyDuplicateButton = kuubikRibbon == nullptr
+                                      ? nullptr
+                                      : kuubikRibbon->buttonForAction(
+                                            QStringLiteral("ModifyDuplicate"));
     auto* undoQuickButton = kuubikRibbon == nullptr
                                 ? nullptr
                                 : kuubikRibbon->buttonForAction(
@@ -1968,6 +1974,19 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         if (currentGraphic != nullptr) {
             for (auto* entity : currentGraphic->getEntityList()) {
                 if (entity != nullptr && entity->rtti() == RS2::EntityLine) {
+                    ++count;
+                }
+            }
+        }
+        return count;
+    };
+
+    auto activeLineCount = [](RS_Graphic* currentGraphic) {
+        int count = 0;
+        if (currentGraphic != nullptr) {
+            for (auto* entity : currentGraphic->getEntityList()) {
+                if (entity != nullptr && entity->rtti() == RS2::EntityLine
+                    && !entity->isUndone()) {
                     ++count;
                 }
             }
@@ -2168,7 +2187,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
     };
 
     QJsonObject report;
-    report.insert(QStringLiteral("schemaVersion"), 3);
+    report.insert(QStringLiteral("schemaVersion"), 4);
     report.insert(QStringLiteral("product"), qApp->applicationName());
     report.insert(QStringLiteral("version"), qApp->applicationVersion());
     report.insert(QStringLiteral("viewportRequestedWidth"), 1920);
@@ -2187,6 +2206,9 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                && polylineButton != nullptr
                                && polylineButton->defaultAction()
                                       == a_map.value("DrawPolyline", nullptr)
+                               && modifyDuplicateButton != nullptr
+                               && modifyDuplicateButton->defaultAction()
+                                      == a_map.value("ModifyDuplicate", nullptr)
                                && undoQuickButton != nullptr
                                && undoQuickButton->defaultAction()
                                       == a_map.value("EditUndo", nullptr)
@@ -2513,6 +2535,348 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         report.insert(QStringLiteral("polylineUndoRedo"),
                       polylineUndoRedoObject);
 
+        // Exercise COPY through the existing native ModifyDuplicate QAction.
+        // No entity is preselected: the source must be caught by one real
+        // canvas click. The default in-place mode makes the clone's geometry
+        // independently comparable without introducing a modal offset dialog.
+        slotKillAllActions();
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            if (entity != nullptr) {
+                entity->setSelected(false);
+            }
+        }
+        RS_DIALOGFACTORY->updateSelectionWidget(0, 0.0);
+        QApplication::processEvents();
+
+        RS_Line* copySourceLine = firstCreatedLine != nullptr
+                                      && firstCreatedLine->rtti()
+                                             == RS2::EntityLine
+                                  ? static_cast<RS_Line*>(firstCreatedLine)
+                                  : nullptr;
+        const bool copySourceUnselectedBeforeAction = copySourceLine != nullptr
+                                                      && !copySourceLine
+                                                            ->isSelected()
+                                                      && graphic->countSelected()
+                                                             == 0;
+        const RS_Vector copySourceStart = copySourceLine == nullptr
+                                              ? RS_Vector(false)
+                                              : copySourceLine->getStartpoint();
+        const RS_Vector copySourceEnd = copySourceLine == nullptr
+                                            ? RS_Vector(false)
+                                            : copySourceLine->getEndpoint();
+        const QString copySourceLayer = copySourceLine == nullptr
+                                             || copySourceLine->getLayer(true)
+                                                    == nullptr
+                                            ? QString()
+                                            : copySourceLine->getLayer(true)
+                                                  ->getName();
+        const QString copyActiveLayerBeforeAction = layerList->getActive()
+                                                        == nullptr
+                                                    ? QString()
+                                                    : layerList->getActive()
+                                                          ->getName();
+        QSet<RS_Entity*> entitiesBeforeCopySet;
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            entitiesBeforeCopySet.insert(entity);
+        }
+        const int activeLinesBeforeCopy = activeLineCount(graphic);
+
+        const QJsonObject copyRibbonInvocation = invokeRibbonActionWithMouse(
+            modifyDuplicateButton,
+            a_map.value("ModifyDuplicate", nullptr));
+        RS_ActionInterface* copyActionBase = mdi->getEventHandler() == nullptr
+                                                 ? nullptr
+                                                 : mdi->getEventHandler()
+                                                       ->getCurrentAction();
+        const bool copyActionActive = copyActionBase != nullptr
+                                      && copyActionBase->rtti()
+                                             == RS2::ActionModifyDuplicate;
+        auto* copyAction = copyActionActive
+                               ? static_cast<LC_ActionModifyDuplicate*>(
+                                     copyActionBase)
+                               : nullptr;
+        // The option normally comes from the user's native Tool Options
+        // settings. Pin this automation fixture to in-place COPY so evidence
+        // does not depend on a reused profile's last offset preference.
+        const bool copyInPlaceForcedForSmoke = copyAction != nullptr;
+        if (copyAction != nullptr) {
+            copyAction->setDuplicateInPlace(true);
+        }
+        const bool copyDuplicateInPlace = copyAction != nullptr
+                                          && copyAction->isDuplicateInPlace();
+        const int copyActiveActionType = copyActionBase == nullptr
+                                             ? static_cast<int>(RS2::ActionNone)
+                                             : static_cast<int>(
+                                                   copyActionBase->rtti());
+        const RS_Vector copyCanvasGraphPoint = copySourceLine == nullptr
+                                                   ? RS_Vector(false)
+                                                   : copySourceStart.lerp(
+                                                         copySourceEnd, 0.5);
+        const RS_Vector copyCanvasGuiPoint = copyCanvasGraphPoint.valid
+                                                 ? view->toGui(
+                                                       copyCanvasGraphPoint)
+                                                 : RS_Vector(false);
+        const QPoint copyCanvasPoint(qRound(copyCanvasGuiPoint.x),
+                                     qRound(copyCanvasGuiPoint.y));
+        const bool copyCanvasPointInside = copyCanvasGuiPoint.valid
+                                           && view->rect().contains(
+                                                copyCanvasPoint);
+        if (copyActionActive && copyDuplicateInPlace
+            && copyCanvasPointInside) {
+            sendClick(view, copyCanvasPoint);
+        }
+        slotKillAllActions();
+        QApplication::processEvents();
+
+        RS_Line* copiedLine = nullptr;
+        int copyCandidateCount = 0;
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            if (entity != nullptr && !entitiesBeforeCopySet.contains(entity)
+                && entity->rtti() == RS2::EntityLine) {
+                copiedLine = static_cast<RS_Line*>(entity);
+                ++copyCandidateCount;
+            }
+        }
+        const QString copiedLineLayer = copiedLine == nullptr
+                                             || copiedLine->getLayer(true)
+                                                    == nullptr
+                                            ? QString()
+                                            : copiedLine->getLayer(true)
+                                                  ->getName();
+        const bool copiedLineDistinct = copiedLine != nullptr
+                                        && copiedLine != copySourceLine;
+        const bool copiedLineStartMatches = copiedLine != nullptr
+                                            && copiedLine->getStartpoint()
+                                                       .distanceTo(
+                                                         copySourceStart)
+                                                   <= 1.0e-9;
+        const bool copiedLineEndMatches = copiedLine != nullptr
+                                          && copiedLine->getEndpoint()
+                                                     .distanceTo(copySourceEnd)
+                                                 <= 1.0e-9;
+        const bool copiedLineUndoneBeforeUndo = copiedLine == nullptr
+                                                || copiedLine->isUndone();
+        const int activeLinesBeforeCopyUndo = activeLineCount(graphic);
+        const QString copyBeforeUndoPath = output.filePath(
+            QStringLiteral("copy-before-undo.dxf"));
+        const bool copyBeforeUndoSaved = graphic->saveAs(
+            copyBeforeUndoPath, RS2::FormatDXFRW, true);
+
+        const bool copyUndoNativeIdentity = undoQuickButton->defaultAction()
+                                            == a_map.value("EditUndo", nullptr)
+                                            && undoQuickButton->property(
+                                                   "kuubikActionKey").toString()
+                                                   == QStringLiteral("EditUndo");
+        const bool copyUndoQuickAccessButton = undoQuickButton->objectName()
+                                               == QStringLiteral(
+                                                    "kuubikQuickButton");
+        const bool copyUndoVisible = undoQuickButton->isVisible();
+        const bool copyUndoEnabledBeforeClick = undoQuickButton->isEnabled();
+        bool copyUndoActionTriggeredByMouse = false;
+        const QMetaObject::Connection copyUndoConnection = connect(
+            a_map.value("EditUndo", nullptr), &QAction::triggered, this,
+            [&copyUndoActionTriggeredByMouse](bool) {
+                copyUndoActionTriggeredByMouse = true;
+            });
+        sendClick(undoQuickButton, undoQuickButton->rect().center());
+        disconnect(copyUndoConnection);
+        QApplication::processEvents();
+        const bool copiedLineUndoneAfterUndo = copiedLine != nullptr
+                                               && copiedLine->isUndone();
+        const bool copySourceActiveAfterUndo = copySourceLine != nullptr
+                                               && !copySourceLine->isUndone();
+        const bool priorPolylineActiveAfterCopyUndo = createdPolyline != nullptr
+                                                      && !createdPolyline
+                                                            ->isUndone();
+        const int activeLinesAfterCopyUndo = activeLineCount(graphic);
+        const QString copyAfterUndoPath = output.filePath(
+            QStringLiteral("copy-after-undo.dxf"));
+        const bool copyAfterUndoSaved = graphic->saveAs(
+            copyAfterUndoPath, RS2::FormatDXFRW, true);
+
+        const bool copyRedoNativeIdentity = redoQuickButton->defaultAction()
+                                            == a_map.value("EditRedo", nullptr)
+                                            && redoQuickButton->property(
+                                                   "kuubikActionKey").toString()
+                                                   == QStringLiteral("EditRedo");
+        const bool copyRedoQuickAccessButton = redoQuickButton->objectName()
+                                               == QStringLiteral(
+                                                    "kuubikQuickButton");
+        const bool copyRedoVisible = redoQuickButton->isVisible();
+        const bool copyRedoEnabledBeforeClick = redoQuickButton->isEnabled();
+        bool copyRedoActionTriggeredByMouse = false;
+        const QMetaObject::Connection copyRedoConnection = connect(
+            a_map.value("EditRedo", nullptr), &QAction::triggered, this,
+            [&copyRedoActionTriggeredByMouse](bool) {
+                copyRedoActionTriggeredByMouse = true;
+            });
+        sendClick(redoQuickButton, redoQuickButton->rect().center());
+        disconnect(copyRedoConnection);
+        QApplication::processEvents();
+        const bool copiedLineUndoneAfterRedo = copiedLine == nullptr
+                                               || copiedLine->isUndone();
+        const bool copySourceActiveAfterRedo = copySourceLine != nullptr
+                                               && !copySourceLine->isUndone();
+        const bool priorPolylineActiveAfterCopyRedo = createdPolyline != nullptr
+                                                      && !createdPolyline
+                                                            ->isUndone();
+        const int activeLinesAfterCopyRedo = activeLineCount(graphic);
+        const QString copyAfterRedoPath = output.filePath(
+            QStringLiteral("copy-after-redo.dxf"));
+        const bool copyAfterRedoSaved = graphic->saveAs(
+            copyAfterRedoPath, RS2::FormatDXFRW, true);
+
+        const bool copyRibbonIdentity = modifyDuplicateButton->defaultAction()
+                                        == a_map.value("ModifyDuplicate", nullptr)
+                                        && modifyDuplicateButton->property(
+                                               "kuubikActionKey").toString()
+                                               == QStringLiteral(
+                                                    "ModifyDuplicate");
+        const bool copyPassed = copyRibbonIdentity
+                                && copyRibbonInvocation.value(
+                                     QStringLiteral("passed")).toBool()
+                                && copyActionActive && copyDuplicateInPlace
+                                && copyInPlaceForcedForSmoke
+                                && copySourceUnselectedBeforeAction
+                                && copyCanvasPointInside
+                                && copyCandidateCount == 1
+                                && copiedLineDistinct
+                                && copyActiveLayerBeforeAction == smokeLayerName
+                                && copySourceLayer == smokeLayerName
+                                && copiedLineLayer == copySourceLayer
+                                && copiedLineStartMatches
+                                && copiedLineEndMatches
+                                && !copiedLineUndoneBeforeUndo
+                                && activeLinesBeforeCopyUndo
+                                       == activeLinesBeforeCopy + 1
+                                && copyUndoNativeIdentity
+                                && copyUndoQuickAccessButton
+                                && copyUndoVisible
+                                && copyUndoEnabledBeforeClick
+                                && copyUndoActionTriggeredByMouse
+                                && copiedLineUndoneAfterUndo
+                                && copySourceActiveAfterUndo
+                                && priorPolylineActiveAfterCopyUndo
+                                && activeLinesAfterCopyUndo
+                                       == activeLinesBeforeCopy
+                                && copyRedoNativeIdentity
+                                && copyRedoQuickAccessButton
+                                && copyRedoVisible
+                                && copyRedoEnabledBeforeClick
+                                && copyRedoActionTriggeredByMouse
+                                && !copiedLineUndoneAfterRedo
+                                && copySourceActiveAfterRedo
+                                && priorPolylineActiveAfterCopyRedo
+                                && activeLinesAfterCopyRedo
+                                       == activeLinesBeforeCopy + 1
+                                && copyBeforeUndoSaved
+                                && copyAfterUndoSaved
+                                && copyAfterRedoSaved;
+
+        QJsonObject copyRibbonObject = copyRibbonInvocation;
+        copyRibbonObject.insert(QStringLiteral("actionKey"),
+                                QStringLiteral("ModifyDuplicate"));
+        copyRibbonObject.insert(QStringLiteral("nativeIdentity"),
+                                copyRibbonIdentity);
+        copyRibbonObject.insert(QStringLiteral("activeActionType"),
+                                copyActiveActionType);
+        copyRibbonObject.insert(
+            QStringLiteral("expectedActionType"),
+            static_cast<int>(RS2::ActionModifyDuplicate));
+        copyRibbonObject.insert(QStringLiteral("nativeActionActive"),
+                                copyActionActive);
+
+        QJsonObject copiedLineObject;
+        copiedLineObject.insert(QStringLiteral("created"), copiedLine != nullptr);
+        copiedLineObject.insert(QStringLiteral("candidateCount"),
+                                copyCandidateCount);
+        copiedLineObject.insert(QStringLiteral("duplicateInPlace"),
+                                copyDuplicateInPlace);
+        copiedLineObject.insert(QStringLiteral("inPlaceForcedForSmoke"),
+                                copyInPlaceForcedForSmoke);
+        copiedLineObject.insert(QStringLiteral("sourceUnselectedBeforeAction"),
+                                copySourceUnselectedBeforeAction);
+        copiedLineObject.insert(QStringLiteral("canvasPointInside"),
+                                copyCanvasPointInside);
+        copiedLineObject.insert(QStringLiteral("sourceDistinct"),
+                                copiedLineDistinct);
+        copiedLineObject.insert(QStringLiteral("sourceLayer"),
+                                copySourceLayer);
+        copiedLineObject.insert(QStringLiteral("activeLayerBeforeAction"),
+                                copyActiveLayerBeforeAction);
+        copiedLineObject.insert(QStringLiteral("duplicateLayer"),
+                                copiedLineLayer);
+        copiedLineObject.insert(QStringLiteral("startMatches"),
+                                copiedLineStartMatches);
+        copiedLineObject.insert(QStringLiteral("endMatches"),
+                                copiedLineEndMatches);
+        copiedLineObject.insert(QStringLiteral("entityUndoneBeforeUndo"),
+                                copiedLineUndoneBeforeUndo);
+        copiedLineObject.insert(QStringLiteral("entityUndoneAfterUndo"),
+                                copiedLineUndoneAfterUndo);
+        copiedLineObject.insert(QStringLiteral("entityUndoneAfterRedo"),
+                                copiedLineUndoneAfterRedo);
+        copiedLineObject.insert(QStringLiteral("activeCountBeforeCreate"),
+                                activeLinesBeforeCopy);
+        copiedLineObject.insert(QStringLiteral("activeCountBeforeUndo"),
+                                activeLinesBeforeCopyUndo);
+        copiedLineObject.insert(QStringLiteral("activeCountAfterUndo"),
+                                activeLinesAfterCopyUndo);
+        copiedLineObject.insert(QStringLiteral("activeCountAfterRedo"),
+                                activeLinesAfterCopyRedo);
+        QJsonObject copyCanvasPointObject;
+        copyCanvasPointObject.insert(QStringLiteral("graphX"),
+                                     copyCanvasGraphPoint.x);
+        copyCanvasPointObject.insert(QStringLiteral("graphY"),
+                                     copyCanvasGraphPoint.y);
+        copyCanvasPointObject.insert(QStringLiteral("guiX"),
+                                     copyCanvasPoint.x());
+        copyCanvasPointObject.insert(QStringLiteral("guiY"),
+                                     copyCanvasPoint.y());
+        copyCanvasPointObject.insert(QStringLiteral("inside"),
+                                     copyCanvasPointInside);
+        copiedLineObject.insert(QStringLiteral("canvasPoint"),
+                                copyCanvasPointObject);
+
+        QJsonObject copyUndoObject = undoRedoActionObject(
+            QStringLiteral("EditUndo"), copyUndoNativeIdentity,
+            copyUndoQuickAccessButton, copyUndoVisible,
+            copyUndoEnabledBeforeClick, copyUndoActionTriggeredByMouse,
+            copySourceActiveAfterUndo);
+        copyUndoObject.insert(QStringLiteral("priorPolylineStillActive"),
+                              priorPolylineActiveAfterCopyUndo);
+        QJsonObject copyRedoObject = undoRedoActionObject(
+            QStringLiteral("EditRedo"), copyRedoNativeIdentity,
+            copyRedoQuickAccessButton, copyRedoVisible,
+            copyRedoEnabledBeforeClick, copyRedoActionTriggeredByMouse,
+            copySourceActiveAfterRedo);
+        copyRedoObject.insert(QStringLiteral("priorPolylineStillActive"),
+                              priorPolylineActiveAfterCopyRedo);
+
+        QJsonObject copyFilesObject;
+        copyFilesObject.insert(QStringLiteral("beforeUndo"),
+                               QStringLiteral("copy-before-undo.dxf"));
+        copyFilesObject.insert(QStringLiteral("afterUndo"),
+                               QStringLiteral("copy-after-undo.dxf"));
+        copyFilesObject.insert(QStringLiteral("afterRedo"),
+                               QStringLiteral("copy-after-redo.dxf"));
+        copyFilesObject.insert(QStringLiteral("beforeUndoSaved"),
+                               copyBeforeUndoSaved);
+        copyFilesObject.insert(QStringLiteral("afterUndoSaved"),
+                               copyAfterUndoSaved);
+        copyFilesObject.insert(QStringLiteral("afterRedoSaved"),
+                               copyAfterRedoSaved);
+
+        QJsonObject copyUndoRedoObject;
+        copyUndoRedoObject.insert(QStringLiteral("ribbon"),
+                                  copyRibbonObject);
+        copyUndoRedoObject.insert(QStringLiteral("copy"), copiedLineObject);
+        copyUndoRedoObject.insert(QStringLiteral("undo"), copyUndoObject);
+        copyUndoRedoObject.insert(QStringLiteral("redo"), copyRedoObject);
+        copyUndoRedoObject.insert(QStringLiteral("files"), copyFilesObject);
+        copyUndoRedoObject.insert(QStringLiteral("passed"), copyPassed);
+        report.insert(QStringLiteral("copyUndoRedo"), copyUndoRedoObject);
+
         const int entitiesBeforePropertyLine = graphic->getEntityList().size();
         const int linesBeforePropertyLine = lineCount(graphic);
         QSet<RS_Entity*> entitiesBeforePropertyLineSet;
@@ -2696,7 +3060,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                             && linesAfterSecond == linesBefore + 1
                             && activeImageSaved && committedImageSaved && dxfSaved
                             && selectorPassed && propertiesPassed
-                            && documentLifecyclePassed && polylinePassed;
+                            && documentLifecyclePassed && polylinePassed
+                            && copyPassed;
 
         report.insert(QStringLiteral("ribbonActionKey"), QStringLiteral("DrawLine"));
         report.insert(QStringLiteral("ribbonMouseEvent"), lineRibbonMouseEvent);

@@ -500,11 +500,11 @@ foreach ($key in @(
     'entitiesAfterFirstClick', 'entitiesAfterSecondClick', 'linesBefore',
     'linesAfterSecondClick', 'dxfSaved', 'sourceDxfLoaded', 'documentLifecycle',
     'fullPropertiesAction', 'ribbonInvocation', 'propertiesLineRibbonInvocation',
-    'polylineUndoRedo'
+    'polylineUndoRedo', 'copyUndoRedo'
 )) {
     [void](Require-JsonProperty $guiSmoke $key 'guiSmoke')
 }
-if ($guiSmoke.schemaVersion -ne 3 -or
+if ($guiSmoke.schemaVersion -ne 4 -or
     $guiSmoke.status -ne 'PASS' -or
     -not $guiSmoke.prerequisites -or
     $guiSmoke.ribbonActionKey -ne 'DrawLine' -or
@@ -627,6 +627,82 @@ foreach ($fileState in @(
     Require-Path $polylineDxf
     if ((Get-Item -LiteralPath $polylineDxf).Length -lt 500) {
         throw "PLINE Undo/Redo DXF is unexpectedly small: $($fileState.File)"
+    }
+}
+
+$copyUndoRedo = Require-JsonProperty $guiSmoke 'copyUndoRedo' 'guiSmoke'
+if (-not (Require-JsonBoolean $copyUndoRedo 'passed' 'guiSmoke.copyUndoRedo')) {
+    throw 'Native COPY and quick-access Undo/Redo workflow failed.'
+}
+$copyRibbon = Require-JsonProperty $copyUndoRedo 'ribbon' 'guiSmoke.copyUndoRedo'
+if ((Require-JsonString $copyRibbon 'actionKey' 'guiSmoke.copyUndoRedo.ribbon') -ne 'ModifyDuplicate' -or
+    -not (Require-JsonBoolean $copyRibbon 'nativeIdentity' 'guiSmoke.copyUndoRedo.ribbon') -or
+    (Require-JsonNumber $copyRibbon 'activeActionType' 'guiSmoke.copyUndoRedo.ribbon') -ne
+        (Require-JsonNumber $copyRibbon 'expectedActionType' 'guiSmoke.copyUndoRedo.ribbon') -or
+    -not (Require-JsonBoolean $copyRibbon 'nativeActionActive' 'guiSmoke.copyUndoRedo.ribbon')) {
+    throw 'Ribbon COPY did not activate the native ModifyDuplicate action through a mouse event.'
+}
+Assert-RibbonMouseInvocation $copyRibbon 'guiSmoke.copyUndoRedo.ribbon'
+$copyEntity = Require-JsonProperty $copyUndoRedo 'copy' 'guiSmoke.copyUndoRedo'
+if (-not (Require-JsonBoolean $copyEntity 'created' 'guiSmoke.copyUndoRedo.copy') -or
+    (Require-JsonNumber $copyEntity 'candidateCount' 'guiSmoke.copyUndoRedo.copy') -ne 1 -or
+    -not (Require-JsonBoolean $copyEntity 'duplicateInPlace' 'guiSmoke.copyUndoRedo.copy') -or
+    -not (Require-JsonBoolean $copyEntity 'inPlaceForcedForSmoke' 'guiSmoke.copyUndoRedo.copy') -or
+    -not (Require-JsonBoolean $copyEntity 'sourceUnselectedBeforeAction' 'guiSmoke.copyUndoRedo.copy') -or
+    -not (Require-JsonBoolean $copyEntity 'canvasPointInside' 'guiSmoke.copyUndoRedo.copy') -or
+    -not (Require-JsonBoolean $copyEntity 'sourceDistinct' 'guiSmoke.copyUndoRedo.copy') -or
+    (Require-JsonString $copyEntity 'activeLayerBeforeAction' 'guiSmoke.copyUndoRedo.copy') -ne 'KUUBIK-SMOKE-LAYER' -or
+    (Require-JsonString $copyEntity 'sourceLayer' 'guiSmoke.copyUndoRedo.copy') -ne 'KUUBIK-SMOKE-LAYER' -or
+    (Require-JsonString $copyEntity 'duplicateLayer' 'guiSmoke.copyUndoRedo.copy') -ne
+        (Require-JsonString $copyEntity 'sourceLayer' 'guiSmoke.copyUndoRedo.copy') -or
+    -not (Require-JsonBoolean $copyEntity 'startMatches' 'guiSmoke.copyUndoRedo.copy') -or
+    -not (Require-JsonBoolean $copyEntity 'endMatches' 'guiSmoke.copyUndoRedo.copy') -or
+    (Require-JsonBoolean $copyEntity 'entityUndoneBeforeUndo' 'guiSmoke.copyUndoRedo.copy') -or
+    -not (Require-JsonBoolean $copyEntity 'entityUndoneAfterUndo' 'guiSmoke.copyUndoRedo.copy') -or
+    (Require-JsonBoolean $copyEntity 'entityUndoneAfterRedo' 'guiSmoke.copyUndoRedo.copy') -or
+    (Require-JsonNumber $copyEntity 'activeCountBeforeUndo' 'guiSmoke.copyUndoRedo.copy') -ne
+        ((Require-JsonNumber $copyEntity 'activeCountBeforeCreate' 'guiSmoke.copyUndoRedo.copy') + 1) -or
+    (Require-JsonNumber $copyEntity 'activeCountAfterUndo' 'guiSmoke.copyUndoRedo.copy') -ne
+        (Require-JsonNumber $copyEntity 'activeCountBeforeCreate' 'guiSmoke.copyUndoRedo.copy') -or
+    (Require-JsonNumber $copyEntity 'activeCountAfterRedo' 'guiSmoke.copyUndoRedo.copy') -ne
+        ((Require-JsonNumber $copyEntity 'activeCountBeforeCreate' 'guiSmoke.copyUndoRedo.copy') + 1)) {
+    throw 'Native COPY entity, layer, geometry, or undo state is incorrect.'
+}
+$copyCanvasPoint = Require-JsonProperty $copyEntity 'canvasPoint' 'guiSmoke.copyUndoRedo.copy'
+if (-not (Require-JsonBoolean $copyCanvasPoint 'inside' 'guiSmoke.copyUndoRedo.copy.canvasPoint')) {
+    throw 'Native COPY source canvas point was outside the graphic view.'
+}
+foreach ($coordinate in @('graphX', 'graphY', 'guiX', 'guiY')) {
+    [void](Require-JsonNumber $copyCanvasPoint $coordinate 'guiSmoke.copyUndoRedo.copy.canvasPoint')
+}
+foreach ($undoRedoName in @('undo', 'redo')) {
+    $actionState = Require-JsonProperty $copyUndoRedo $undoRedoName 'guiSmoke.copyUndoRedo'
+    $expectedActionKey = if ($undoRedoName -eq 'undo') { 'EditUndo' } else { 'EditRedo' }
+    if ((Require-JsonString $actionState 'actionKey' "guiSmoke.copyUndoRedo.$undoRedoName") -ne $expectedActionKey -or
+        -not (Require-JsonBoolean $actionState 'nativeIdentity' "guiSmoke.copyUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'quickAccessButton' "guiSmoke.copyUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'visible' "guiSmoke.copyUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'enabledBeforeClick' "guiSmoke.copyUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'actionTriggeredByMouse' "guiSmoke.copyUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'firstLineStillActive' "guiSmoke.copyUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'priorPolylineStillActive' "guiSmoke.copyUndoRedo.$undoRedoName")) {
+        throw "Quick-access $expectedActionKey did not isolate the native COPY undo cycle."
+    }
+}
+$copyFiles = Require-JsonProperty $copyUndoRedo 'files' 'guiSmoke.copyUndoRedo'
+foreach ($fileState in @(
+    @{ Name = 'beforeUndo'; Saved = 'beforeUndoSaved'; File = 'copy-before-undo.dxf' },
+    @{ Name = 'afterUndo'; Saved = 'afterUndoSaved'; File = 'copy-after-undo.dxf' },
+    @{ Name = 'afterRedo'; Saved = 'afterRedoSaved'; File = 'copy-after-redo.dxf' }
+)) {
+    if ((Require-JsonString $copyFiles $fileState.Name 'guiSmoke.copyUndoRedo.files') -ne $fileState.File -or
+        -not (Require-JsonBoolean $copyFiles $fileState.Saved 'guiSmoke.copyUndoRedo.files')) {
+        throw "COPY Undo/Redo DXF producer state is incomplete: $($fileState.File)"
+    }
+    $copyDxf = Join-Path $guiSmokeDirectory $fileState.File
+    Require-Path $copyDxf
+    if ((Get-Item -LiteralPath $copyDxf).Length -lt 500) {
+        throw "COPY Undo/Redo DXF is unexpectedly small: $($fileState.File)"
     }
 }
 if ((Get-Item -LiteralPath $guiActiveImagePath).Length -lt 10000 -or
