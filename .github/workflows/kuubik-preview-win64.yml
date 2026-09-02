@@ -166,6 +166,9 @@ jobs:
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-committed.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.json
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.dxf
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/pline-before-undo.dxf
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/pline-after-undo.dxf
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/pline-after-redo.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/dpi-evidence/**/workspace.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/dpi-evidence/**/kuubik-ui-contract.json
             ${{ runner.temp }}/Kuubik Draw portable smoke/tool-options-evidence/tool-options-line-1280.png

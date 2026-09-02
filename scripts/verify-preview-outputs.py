@@ -24,6 +24,9 @@ def main() -> None:
     svg_path = smoke / "preview-smoke.svg"
     gui_dxf_path = smoke / "gui-evidence" / "line-gui-smoke.dxf"
     gui_report_path = smoke / "gui-evidence" / "line-gui-smoke.json"
+    pline_before_path = smoke / "gui-evidence" / "pline-before-undo.dxf"
+    pline_undo_path = smoke / "gui-evidence" / "pline-after-undo.dxf"
+    pline_redo_path = smoke / "gui-evidence" / "pline-after-redo.dxf"
     tool_options_root = smoke / "tool-options-evidence"
     tool_options_report_path = tool_options_root / "tool-options-1280.json"
 
@@ -97,7 +100,7 @@ def main() -> None:
 
     with gui_report_path.open(encoding="utf-8") as report_file:
         gui_report = json.load(report_file)
-    require(gui_report["schemaVersion"] == 2, gui_report.get("schemaVersion"))
+    require(gui_report["schemaVersion"] == 3, gui_report.get("schemaVersion"))
     require(gui_report["sourceDxfLoaded"] is True, gui_report.get("sourceDxfLoaded"))
     layer_selector = gui_report["layerSelector"]
     require(layer_selector["present"] is True, layer_selector)
@@ -128,6 +131,120 @@ def main() -> None:
     single_summary = properties_states["single"]["summary"]
     require(single_summary["type"], single_summary)
     require(single_summary["layer"], single_summary)
+
+    def read_pline_state(path: Path, expect_smoke_polyline: bool):
+        state_doc = ezdxf.readfile(path)
+        state_entities = list(state_doc.modelspace())
+        state_types = [entity.dxftype() for entity in state_entities]
+        require(state_types.count("CIRCLE") == 1, (path.name, state_types))
+        require(state_types.count("LINE") == 2, (path.name, state_types))
+        require(
+            state_types.count("LWPOLYLINE") == (2 if expect_smoke_polyline else 1),
+            (path.name, state_types),
+        )
+        require("KUUBIK_TEST" in state_doc.layers, (path.name, list(state_doc.layers)))
+        require(
+            "KUUBIK-SMOKE-LAYER" in state_doc.layers,
+            (path.name, list(state_doc.layers)),
+        )
+        state_circle = next(
+            entity for entity in state_entities if entity.dxftype() == "CIRCLE"
+        )
+        require(
+            state_circle.dxf.center.isclose((60.0, 40.0, 0.0)),
+            (path.name, state_circle.dxf.center),
+        )
+        require(
+            abs(state_circle.dxf.radius - 20.0) < 1e-9,
+            (path.name, state_circle.dxf.radius),
+        )
+        fixture_polylines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LWPOLYLINE" and entity.dxf.layer == "KUUBIK_TEST"
+        ]
+        require(len(fixture_polylines) == 1, (path.name, fixture_polylines))
+        require(fixture_polylines[0].closed, path.name)
+        fixture_points = [
+            (round(point[0], 6), round(point[1], 6))
+            for point in fixture_polylines[0].get_points("xy")
+        ]
+        require(
+            fixture_points
+            == [(0.0, 0.0), (120.0, 0.0), (120.0, 80.0), (0.0, 80.0)],
+            (path.name, fixture_points),
+        )
+        smoke_lines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LINE" and entity.dxf.layer == "KUUBIK-SMOKE-LAYER"
+        ]
+        require(len(smoke_lines) == 1, (path.name, smoke_lines))
+        require(not smoke_lines[0].dxf.start.isclose(smoke_lines[0].dxf.end), path.name)
+        smoke_line_geometry = (
+            tuple(round(value, 6) for value in smoke_lines[0].dxf.start),
+            tuple(round(value, 6) for value in smoke_lines[0].dxf.end),
+        )
+        original_lines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LINE" and entity.dxf.layer == "0"
+        ]
+        require(len(original_lines) == 1, (path.name, original_lines))
+        require(
+            original_lines[0].dxf.start.isclose((0.0, 0.0, 0.0)),
+            (path.name, original_lines[0].dxf.start),
+        )
+        require(
+            original_lines[0].dxf.end.isclose((120.0, 80.0, 0.0)),
+            (path.name, original_lines[0].dxf.end),
+        )
+        smoke_polylines = [
+            entity for entity in state_entities
+            if entity.dxftype() == "LWPOLYLINE"
+            and entity.dxf.layer == "KUUBIK-SMOKE-LAYER"
+        ]
+        require(
+            len(smoke_polylines) == (1 if expect_smoke_polyline else 0),
+            (path.name, smoke_polylines),
+        )
+        if not smoke_polylines:
+            return None, smoke_line_geometry
+        smoke_polyline = smoke_polylines[0]
+        require(not smoke_polyline.closed, path.name)
+        points = [
+            (round(point[0], 6), round(point[1], 6))
+            for point in smoke_polyline.get_points("xy")
+        ]
+        require(len(points) == 3, (path.name, points))
+        require(len(set(points)) == 3, (path.name, points))
+        cross = (
+            (points[1][0] - points[0][0]) * (points[2][1] - points[0][1])
+            - (points[1][1] - points[0][1]) * (points[2][0] - points[0][0])
+        )
+        require(abs(cross) > 1e-6, (path.name, points, cross))
+        return points, smoke_line_geometry
+
+    before_points, before_smoke_line = read_pline_state(pline_before_path, True)
+    undo_points, undo_smoke_line = read_pline_state(pline_undo_path, False)
+    redo_points, redo_smoke_line = read_pline_state(pline_redo_path, True)
+    require(undo_points is None, pline_undo_path)
+    require(before_points == redo_points, (before_points, redo_points))
+    require(
+        before_smoke_line == undo_smoke_line == redo_smoke_line,
+        (before_smoke_line, undo_smoke_line, redo_smoke_line),
+    )
+    polyline_undo_redo = gui_report["polylineUndoRedo"]
+    require(polyline_undo_redo["passed"] is True, polyline_undo_redo)
+    require(
+        polyline_undo_redo["ribbon"]["actionTriggeredByMouse"] is True,
+        polyline_undo_redo["ribbon"],
+    )
+    require(
+        polyline_undo_redo["undo"]["actionTriggeredByMouse"] is True,
+        polyline_undo_redo["undo"],
+    )
+    require(
+        polyline_undo_redo["redo"]["actionTriggeredByMouse"] is True,
+        polyline_undo_redo["redo"],
+    )
 
     dpi_root = smoke / "dpi-evidence"
     for percent, factor, width, height in (
@@ -222,6 +339,7 @@ def main() -> None:
         "Independent read-back passed: "
         f"{types}, one A4 PDF page with vector operators, valid SVG vectors, "
         f"one new non-zero GUI LINE on {selected_layer} after native reopen, "
+        "one open three-vertex GUI PLINE removed/restored by native QAT Undo/Redo, "
         "and visible, geometrically contained native LINE/DIMLINEAR Tool Options "
         "at 1280x600"
     )

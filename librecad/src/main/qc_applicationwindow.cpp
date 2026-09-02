@@ -99,6 +99,7 @@
 #include "rs_layerlist.h"
 #include "rs_painterqt.h"
 #include "rs_pen.h"
+#include "rs_polyline.h"
 #include "rs_settings.h"
 #include "rs_staticgraphicview.h"
 #include "rs_system.h"
@@ -1948,6 +1949,18 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
     auto* button = kuubikRibbon == nullptr
                        ? nullptr
                        : kuubikRibbon->buttonForAction(QStringLiteral("DrawLine"));
+    auto* polylineButton = kuubikRibbon == nullptr
+                               ? nullptr
+                               : kuubikRibbon->buttonForAction(
+                                     QStringLiteral("DrawPolyline"));
+    auto* undoQuickButton = kuubikRibbon == nullptr
+                                ? nullptr
+                                : kuubikRibbon->buttonForAction(
+                                      QStringLiteral("EditUndo"));
+    auto* redoQuickButton = kuubikRibbon == nullptr
+                                ? nullptr
+                                : kuubikRibbon->buttonForAction(
+                                      QStringLiteral("EditRedo"));
 
     auto lineCount = [](RS_Graphic* currentGraphic) {
         int count = 0;
@@ -1961,14 +1974,31 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         return count;
     };
 
-    auto sendClick = [](QWidget* target, const QPoint& point) {
+    auto activePolylineCount = [](RS_Graphic* currentGraphic) {
+        int count = 0;
+        if (currentGraphic != nullptr) {
+            for (auto* entity : currentGraphic->getEntityList()) {
+                if (entity != nullptr && entity->rtti() == RS2::EntityPolyline
+                    && !entity->isUndone()) {
+                    ++count;
+                }
+            }
+        }
+        return count;
+    };
+
+    auto sendMouseClick = [](QWidget* target, const QPoint& point,
+                             Qt::MouseButton button) {
         QMouseEvent press(QEvent::MouseButtonPress, QPointF(point),
-                          Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                          button, button, Qt::NoModifier);
         QApplication::sendEvent(target, &press);
         QMouseEvent release(QEvent::MouseButtonRelease, QPointF(point),
-                            Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+                            button, Qt::NoButton, Qt::NoModifier);
         QApplication::sendEvent(target, &release);
         QApplication::processEvents();
+    };
+    auto sendClick = [&sendMouseClick](QWidget* target, const QPoint& point) {
+        sendMouseClick(target, point, Qt::LeftButton);
     };
 
     auto propertiesStateObject = [](const QVariantMap& state, bool nativeCallback) {
@@ -1991,7 +2021,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
     };
 
     QJsonObject report;
-    report.insert(QStringLiteral("schemaVersion"), 2);
+    report.insert(QStringLiteral("schemaVersion"), 3);
     report.insert(QStringLiteral("product"), qApp->applicationName());
     report.insert(QStringLiteral("version"), qApp->applicationVersion());
     report.insert(QStringLiteral("viewportRequestedWidth"), 1920);
@@ -2007,6 +2037,15 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
     const bool prerequisites = mdi != nullptr && view != nullptr
                                && graphic != nullptr && button != nullptr
                                && button->defaultAction() == a_map.value("DrawLine", nullptr)
+                               && polylineButton != nullptr
+                               && polylineButton->defaultAction()
+                                      == a_map.value("DrawPolyline", nullptr)
+                               && undoQuickButton != nullptr
+                               && undoQuickButton->defaultAction()
+                                      == a_map.value("EditUndo", nullptr)
+                               && redoQuickButton != nullptr
+                               && redoQuickButton->defaultAction()
+                                      == a_map.value("EditRedo", nullptr)
                                && kuubikCurrentLayerSelector != nullptr
                                && kuubikPropertiesPalette != nullptr
                                && sourceDxfLoaded
@@ -2079,6 +2118,258 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                              : firstCreatedLine->getLayer(true)->getName();
         const QString dxfPath = output.filePath(QStringLiteral("line-gui-smoke.dxf"));
         const bool dxfSaved = graphic->saveAs(dxfPath, RS2::FormatDXFRW, true);
+
+        // Exercise a second native Draw command and the quick-access Undo/Redo
+        // buttons through real widget mouse events. The three saved DXFs are
+        // independently parsed in CI so the producer's in-memory assertions
+        // cannot by themselves make this workflow pass.
+        const int activePolylinesBefore = activePolylineCount(graphic);
+        QSet<RS_Entity*> entitiesBeforePolylineSet;
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            entitiesBeforePolylineSet.insert(entity);
+        }
+        const QPoint polylineFirstPoint(view->width() / 5, view->height() / 4);
+        const QPoint polylineSecondPoint(view->width() / 2, view->height() / 5);
+        const QPoint polylineThirdPoint((view->width() * 3) / 4,
+                                        (view->height() * 2) / 5);
+
+        bool polylineActionTriggeredByMouse = false;
+        const QMetaObject::Connection polylineConnection = connect(
+            a_map.value("DrawPolyline", nullptr), &QAction::triggered, this,
+            [&polylineActionTriggeredByMouse](bool) {
+                polylineActionTriggeredByMouse = true;
+            });
+        sendClick(polylineButton, polylineButton->rect().center());
+        disconnect(polylineConnection);
+        RS_ActionInterface* polylineAction = mdi->getEventHandler() == nullptr
+                                                 ? nullptr
+                                                 : mdi->getEventHandler()
+                                                       ->getCurrentAction();
+        const bool polylineActionActive = polylineAction != nullptr
+                                          && polylineAction->rtti()
+                                                 == RS2::ActionDrawPolyline;
+        const int polylineActiveActionType = polylineAction == nullptr
+                                                 ? static_cast<int>(RS2::ActionNone)
+                                                 : static_cast<int>(
+                                                       polylineAction->rtti());
+        sendClick(view, polylineFirstPoint);
+        sendClick(view, polylineSecondPoint);
+        sendClick(view, polylineThirdPoint);
+        sendMouseClick(view, polylineThirdPoint, Qt::RightButton);
+        slotKillAllActions();
+        QApplication::processEvents();
+
+        RS_Polyline* createdPolyline = nullptr;
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            if (entity != nullptr && !entitiesBeforePolylineSet.contains(entity)
+                && entity->rtti() == RS2::EntityPolyline) {
+                createdPolyline = static_cast<RS_Polyline*>(entity);
+            }
+        }
+        const QString createdPolylineLayer = createdPolyline == nullptr
+                                                  || createdPolyline->getLayer(true) == nullptr
+                                              ? QString()
+                                              : createdPolyline->getLayer(true)->getName();
+        const int polylineSegmentCount = createdPolyline == nullptr
+                                             ? 0
+                                             : createdPolyline->count();
+        const bool polylineUndoneBeforeUndo = createdPolyline == nullptr
+                                              || createdPolyline->isUndone();
+        const int activePolylinesBeforeUndo = activePolylineCount(graphic);
+        const QString polylineBeforeUndoPath = output.filePath(
+            QStringLiteral("pline-before-undo.dxf"));
+        const bool polylineBeforeUndoSaved = graphic->saveAs(
+            polylineBeforeUndoPath, RS2::FormatDXFRW, true);
+
+        const bool undoNativeIdentity = undoQuickButton->defaultAction()
+                                        == a_map.value("EditUndo", nullptr)
+                                        && undoQuickButton->property(
+                                               "kuubikActionKey").toString()
+                                               == QStringLiteral("EditUndo");
+        const bool undoQuickAccessButton = undoQuickButton->objectName()
+                                           == QStringLiteral("kuubikQuickButton");
+        const bool undoVisible = undoQuickButton->isVisible();
+        const bool undoEnabledBeforeClick = undoQuickButton->isEnabled();
+        bool undoActionTriggeredByMouse = false;
+        const QMetaObject::Connection undoConnection = connect(
+            a_map.value("EditUndo", nullptr), &QAction::triggered, this,
+            [&undoActionTriggeredByMouse](bool) {
+                undoActionTriggeredByMouse = true;
+            });
+        sendClick(undoQuickButton, undoQuickButton->rect().center());
+        disconnect(undoConnection);
+        QApplication::processEvents();
+        const bool polylineUndoneAfterUndo = createdPolyline != nullptr
+                                             && createdPolyline->isUndone();
+        const bool firstLineActiveAfterUndo = firstCreatedLine != nullptr
+                                              && !firstCreatedLine->isUndone();
+        const int activePolylinesAfterUndo = activePolylineCount(graphic);
+        const QString polylineAfterUndoPath = output.filePath(
+            QStringLiteral("pline-after-undo.dxf"));
+        const bool polylineAfterUndoSaved = graphic->saveAs(
+            polylineAfterUndoPath, RS2::FormatDXFRW, true);
+
+        const bool redoNativeIdentity = redoQuickButton->defaultAction()
+                                        == a_map.value("EditRedo", nullptr)
+                                        && redoQuickButton->property(
+                                               "kuubikActionKey").toString()
+                                               == QStringLiteral("EditRedo");
+        const bool redoQuickAccessButton = redoQuickButton->objectName()
+                                           == QStringLiteral("kuubikQuickButton");
+        const bool redoVisible = redoQuickButton->isVisible();
+        const bool redoEnabledBeforeClick = redoQuickButton->isEnabled();
+        bool redoActionTriggeredByMouse = false;
+        const QMetaObject::Connection redoConnection = connect(
+            a_map.value("EditRedo", nullptr), &QAction::triggered, this,
+            [&redoActionTriggeredByMouse](bool) {
+                redoActionTriggeredByMouse = true;
+            });
+        sendClick(redoQuickButton, redoQuickButton->rect().center());
+        disconnect(redoConnection);
+        QApplication::processEvents();
+        const bool polylineUndoneAfterRedo = createdPolyline == nullptr
+                                             || createdPolyline->isUndone();
+        const bool firstLineActiveAfterRedo = firstCreatedLine != nullptr
+                                              && !firstCreatedLine->isUndone();
+        const int activePolylinesAfterRedo = activePolylineCount(graphic);
+        const QString polylineAfterRedoPath = output.filePath(
+            QStringLiteral("pline-after-redo.dxf"));
+        const bool polylineAfterRedoSaved = graphic->saveAs(
+            polylineAfterRedoPath, RS2::FormatDXFRW, true);
+
+        const bool polylineRibbonIdentity = polylineButton->defaultAction()
+                                            == a_map.value("DrawPolyline", nullptr)
+                                            && polylineButton->property(
+                                                   "kuubikActionKey").toString()
+                                                   == QStringLiteral("DrawPolyline");
+        const bool polylinePassed = polylineRibbonIdentity
+                                    && polylineButton->isVisible()
+                                    && polylineActionTriggeredByMouse
+                                    && polylineActionActive
+                                    && createdPolyline != nullptr
+                                    && !createdPolyline->isClosed()
+                                    && polylineSegmentCount == 2
+                                    && createdPolylineLayer == smokeLayerName
+                                    && !polylineUndoneBeforeUndo
+                                    && activePolylinesBeforeUndo
+                                           == activePolylinesBefore + 1
+                                    && undoNativeIdentity && undoQuickAccessButton
+                                    && undoVisible && undoEnabledBeforeClick
+                                    && undoActionTriggeredByMouse
+                                    && polylineUndoneAfterUndo
+                                    && firstLineActiveAfterUndo
+                                    && activePolylinesAfterUndo
+                                           == activePolylinesBefore
+                                    && redoNativeIdentity && redoQuickAccessButton
+                                    && redoVisible && redoEnabledBeforeClick
+                                    && redoActionTriggeredByMouse
+                                    && !polylineUndoneAfterRedo
+                                    && firstLineActiveAfterRedo
+                                    && activePolylinesAfterRedo
+                                           == activePolylinesBefore + 1
+                                    && polylineBeforeUndoSaved
+                                    && polylineAfterUndoSaved
+                                    && polylineAfterRedoSaved;
+
+        QJsonObject polylineRibbonObject;
+        polylineRibbonObject.insert(QStringLiteral("actionKey"),
+                                    QStringLiteral("DrawPolyline"));
+        polylineRibbonObject.insert(QStringLiteral("nativeIdentity"),
+                                    polylineRibbonIdentity);
+        polylineRibbonObject.insert(QStringLiteral("visible"),
+                                    polylineButton->isVisible());
+        polylineRibbonObject.insert(QStringLiteral("actionTriggeredByMouse"),
+                                    polylineActionTriggeredByMouse);
+        polylineRibbonObject.insert(QStringLiteral("activeActionType"),
+                                    polylineActiveActionType);
+        polylineRibbonObject.insert(QStringLiteral("nativeActionActive"),
+                                    polylineActionActive);
+
+        QJsonObject polylineEntityObject;
+        polylineEntityObject.insert(QStringLiteral("created"),
+                                    createdPolyline != nullptr);
+        polylineEntityObject.insert(QStringLiteral("entityUndoneBeforeUndo"),
+                                    polylineUndoneBeforeUndo);
+        polylineEntityObject.insert(QStringLiteral("entityUndoneAfterUndo"),
+                                    polylineUndoneAfterUndo);
+        polylineEntityObject.insert(QStringLiteral("entityUndoneAfterRedo"),
+                                    polylineUndoneAfterRedo);
+        polylineEntityObject.insert(QStringLiteral("layer"), createdPolylineLayer);
+        polylineEntityObject.insert(QStringLiteral("closed"),
+                                    createdPolyline != nullptr
+                                        && createdPolyline->isClosed());
+        polylineEntityObject.insert(QStringLiteral("segmentCount"),
+                                    polylineSegmentCount);
+        polylineEntityObject.insert(QStringLiteral("verticesExpected"), 3);
+        polylineEntityObject.insert(QStringLiteral("activeCountBeforeCreate"),
+                                    activePolylinesBefore);
+        polylineEntityObject.insert(QStringLiteral("activeCountBeforeUndo"),
+                                    activePolylinesBeforeUndo);
+        polylineEntityObject.insert(QStringLiteral("activeCountAfterUndo"),
+                                    activePolylinesAfterUndo);
+        polylineEntityObject.insert(QStringLiteral("activeCountAfterRedo"),
+                                    activePolylinesAfterRedo);
+
+        const auto undoRedoActionObject = [](const QString& actionKey,
+                                             bool nativeIdentity,
+                                             bool quickAccessButton,
+                                             bool visible,
+                                             bool enabledBeforeClick,
+                                             bool actionTriggeredByMouse,
+                                             bool firstLineStillActive) {
+            QJsonObject object;
+            object.insert(QStringLiteral("actionKey"), actionKey);
+            object.insert(QStringLiteral("nativeIdentity"), nativeIdentity);
+            object.insert(QStringLiteral("quickAccessButton"), quickAccessButton);
+            object.insert(QStringLiteral("visible"), visible);
+            object.insert(QStringLiteral("enabledBeforeClick"), enabledBeforeClick);
+            object.insert(QStringLiteral("actionTriggeredByMouse"),
+                          actionTriggeredByMouse);
+            object.insert(QStringLiteral("firstLineStillActive"),
+                          firstLineStillActive);
+            return object;
+        };
+
+        QJsonObject polylineFilesObject;
+        polylineFilesObject.insert(QStringLiteral("beforeUndo"),
+                                   QStringLiteral("pline-before-undo.dxf"));
+        polylineFilesObject.insert(QStringLiteral("afterUndo"),
+                                   QStringLiteral("pline-after-undo.dxf"));
+        polylineFilesObject.insert(QStringLiteral("afterRedo"),
+                                   QStringLiteral("pline-after-redo.dxf"));
+        polylineFilesObject.insert(QStringLiteral("beforeUndoSaved"),
+                                   polylineBeforeUndoSaved);
+        polylineFilesObject.insert(QStringLiteral("afterUndoSaved"),
+                                   polylineAfterUndoSaved);
+        polylineFilesObject.insert(QStringLiteral("afterRedoSaved"),
+                                   polylineAfterRedoSaved);
+
+        QJsonObject polylineUndoRedoObject;
+        polylineUndoRedoObject.insert(QStringLiteral("ribbon"),
+                                      polylineRibbonObject);
+        polylineUndoRedoObject.insert(QStringLiteral("polyline"),
+                                      polylineEntityObject);
+        polylineUndoRedoObject.insert(QStringLiteral("undo"),
+                                      undoRedoActionObject(
+                                          QStringLiteral("EditUndo"),
+                                          undoNativeIdentity,
+                                          undoQuickAccessButton, undoVisible,
+                                          undoEnabledBeforeClick,
+                                          undoActionTriggeredByMouse,
+                                          firstLineActiveAfterUndo));
+        polylineUndoRedoObject.insert(QStringLiteral("redo"),
+                                      undoRedoActionObject(
+                                          QStringLiteral("EditRedo"),
+                                          redoNativeIdentity,
+                                          redoQuickAccessButton, redoVisible,
+                                          redoEnabledBeforeClick,
+                                          redoActionTriggeredByMouse,
+                                          firstLineActiveAfterRedo));
+        polylineUndoRedoObject.insert(QStringLiteral("files"),
+                                      polylineFilesObject);
+        polylineUndoRedoObject.insert(QStringLiteral("passed"), polylinePassed);
+        report.insert(QStringLiteral("polylineUndoRedo"),
+                      polylineUndoRedoObject);
 
         const int entitiesBeforePropertyLine = graphic->getEntityList().size();
         const int linesBeforePropertyLine = lineCount(graphic);
@@ -2258,7 +2549,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                             && linesAfterSecond == linesBefore + 1
                             && activeImageSaved && committedImageSaved && dxfSaved
                             && selectorPassed && propertiesPassed
-                            && documentLifecyclePassed;
+                            && documentLifecyclePassed && polylinePassed;
 
         report.insert(QStringLiteral("ribbonActionKey"), QStringLiteral("DrawLine"));
         report.insert(QStringLiteral("ribbonMouseEvent"), true);

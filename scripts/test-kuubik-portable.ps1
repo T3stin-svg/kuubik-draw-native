@@ -465,11 +465,11 @@ foreach ($key in @(
     'actionActiveAfterRibbon', 'windowWidth', 'windowHeight', 'entitiesBefore',
     'entitiesAfterFirstClick', 'entitiesAfterSecondClick', 'linesBefore',
     'linesAfterSecondClick', 'dxfSaved', 'sourceDxfLoaded', 'documentLifecycle',
-    'fullPropertiesAction'
+    'fullPropertiesAction', 'polylineUndoRedo'
 )) {
     [void](Require-JsonProperty $guiSmoke $key 'guiSmoke')
 }
-if ($guiSmoke.schemaVersion -ne 2 -or
+if ($guiSmoke.schemaVersion -ne 3 -or
     $guiSmoke.status -ne 'PASS' -or
     -not $guiSmoke.prerequisites -or
     $guiSmoke.ribbonActionKey -ne 'DrawLine' -or
@@ -533,6 +533,65 @@ if ((Require-JsonString $fullPropertiesAction 'actionKey' 'guiSmoke.fullProperti
     -not (Require-JsonBoolean $fullPropertiesAction 'nativeIdentity' 'guiSmoke.fullPropertiesAction') -or
     -not (Require-JsonBoolean $fullPropertiesAction 'nativeActionActive' 'guiSmoke.fullPropertiesAction')) {
     throw 'Open Full Properties did not activate the native ModifyEntity action.'
+}
+
+$polylineUndoRedo = Require-JsonProperty $guiSmoke 'polylineUndoRedo' 'guiSmoke'
+if (-not (Require-JsonBoolean $polylineUndoRedo 'passed' 'guiSmoke.polylineUndoRedo')) {
+    throw 'Native PLINE and quick-access Undo/Redo workflow failed.'
+}
+$polylineRibbon = Require-JsonProperty $polylineUndoRedo 'ribbon' 'guiSmoke.polylineUndoRedo'
+if ((Require-JsonString $polylineRibbon 'actionKey' 'guiSmoke.polylineUndoRedo.ribbon') -ne 'DrawPolyline' -or
+    -not (Require-JsonBoolean $polylineRibbon 'nativeIdentity' 'guiSmoke.polylineUndoRedo.ribbon') -or
+    -not (Require-JsonBoolean $polylineRibbon 'visible' 'guiSmoke.polylineUndoRedo.ribbon') -or
+    -not (Require-JsonBoolean $polylineRibbon 'actionTriggeredByMouse' 'guiSmoke.polylineUndoRedo.ribbon') -or
+    -not (Require-JsonBoolean $polylineRibbon 'nativeActionActive' 'guiSmoke.polylineUndoRedo.ribbon')) {
+    throw 'Ribbon PLINE did not activate the native DrawPolyline action through a mouse event.'
+}
+$polylineEntity = Require-JsonProperty $polylineUndoRedo 'polyline' 'guiSmoke.polylineUndoRedo'
+if (-not (Require-JsonBoolean $polylineEntity 'created' 'guiSmoke.polylineUndoRedo.polyline') -or
+    (Require-JsonBoolean $polylineEntity 'entityUndoneBeforeUndo' 'guiSmoke.polylineUndoRedo.polyline') -or
+    -not (Require-JsonBoolean $polylineEntity 'entityUndoneAfterUndo' 'guiSmoke.polylineUndoRedo.polyline') -or
+    (Require-JsonBoolean $polylineEntity 'entityUndoneAfterRedo' 'guiSmoke.polylineUndoRedo.polyline') -or
+    (Require-JsonString $polylineEntity 'layer' 'guiSmoke.polylineUndoRedo.polyline') -ne 'KUUBIK-SMOKE-LAYER' -or
+    (Require-JsonBoolean $polylineEntity 'closed' 'guiSmoke.polylineUndoRedo.polyline') -or
+    (Require-JsonNumber $polylineEntity 'segmentCount' 'guiSmoke.polylineUndoRedo.polyline') -ne 2 -or
+    (Require-JsonNumber $polylineEntity 'verticesExpected' 'guiSmoke.polylineUndoRedo.polyline') -ne 3 -or
+    (Require-JsonNumber $polylineEntity 'activeCountBeforeUndo' 'guiSmoke.polylineUndoRedo.polyline') -ne
+        ((Require-JsonNumber $polylineEntity 'activeCountBeforeCreate' 'guiSmoke.polylineUndoRedo.polyline') + 1) -or
+    (Require-JsonNumber $polylineEntity 'activeCountAfterUndo' 'guiSmoke.polylineUndoRedo.polyline') -ne
+        (Require-JsonNumber $polylineEntity 'activeCountBeforeCreate' 'guiSmoke.polylineUndoRedo.polyline') -or
+    (Require-JsonNumber $polylineEntity 'activeCountAfterRedo' 'guiSmoke.polylineUndoRedo.polyline') -ne
+        ((Require-JsonNumber $polylineEntity 'activeCountBeforeCreate' 'guiSmoke.polylineUndoRedo.polyline') + 1)) {
+    throw 'Native PLINE entity, layer, segment count, or undo state is incorrect.'
+}
+foreach ($undoRedoName in @('undo', 'redo')) {
+    $actionState = Require-JsonProperty $polylineUndoRedo $undoRedoName 'guiSmoke.polylineUndoRedo'
+    $expectedActionKey = if ($undoRedoName -eq 'undo') { 'EditUndo' } else { 'EditRedo' }
+    if ((Require-JsonString $actionState 'actionKey' "guiSmoke.polylineUndoRedo.$undoRedoName") -ne $expectedActionKey -or
+        -not (Require-JsonBoolean $actionState 'nativeIdentity' "guiSmoke.polylineUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'quickAccessButton' "guiSmoke.polylineUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'visible' "guiSmoke.polylineUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'enabledBeforeClick' "guiSmoke.polylineUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'actionTriggeredByMouse' "guiSmoke.polylineUndoRedo.$undoRedoName") -or
+        -not (Require-JsonBoolean $actionState 'firstLineStillActive' "guiSmoke.polylineUndoRedo.$undoRedoName")) {
+        throw "Quick-access $expectedActionKey did not use the native QAction or changed the earlier LINE."
+    }
+}
+$polylineFiles = Require-JsonProperty $polylineUndoRedo 'files' 'guiSmoke.polylineUndoRedo'
+foreach ($fileState in @(
+    @{ Name = 'beforeUndo'; Saved = 'beforeUndoSaved'; File = 'pline-before-undo.dxf' },
+    @{ Name = 'afterUndo'; Saved = 'afterUndoSaved'; File = 'pline-after-undo.dxf' },
+    @{ Name = 'afterRedo'; Saved = 'afterRedoSaved'; File = 'pline-after-redo.dxf' }
+)) {
+    if ((Require-JsonString $polylineFiles $fileState.Name 'guiSmoke.polylineUndoRedo.files') -ne $fileState.File -or
+        -not (Require-JsonBoolean $polylineFiles $fileState.Saved 'guiSmoke.polylineUndoRedo.files')) {
+        throw "PLINE Undo/Redo DXF producer state is incomplete: $($fileState.File)"
+    }
+    $polylineDxf = Join-Path $guiSmokeDirectory $fileState.File
+    Require-Path $polylineDxf
+    if ((Get-Item -LiteralPath $polylineDxf).Length -lt 500) {
+        throw "PLINE Undo/Redo DXF is unexpectedly small: $($fileState.File)"
+    }
 }
 if ((Get-Item -LiteralPath $guiActiveImagePath).Length -lt 10000 -or
     (Get-Item -LiteralPath $guiCommittedImagePath).Length -lt 10000 -or
