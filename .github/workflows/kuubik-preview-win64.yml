@@ -136,11 +136,11 @@ jobs:
               -not (Get-Command Get-DisplayResolution -ErrorAction SilentlyContinue)) {
             throw 'Windows display-resolution cmdlets are unavailable on this runner.'
           }
-          $before = (Get-DisplayResolution | Out-String).Trim()
+          $before = ((Get-DisplayResolution | Out-String) -replace "`0", '').Trim()
           Write-Output "Windows display resolution before UI tests: $before"
           Set-DisplayResolution -Width 1920 -Height 1080 -Force
           Start-Sleep -Seconds 2
-          $actual = (Get-DisplayResolution | Out-String).Trim()
+          $actual = ((Get-DisplayResolution | Out-String) -replace "`0", '').Trim()
           Write-Output "Windows display resolution for UI tests: $actual"
           if ($actual -ne '1920x1080') {
             throw "Windows UI test resolution did not become 1920x1080: $actual"
