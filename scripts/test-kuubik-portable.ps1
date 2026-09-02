@@ -355,7 +355,8 @@ foreach ($key in @(
     'schemaVersion', 'status', 'prerequisites', 'ribbonActionKey', 'ribbonMouseEvent',
     'actionActiveAfterRibbon', 'windowWidth', 'windowHeight', 'entitiesBefore',
     'entitiesAfterFirstClick', 'entitiesAfterSecondClick', 'linesBefore',
-    'linesAfterSecondClick', 'dxfSaved', 'sourceDxfLoaded', 'documentLifecycle'
+    'linesAfterSecondClick', 'dxfSaved', 'sourceDxfLoaded', 'documentLifecycle',
+    'fullPropertiesAction'
 )) {
     [void](Require-JsonProperty $guiSmoke $key 'guiSmoke')
 }
@@ -417,6 +418,12 @@ foreach ($key in @(
     if (-not (Require-JsonBoolean $documentLifecycle $key 'guiSmoke.documentLifecycle')) {
         throw "Native DXF reopen or multi-document lifecycle failed: $key"
     }
+}
+$fullPropertiesAction = Require-JsonProperty $guiSmoke 'fullPropertiesAction' 'guiSmoke'
+if ((Require-JsonString $fullPropertiesAction 'actionKey' 'guiSmoke.fullPropertiesAction') -ne 'ModifyEntity' -or
+    -not (Require-JsonBoolean $fullPropertiesAction 'nativeIdentity' 'guiSmoke.fullPropertiesAction') -or
+    -not (Require-JsonBoolean $fullPropertiesAction 'nativeActionActive' 'guiSmoke.fullPropertiesAction')) {
+    throw 'Open Full Properties did not activate the native ModifyEntity action.'
 }
 if ((Get-Item -LiteralPath $guiActiveImagePath).Length -lt 10000 -or
     (Get-Item -LiteralPath $guiCommittedImagePath).Length -lt 10000 -or

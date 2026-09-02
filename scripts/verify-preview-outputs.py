@@ -109,6 +109,10 @@ def main() -> None:
     end = created_lines[0].dxf.end
     require(not start.isclose(end), (start, end))
     require(gui_report["documentLifecycle"]["passed"] is True, gui_report["documentLifecycle"])
+    full_properties = gui_report["fullPropertiesAction"]
+    require(full_properties["actionKey"] == "ModifyEntity", full_properties)
+    require(full_properties["nativeIdentity"] is True, full_properties)
+    require(full_properties["nativeActionActive"] is True, full_properties)
 
     properties_states = gui_report["propertiesStates"]
     expected_states = (("document", "document", 0), ("single", "single", 1), ("multiple", "multiple", 2))

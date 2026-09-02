@@ -86,6 +86,7 @@
 #include "kuubiktheme.h"
 
 #include "rs_actionlibraryinsert.h"
+#include "rs_actioninterface.h"
 #include "rs_actionprintpreview.h"
 #include "rs_commands.h"
 #include "rs_debug.h"
@@ -1795,6 +1796,24 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const bool singleCallback = singleState.value("selectionRefreshGeneration").toInt()
                                     > refreshGeneration;
 
+        QToolButton* fullPropertiesButton = kuubikPropertiesPalette->findChild<QToolButton*>(
+            QStringLiteral("kuubikOpenFullProperties"));
+        const bool fullPropertiesIdentity = fullPropertiesButton != nullptr
+                                            && fullPropertiesButton->defaultAction()
+                                                   == a_map.value("ModifyEntity", nullptr);
+        if (fullPropertiesButton != nullptr) {
+            sendClick(fullPropertiesButton, fullPropertiesButton->rect().center());
+        }
+        RS_ActionInterface* fullPropertiesAction = mdi->getEventHandler() == nullptr
+                                                       ? nullptr
+                                                       : mdi->getEventHandler()->getCurrentAction();
+        const bool fullPropertiesActionActive = fullPropertiesAction != nullptr
+                                                && fullPropertiesAction->rtti()
+                                                       == RS2::ActionModifyEntity;
+        slotKillAllActions();
+        QApplication::processEvents();
+
+        if (firstCreatedLine != nullptr) firstCreatedLine->setSelected(true);
         if (secondCreatedLine != nullptr) secondCreatedLine->setSelected(true);
         refreshGeneration = singleState.value("selectionRefreshGeneration").toInt();
         RS_DIALOGFACTORY->updateSelectionWidget(
@@ -1811,6 +1830,15 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         propertiesStates.insert(QStringLiteral("multiple"),
                                 propertiesStateObject(multipleState, multipleCallback));
         report.insert(QStringLiteral("propertiesStates"), propertiesStates);
+        QJsonObject fullPropertiesActionObject;
+        fullPropertiesActionObject.insert(QStringLiteral("actionKey"),
+                                          QStringLiteral("ModifyEntity"));
+        fullPropertiesActionObject.insert(QStringLiteral("nativeIdentity"),
+                                          fullPropertiesIdentity);
+        fullPropertiesActionObject.insert(QStringLiteral("nativeActionActive"),
+                                          fullPropertiesActionActive);
+        report.insert(QStringLiteral("fullPropertiesAction"),
+                      fullPropertiesActionObject);
 
         QJsonObject layerSelectorObject;
         layerSelectorObject.insert(QStringLiteral("present"), true);
@@ -1897,6 +1925,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                       && singleState.value("type").toString() == tr("Line")
                                       && singleState.value("layer").toString() == smokeLayerName
                                       && singleCallback
+                                      && fullPropertiesIdentity
+                                      && fullPropertiesActionActive
                                       && multipleState.value("selectionCount").toInt() == 2
                                       && multipleState.value("mode").toString() == "multiple"
                                       && multipleCallback;
