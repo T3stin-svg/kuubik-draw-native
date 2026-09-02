@@ -122,27 +122,36 @@ The primary agent must:
 
 ## Evidence checkpoint — 2026-09-02
 
-Development source `ee8e29264d335dd8c060cc819e6bd79051d1f7e1` passed the
-Windows MSVC x64 / Qt 5.15 workflow in run `33645437662`. The run verified the
+Development source `aaff1448482b861c10ceb8b8cf47326c956284bc` passed the
+Windows MSVC x64 / Qt 5.15 workflow in run `33660926998`. The run verified the
 native current-layer selector, native Properties callbacks and
-`ModifyEntity` delegation, Kuubik-to-Classic restoration, a real ribbon LINE
-canvas flow, DXF save/reopen, independent DXF/PDF/SVG read-back, package
-isolation and exact SHA-256 output. This is a development checkpoint, not a
-release.
+`ModifyEntity` delegation, Kuubik-to-Classic restoration, native LINE and
+PLINE canvas flows, visible responsive-ribbon overflow selection, quick-access
+Undo/Redo, DXF save/reopen, independent DXF/PDF/SVG read-back, package
+isolation and exact SHA-256 output. The tested portable ZIP SHA-256 is
+`9361e7f0cb612fb17cd2f4b36630c16bb76c9d7e272545245825dd0193864936`.
+This is a development checkpoint, not a release.
 
-The same run produced visually reviewed qwindows + Qt scale-factor screenshots
-at 100%, 125% and 150%, including a 1280-logical-pixel narrow case. These do not
-prove that Windows Settings OS display scaling was changed.
+The same run retained the qwindows + Qt scale-factor screenshot checks at
+100%, 125% and 150%. Focused run `33654660495` first proved that the native
+LINE and DIMLINEAR Tool Options widgets fit their 1280-pixel inline ribbon host
+without stale or duplicate option widgets; run `33660926998` repeated that
+test successfully. These tests do not prove that Windows Settings OS display
+scaling was changed.
 
 The goal remains active. Before completion it still requires:
 
 - real Windows Settings 100%/125%/150% visual checks on controlled hardware;
-- Reio's accept/deny decision for the 1280-pixel Draw/Modify overflow layout;
+- Reio's accept/deny decision for the current responsive Home layout: Draw and
+  Modify are shown through `More` in the automated 1200/1280 qwindows captures,
+  and Draw also used its working `More` route in the 1920 offscreen workflow;
 - Reio's accept/deny decision on a separate qwindows LINE visual-capture gate;
-- a decision on the native Tool Options toolbar placement at narrow widths;
+- Reio's accept/deny decision on keeping the now-validated native Tool Options
+  toolbar inline versus moving it to a separate row;
 - explicit owner acceptance of the current 66-icon Kuubik technical-line set
-  and completion or owner acceptance of the remaining primary
-  Draw/Modify/Annotation/Blocks workflow evidence in Phases 1 and 2;
+  and completion or owner acceptance of the remaining primary Draw,
+  Modify, Annotation and Blocks workflow evidence in Phases 1 and 2; PLINE and
+  quick-access Undo/Redo now have automated native evidence;
 - a final exact-source artifact and handoff after those decisions are closed.
 
 ## Out of scope

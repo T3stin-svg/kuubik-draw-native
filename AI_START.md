@@ -72,6 +72,27 @@ The release proves a native ribbon LINE mouse workflow, DXF open/save, vector
 PDF export, portable runtime completeness and independent output read-back. It
 does not certify DWG/DWT/XREF or full AutoCAD parity.
 
+## Latest development checkpoint — not a release
+
+- Integration branch: `codex/autocad-visual-integration-root`
+- Tested source commit:
+  `aaff1448482b861c10ceb8b8cf47326c956284bc`
+- Successful Windows MSVC x64 / Qt 5.15 run:
+  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33660926998>
+- Tested portable ZIP SHA-256:
+  `9361e7f0cb612fb17cd2f4b36630c16bb76c9d7e272545245825dd0193864936`
+
+This development artifact verifies the native current-layer selector,
+Properties callbacks, Classic restoration, visible responsive-ribbon LINE and
+PLINE activation, quick-access Undo/Redo, native Tool Options at
+1280 logical pixels, and independent DXF/PDF/SVG read-back. It is an expiring
+workflow artifact and
+must not replace the immutable release without Reio's explicit approval.
+
+The first unfinished executable evidence item is a native MOVE or COPY
+selection → document → atomic Undo/Redo workflow. Real Windows Settings
+100%/125%/150% validation and Reio's visual accept/deny decisions remain open.
+
 ## How to continue
 
 1. Inspect the real branch and dirty worktree before making assumptions.

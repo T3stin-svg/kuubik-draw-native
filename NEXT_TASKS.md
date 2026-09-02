@@ -7,8 +7,9 @@ The first owner-reported reproducible problem always outranks this list.
 - [ ] Test `0.2.0-preview.2` with Reio and record exact failures for LINE,
   PLINE, MOVE, COPY, OFFSET, TRIM, layers, DXF save/reopen and PDF export.
 - [ ] Convert each confirmed failure into a synthetic native regression fixture.
-- [ ] Add a native GUI smoke for PLINE from ribbon to committed entity and DXF
-  read-back.
+- [x] Add a native GUI smoke for PLINE from a physically visible responsive
+  ribbon surface to committed entity, quick-access Undo/Redo and three-state
+  independent DXF read-back (`aaff14484`, run `33660926998`).
 - [ ] Add a native GUI smoke for MOVE or COPY including atomic Undo/Redo.
 - [x] Add an automated packaged-MSVC layer create/current workflow and verify
   the saved DXF layer (`ee8e29264`, run `33645437662`).
@@ -37,10 +38,16 @@ or selection → native document → undo/file output, with no silent failure.
   selections; keep the right Properties summary read-only;
 - [ ] ribbon keyboard/focus/disabled/checked states;
 - [x] qwindows + Qt scale-factor smoke at 100%, 125%, and 150%, including a
-  narrow 1280-logical-pixel case (`ee8e29264`, run `33645437662`);
+  narrow 1280-logical-pixel case (`aaff14484`, run `33660926998`);
+- [x] verify native LINE and DIMLINEAR Tool Options containment and exact
+  active widget sets at 1280×600 (`f1c6733e`, runs `33654660495` and
+  `33660926998`);
 - [ ] real Windows Settings display-scale checks at 100%, 125%, and 150%;
-- [ ] Reio accept/deny: keep Draw/Modify in `More` at 1280 logical pixels or
+- [ ] Reio accept/deny: keep Draw/Modify in `More` at the automated 1200/1280
+  logical widths—and Draw through `More` in the 1920 offscreen workflow—or
   request a separate hybrid direct-button layout;
+- [ ] Reio accept/deny: keep the now-validated native Tool Options toolbar
+  inline or move it to a separate row;
 - [ ] command line history clarity and error states.
 
 ## P2 — reliability and distribution

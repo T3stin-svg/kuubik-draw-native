@@ -40,15 +40,15 @@ immutable.
 
 - Integration branch: `codex/autocad-visual-integration-root`
 - Tested source commit:
-  `ee8e29264d335dd8c060cc819e6bd79051d1f7e1`
+  `aaff1448482b861c10ceb8b8cf47326c956284bc`
 - Successful Windows MSVC x64 / Qt 5.15 run:
-  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33645437662>
+  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33660926998>
 - Tested portable ZIP SHA-256:
-  `42042173912cc0854684cb00a09f291836c6e16eb2421c6af9b31986064e8007`
+  `9361e7f0cb612fb17cd2f4b36630c16bb76c9d7e272545245825dd0193864936`
 - GUI evidence artifact SHA-256:
-  `81ccc21ca0d9067b0ed64535c36392d9a5a3fcfee6d46c63d44be25b18d901a6`
+  `18ebe32192445f2c71526fdd08dcbbf896c168f303f610b9065accb9d7e1ee37`
 - Portable artifact wrapper SHA-256:
-  `1e239efab576845122239e968d8dcc814be5e1ce7f09a8b56fa163d05010cb08`
+  `1665e1b8082ebebb590bcf74843746182cb97f34b26c4549155cb9a29ef3e94c`
 
 A later documentation-only handoff commit may follow on the branch without
 changing the tested executable source identified above.
@@ -85,12 +85,18 @@ The development checkpoint additionally provides:
 - a real native current-layer selector embedded in the ribbon;
 - a right-side read-only Properties dock tabbed with Layers and Blocks;
 - native no/single/multiple selection summaries and `ModifyEntity` delegation;
-- a tested Kuubik-to-Classic workspace restore path.
+- a tested Kuubik-to-Classic workspace restore path;
+- native LINE and DIMLINEAR Tool Options widgets contained in the inline ribbon
+  host at 1280 logical pixels without stale or duplicate widgets;
+- a native three-vertex open PLINE plus quick-access Undo/Redo workflow, with
+  three independently read-back DXF states.
 
 ## Verified behaviors
 
 - portable startup from a path containing spaces;
 - LINE action activation from the Kuubik ribbon;
+- LINE and PLINE activation through the responsive panel's physically visible
+  `More` menu; the harness rejects interaction through a hidden widget;
 - LINE preview after the first click;
 - exactly one committed native LINE after the second click;
 - DXF open/save and independent `ezdxf` read-back;
@@ -103,7 +109,7 @@ The development checkpoint additionally provides:
 Evidence is under `evidence/releases/v0.2.0-preview.2` and summarized in
 `docs/TEST_REPORT.md`.
 
-For development commit `ee8e29264`, run `33645437662` additionally verified:
+For development commit `aaff14484`, run `33660926998` additionally verified:
 
 - 71 distinct ribbon `QAction` bindings/action keys retain their exact native
   identity;
@@ -111,6 +117,13 @@ For development commit `ee8e29264`, run `33645437662` additionally verified:
   committed LINE remains on that layer after save and native reopen;
 - Properties receives native document and selection callbacks and its full
   edit button activates the existing `ModifyEntity` action;
+- Draw LINE and PLINE use the visible responsive overflow menu in the 1920×1080
+  offscreen workflow and retain the exact native QAction identity;
+- an open three-vertex PLINE is present before Undo, absent after quick-access
+  Undo, and restored with identical points after quick-access Redo; the earlier
+  LINE retains identical start/end coordinates across all three parsed DXFs;
+- native LINE and DIMLINEAR Tool Options remain visible and contained at
+  1280×600, with exactly one expected widget set per active action;
 - DXF open/edit/save/reopen, vector A4 PDF, and SVG pass independent read-back;
 - qwindows + Qt scale-factor render smoke at 100%, 125%, and 150% produces
   1280×600, 1600×750, and 1800×900 PNGs without clipping or overlap;
@@ -132,9 +145,11 @@ For development commit `ee8e29264`, run `33645437662` additionally verified:
 - The automated 125% and 150% screenshots use qwindows with
   `QT_SCALE_FACTOR`; real Windows Settings display-scale checks at 100%, 125%,
   and 150% remain pending on controlled Windows hardware.
-- At 1280 logical pixels the Home Draw and Modify panels are available through
-  their `More` overflow menus, not as always-visible direct buttons. Reio must
-  accept this responsive priority or request a separate layout revision.
+- In the automated 1200/1280 qwindows captures the Home Draw and Modify panels
+  are available through their `More` overflow menus, not as always-visible
+  direct buttons. The 1920 offscreen native workflow also selected Draw through
+  that visible menu. The route is now mouse-tested and functional, but Reio
+  must accept this responsive priority or request a separate layout revision.
 - Full owner testing of Modify, layers, annotation, blocks and complex file
   workflows is still required on Reio's real workflow.
 - No `.kdraw` import from the web experiment exists; use DXF exchange.

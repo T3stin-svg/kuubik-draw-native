@@ -87,22 +87,73 @@ This section is branch evidence, not a release and not a replacement for the
 immutable public `v0.2.0-preview.2` artifact.
 
 - branch: `codex/autocad-visual-integration-root`
-- tested source: `ee8e29264d335dd8c060cc819e6bd79051d1f7e1`
+- tested source: `aaff1448482b861c10ceb8b8cf47326c956284bc`
 - Windows run:
-  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33645437662>
+  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33660926998>
 - tested portable ZIP SHA-256:
-  `42042173912cc0854684cb00a09f291836c6e16eb2421c6af9b31986064e8007`
+  `9361e7f0cb612fb17cd2f4b36630c16bb76c9d7e272545245825dd0193864936`
 - GUI evidence artifact SHA-256:
-  `81ccc21ca0d9067b0ed64535c36392d9a5a3fcfee6d46c63d44be25b18d901a6`
+  `18ebe32192445f2c71526fdd08dcbbf896c168f303f610b9065accb9d7e1ee37`
 - portable artifact wrapper SHA-256:
-  `1e239efab576845122239e968d8dcc814be5e1ce7f09a8b56fa163d05010cb08`
+  `1665e1b8082ebebb590bcf74843746182cb97f34b26c4549155cb9a29ef3e94c`
+- GUI evidence artifact ID: `9859219845`
+- portable artifact ID: `9859221595`
 
 The MSVC x64 / Qt 5.15.2 build, package isolation, payload allowlist, Gitleaks,
 UI contract v2, native LINE canvas flow, native layer selector, Properties
 callbacks and `ModifyEntity` delegation all passed. The test opened a synthetic
 DXF, changed the active layer, committed a new LINE, saved it, closed/reopened
-it through the native adapter, and independently read back the result. The
-independent verifier also found a vector A4 PDF and valid SVG vectors.
+it through the native adapter, and independently read back the result. It then
+created a native open PLINE with three canvas clicks, committed that command's
+single undo cycle, clicked the visible quick-access Undo and Redo buttons, and
+saved a DXF after each state.
+
+All three Draw invocations in the smoke—initial LINE, PLINE and the later
+Properties LINE—used the visible `collapsedPanelOverflow` route. The test
+physically clicked the visible `More` tool button, required the popup menu to be
+visible, matched the exact native QAction at `QMenu::actionGeometry()`, clicked
+that row with a mouse event and required the menu to close. No event was sent to
+the hidden source button.
+
+Independent `ezdxf` read-back verified:
+
+- `pline-before-undo.dxf`: one open smoke PLINE with points
+  `(66.25, 131.0)`, `(184.25, 140.75)`, `(282.75, 101.75)`;
+- `pline-after-undo.dxf`: no smoke PLINE;
+- `pline-after-redo.dxf`: the same open three-point smoke PLINE;
+- the earlier smoke LINE remained exactly
+  `(118.75, 114.75, 0.0)` → `(250.0, 49.75, 0.0)` in all three files;
+- the original fixture LINE, circle and closed polyline also remained intact.
+
+The independent verifier also found a vector A4 PDF and valid SVG vectors.
+
+### Focused native Tool Options checkpoint
+
+Source `f1c6733eb4c58c455132f00d845003acf93b1682` first passed the
+1280×600 qwindows Tool Options proof in run
+<https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33654660495>.
+Its tested portable ZIP SHA-256 was
+`7f623a64af40d5b46c9b2639e2c6f6884f04cfb598fec646a55f5c7da9cbb9af`;
+the GUI evidence and portable wrapper hashes were respectively
+`89bd3edb5301fea7b3ac649bbdfbff8a7f73715af1315133dd186f5a6ebd28d8`
+and `f21de3e7c9f43e2a44cd2fe79433799bd877d20cfca3e226c63bd939e9a22acc`.
+
+The report measured a 299-pixel LINE options host with exactly one native
+`QG_LineOptions`. DIMLINEAR used a 621-pixel host containing one
+420-pixel `QG_DimOptions` and one 200-pixel `QG_DimLinearOptions`, with no
+clipping, stale widget or duplicate widget. Run `33660926998` repeated the same
+focused test successfully; its two Tool Options PNGs are byte-identical to the
+visually reviewed run above.
+
+### Corrected responsive-ribbon false interaction
+
+Run `33657916794` on source
+`35b1be45ff8921d3f1c4cabbaae1440974574c44` correctly failed because the first
+PLINE smoke sent a synthetic event directly to a hidden Draw button. Qt emitted
+the QAction signal, but that was not a user-clickable path. Source `aaff14484`
+replaced that invalid interaction with the visible overflow button and popup
+menu-row mouse route described above. Only successful run `33660926998` is the
+current development gate.
 
 The render smoke first verified the hosted Windows desktop changed from
 1024×768 to 1920×1080, then recorded:
@@ -116,5 +167,14 @@ overlap. These 125%/150% cases use `QT_SCALE_FACTOR`; they are not evidence that
 Windows Settings OS display scaling was changed. Real Windows 100%/125%/150%
 scale validation and Reio's layout acceptance remain open.
 
+The automated qwindows screenshots show Draw and Modify through responsive
+`More` panels at the tested 1200/1280 logical widths. The 1920×1080 offscreen
+workflow also used the Draw overflow route. That route is functional and now
+mouse-tested, but keeping it as the preferred layout still requires Reio's
+accept/deny decision.
+
 The offscreen LINE active/committed PNGs are functional canvas evidence only;
-the qwindows screenshots, where text is rendered, are the visual-layout gate.
+the qwindows screenshots, where text is rendered, remain the visual-layout
+gate. The goal also still requires real Windows Settings 100%/125%/150% checks
+on controlled hardware and remaining native Modify/Annotation/Blocks workflow
+evidence.
