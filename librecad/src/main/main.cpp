@@ -106,12 +106,17 @@ int main(int argc, char** argv)
 
     const QString uiContractPath = qEnvironmentVariable("KUUBIK_UI_CONTRACT_PATH");
     const QString guiSmokeDirectory = qEnvironmentVariable("KUUBIK_GUI_SMOKE_DIR");
+    const QString toolOptionsSmokeDirectory = qEnvironmentVariable(
+        "KUUBIK_TOOL_OPTIONS_SMOKE_DIR");
     const bool kuubikAutomationRun = !uiContractPath.isEmpty()
-                                     || !guiSmokeDirectory.isEmpty();
+                                     || !guiSmokeDirectory.isEmpty()
+                                     || !toolOptionsSmokeDirectory.isEmpty();
     if (kuubikAutomationRun) {
         const QString outputRoot = !guiSmokeDirectory.isEmpty()
                                        ? guiSmokeDirectory
-                                       : QFileInfo(uiContractPath).absolutePath();
+                                       : (!toolOptionsSmokeDirectory.isEmpty()
+                                              ? toolOptionsSmokeDirectory
+                                              : QFileInfo(uiContractPath).absolutePath());
         const QString settingsRoot = QDir(outputRoot).filePath(QStringLiteral("settings"));
         QDir().mkpath(settingsRoot);
         QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -413,7 +418,13 @@ int main(int argc, char** argv)
     if (first_load)
         settings.setValue("Startup/FirstLoad", 0);
 
-    if (!guiSmokeDirectory.isEmpty()) {
+    if (!toolOptionsSmokeDirectory.isEmpty()) {
+        QTimer::singleShot(100, &app,
+                           [&app, &appWin, toolOptionsSmokeDirectory]() {
+            app.exit(appWin.runKuubikToolOptionsSmoke(toolOptionsSmokeDirectory)
+                         ? 0 : 5);
+        });
+    } else if (!guiSmokeDirectory.isEmpty()) {
         QTimer::singleShot(100, &app, [&app, &appWin, guiSmokeDirectory]() {
             app.exit(appWin.runKuubikGuiSmoke(guiSmokeDirectory) ? 0 : 4);
         });

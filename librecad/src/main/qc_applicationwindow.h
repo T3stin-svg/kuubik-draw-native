@@ -115,6 +115,7 @@ public:
     bool eventFilter(QObject *obj, QEvent *event) override;
     QAction* getAction(const QString& name) const;
     bool writeKuubikUiContract(const QString& path);
+    bool runKuubikToolOptionsSmoke(const QString& outputDirectory);
     bool runKuubikGuiSmoke(const QString& outputDirectory);
     void refreshKuubikProperties(int selectedCount, double totalLength);
 

@@ -345,6 +345,92 @@ foreach ($dpiCase in @(
     }
 }
 
+$toolOptionsEvidenceRoot = Join-Path $smokeRoot 'tool-options-evidence'
+New-Item -ItemType Directory -Path $toolOptionsEvidenceRoot | Out-Null
+$toolOptionsEnvironment = $portableQtEnvironment.Clone()
+$toolOptionsEnvironment['QT_QPA_PLATFORM'] = 'windows'
+$toolOptionsEnvironment['QT_ENABLE_HIGHDPI_SCALING'] = '1'
+$toolOptionsEnvironment['QT_SCALE_FACTOR'] = '1.00'
+$toolOptionsEnvironment['KUUBIK_TOOL_OPTIONS_SMOKE_DIR'] = $toolOptionsEvidenceRoot
+Run-Native -Executable $portableExe -Arguments @() -Label 'Native Tool Options 1280 smoke' -Environment $toolOptionsEnvironment
+
+$toolOptionsReportPath = Join-Path $toolOptionsEvidenceRoot 'tool-options-1280.json'
+Require-Path $toolOptionsReportPath
+$toolOptionsReport = Get-Content -LiteralPath $toolOptionsReportPath -Raw | ConvertFrom-Json
+if ((Require-JsonNumber $toolOptionsReport 'schemaVersion' 'toolOptionsReport') -ne 1 -or
+    (Require-JsonString $toolOptionsReport 'status' 'toolOptionsReport') -ne 'PASS' -or
+    (Require-JsonString $toolOptionsReport 'platform' 'toolOptionsReport') -ne 'windows' -or
+    (Require-JsonNumber $toolOptionsReport 'windowWidth' 'toolOptionsReport') -ne 1280 -or
+    (Require-JsonNumber $toolOptionsReport 'windowHeight' 'toolOptionsReport') -ne 600 -or
+    [Math]::Abs((Require-JsonNumber $toolOptionsReport 'devicePixelRatio' 'toolOptionsReport') - 1.0) -gt 0.06) {
+    throw 'Native Tool Options smoke did not run at 1280x600 logical pixels and 100% scale.'
+}
+
+$optionsToolbar = Require-JsonProperty $toolOptionsReport 'optionsToolbar' 'toolOptionsReport'
+if (-not (Require-JsonBoolean $optionsToolbar 'present' 'toolOptionsReport.optionsToolbar') -or
+    (Require-JsonString $optionsToolbar 'objectName' 'toolOptionsReport.optionsToolbar') -ne 'options_toolbar' -or
+    -not (Require-JsonBoolean $optionsToolbar 'visible' 'toolOptionsReport.optionsToolbar') -or
+    -not (Require-JsonBoolean $optionsToolbar 'hostPresent' 'toolOptionsReport.optionsToolbar') -or
+    (Require-JsonString $optionsToolbar 'hostObjectName' 'toolOptionsReport.optionsToolbar') -ne 'kuubikOptionToolbarHost' -or
+    -not (Require-JsonBoolean $optionsToolbar 'hostVisible' 'toolOptionsReport.optionsToolbar') -or
+    -not (Require-JsonBoolean $optionsToolbar 'nativeToolbarInRibbon' 'toolOptionsReport.optionsToolbar') -or
+    -not (Require-JsonBoolean $optionsToolbar 'directChildOfHost' 'toolOptionsReport.optionsToolbar') -or
+    -not (Require-JsonBoolean $optionsToolbar 'containedByHost' 'toolOptionsReport.optionsToolbar') -or
+    -not (Require-JsonBoolean $optionsToolbar 'containedThroughWindowAncestors' 'toolOptionsReport.optionsToolbar') -or
+    -not (Require-JsonBoolean $optionsToolbar 'positiveSize' 'toolOptionsReport.optionsToolbar')) {
+    throw 'The native options_toolbar is not visible and geometrically contained in the Kuubik ribbon host.'
+}
+
+$toolOptionsStates = @(Require-JsonProperty $toolOptionsReport 'states' 'toolOptionsReport')
+if ($toolOptionsStates.Count -ne 2) {
+    throw 'Tool Options smoke must contain DrawLine and DimLinear states.'
+}
+foreach ($expectedState in @(
+    @{ ActionKey = 'DrawLine'; Widgets = @('Ui_LineOptions'); Screenshot = 'tool-options-line-1280.png' },
+    @{ ActionKey = 'DimLinear'; Widgets = @('Ui_DimOptions', 'Ui_DimLinearOptions'); Screenshot = 'tool-options-dimlinear-1280.png' }
+)) {
+    $state = @($toolOptionsStates | Where-Object actionKey -eq $expectedState.ActionKey)
+    if ($state.Count -ne 1) {
+        throw "Tool Options action state is missing or duplicated: $($expectedState.ActionKey)"
+    }
+    $stateContext = "toolOptionsReport.states.$($expectedState.ActionKey)"
+    if (-not (Require-JsonBoolean $state[0] 'actionPresent' $stateContext) -or
+        -not (Require-JsonBoolean $state[0] 'actionEnabled' $stateContext) -or
+        -not (Require-JsonBoolean $state[0] 'ribbonIdentity' $stateContext) -or
+        -not (Require-JsonBoolean $state[0] 'nativeActionActive' $stateContext) -or
+        -not (Require-JsonBoolean $state[0] 'screenshotSaved' $stateContext) -or
+        (Require-JsonNumber $state[0] 'screenshotPixelWidth' $stateContext) -ne 1280 -or
+        (Require-JsonNumber $state[0] 'screenshotPixelHeight' $stateContext) -ne 600 -or
+        [Math]::Abs((Require-JsonNumber $state[0] 'screenshotDevicePixelRatio' $stateContext) - 1.0) -gt 0.06 -or
+        -not (Require-JsonBoolean $state[0] 'passed' $stateContext)) {
+        throw "Tool Options native action or screenshot failed: $($expectedState.ActionKey)"
+    }
+    $stateWidgets = @(Require-JsonProperty $state[0] 'widgets' $stateContext)
+    if ($stateWidgets.Count -ne $expectedState.Widgets.Count) {
+        throw "Tool Options widget count is incorrect: $($expectedState.ActionKey)"
+    }
+    foreach ($expectedWidget in $expectedState.Widgets) {
+        $widget = @($stateWidgets | Where-Object objectName -eq $expectedWidget)
+        if ($widget.Count -ne 1 -or
+            -not (Require-JsonBoolean $widget[0] 'present' "$stateContext.widgets.$expectedWidget") -or
+            -not (Require-JsonBoolean $widget[0] 'nativeType' "$stateContext.widgets.$expectedWidget") -or
+            -not (Require-JsonBoolean $widget[0] 'visible' "$stateContext.widgets.$expectedWidget") -or
+            -not (Require-JsonBoolean $widget[0] 'containedByToolbar' "$stateContext.widgets.$expectedWidget") -or
+            -not (Require-JsonBoolean $widget[0] 'containedByHost' "$stateContext.widgets.$expectedWidget") -or
+            -not (Require-JsonBoolean $widget[0] 'containedByWindow' "$stateContext.widgets.$expectedWidget") -or
+            -not (Require-JsonBoolean $widget[0] 'containedThroughWindowAncestors' "$stateContext.widgets.$expectedWidget") -or
+            -not (Require-JsonBoolean $widget[0] 'positiveSize' "$stateContext.widgets.$expectedWidget") -or
+            -not (Require-JsonBoolean $widget[0] 'passed' "$stateContext.widgets.$expectedWidget")) {
+            throw "Native Tool Options widget is missing, hidden, geometrically outside its parent chain, or the wrong type: $expectedWidget"
+        }
+    }
+    $toolOptionsScreenshot = Join-Path $toolOptionsEvidenceRoot $expectedState.Screenshot
+    Require-Path $toolOptionsScreenshot
+    if ((Get-Item -LiteralPath $toolOptionsScreenshot).Length -lt 10000) {
+        throw "Tool Options screenshot is unexpectedly small: $($expectedState.Screenshot)"
+    }
+}
+
 $guiSmokeDirectory = Join-Path $smokeRoot 'gui-evidence'
 New-Item -ItemType Directory -Path $guiSmokeDirectory | Out-Null
 $guiSmokeEnvironment = $offscreenEnvironment.Clone()
@@ -453,4 +539,5 @@ Write-Host "Portable native smoke passed from a path containing spaces: $portabl
 Write-Host "PDF: $pdf"
 Write-Host "SVG: $(Join-Path $smokeRoot 'preview-smoke.svg')"
 Write-Host "UI contract: $uiContractPath"
+Write-Host "Native Tool Options evidence: $toolOptionsEvidenceRoot"
 Write-Host "Ribbon LINE GUI evidence: $guiSmokeDirectory"

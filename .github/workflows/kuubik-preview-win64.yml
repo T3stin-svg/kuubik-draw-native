@@ -168,6 +168,9 @@ jobs:
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/dpi-evidence/**/workspace.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/dpi-evidence/**/kuubik-ui-contract.json
+            ${{ runner.temp }}/Kuubik Draw portable smoke/tool-options-evidence/tool-options-line-1280.png
+            ${{ runner.temp }}/Kuubik Draw portable smoke/tool-options-evidence/tool-options-dimlinear-1280.png
+            ${{ runner.temp }}/Kuubik Draw portable smoke/tool-options-evidence/tool-options-1280.json
           if-no-files-found: error
           retention-days: 30
 

@@ -24,6 +24,8 @@ def main() -> None:
     svg_path = smoke / "preview-smoke.svg"
     gui_dxf_path = smoke / "gui-evidence" / "line-gui-smoke.dxf"
     gui_report_path = smoke / "gui-evidence" / "line-gui-smoke.json"
+    tool_options_root = smoke / "tool-options-evidence"
+    tool_options_report_path = tool_options_root / "tool-options-1280.json"
 
     doc = ezdxf.readfile(dxf_path)
     modelspace = list(doc.modelspace())
@@ -148,10 +150,67 @@ def main() -> None:
             deviation = ImageStat.Stat(rgb).stddev
             require(max(deviation) > 5.0, (percent, deviation))
 
+    with tool_options_report_path.open(encoding="utf-8") as report_file:
+        tool_options_report = json.load(report_file)
+    require(tool_options_report["schemaVersion"] == 1, tool_options_report)
+    require(tool_options_report["status"] == "PASS", tool_options_report)
+    require(tool_options_report["platform"] == "windows", tool_options_report)
+    require(tool_options_report["windowWidth"] == 1280, tool_options_report)
+    require(tool_options_report["windowHeight"] == 600, tool_options_report)
+    toolbar = tool_options_report["optionsToolbar"]
+    require(toolbar["objectName"] == "options_toolbar", toolbar)
+    require(toolbar["hostObjectName"] == "kuubikOptionToolbarHost", toolbar)
+    for flag in (
+        "present", "visible", "hostPresent", "hostVisible",
+        "nativeToolbarInRibbon", "directChildOfHost", "containedByHost",
+        "containedThroughWindowAncestors", "positiveSize",
+    ):
+        require(toolbar[flag] is True, (flag, toolbar))
+
+    expected_tool_options = {
+        "DrawLine": (["Ui_LineOptions"], "tool-options-line-1280.png"),
+        "DimLinear": (
+            ["Ui_DimOptions", "Ui_DimLinearOptions"],
+            "tool-options-dimlinear-1280.png",
+        ),
+    }
+    states = {state["actionKey"]: state for state in tool_options_report["states"]}
+    require(set(states) == set(expected_tool_options), states)
+    for action_key, (expected_widgets, screenshot_name) in expected_tool_options.items():
+        state = states[action_key]
+        for flag in (
+            "actionPresent", "actionEnabled", "ribbonIdentity",
+            "nativeActionActive", "screenshotSaved", "passed",
+        ):
+            require(state[flag] is True, (action_key, flag, state))
+        require(state["activeActionType"] == state["expectedActionType"], state)
+        require(abs(float(state["screenshotDevicePixelRatio"]) - 1.0) <= 0.06, state)
+        widgets = {widget["objectName"]: widget for widget in state["widgets"]}
+        require(set(widgets) == set(expected_widgets), widgets)
+        for widget_name in expected_widgets:
+            widget = widgets[widget_name]
+            for flag in (
+                "present", "nativeType", "visible", "containedByToolbar",
+                "containedByHost", "containedByWindow",
+                "containedThroughWindowAncestors", "positiveSize", "passed",
+            ):
+                require(widget[flag] is True, (action_key, widget_name, flag, widget))
+            require(widget["geometry"]["width"] > 0, widget)
+            require(widget["geometry"]["height"] > 0, widget)
+        screenshot_path = tool_options_root / screenshot_name
+        with Image.open(screenshot_path) as screenshot:
+            require(screenshot.format == "PNG", screenshot.format)
+            require(screenshot.size == (1280, 600), screenshot.size)
+            rgb = screenshot.convert("RGB")
+            deviation = ImageStat.Stat(rgb).stddev
+            require(max(deviation) > 5.0, (action_key, deviation))
+
     print(
         "Independent read-back passed: "
         f"{types}, one A4 PDF page with vector operators, valid SVG vectors, "
-        f"and one new non-zero GUI LINE on {selected_layer} after native reopen"
+        f"one new non-zero GUI LINE on {selected_layer} after native reopen, "
+        "and visible, geometrically contained native LINE/DIMLINEAR Tool Options "
+        "at 1280x600"
     )
 
 

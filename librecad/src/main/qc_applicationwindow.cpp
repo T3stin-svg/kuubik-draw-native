@@ -123,11 +123,14 @@
 #include "qg_blockwidget.h"
 #include "qg_commandwidget.h"
 #include "qg_coordinatewidget.h"
+#include "qg_dimlinearoptions.h"
+#include "qg_dimoptions.h"
 #include "qg_dlgimageoptions.h"
 #include "qg_exitdialog.h"
 #include "qg_filedialog.h"
 #include "qg_graphicview.h"
 #include "qg_layerwidget.h"
+#include "qg_lineoptions.h"
 #include "lc_layertreewidget.h"
 #include "qg_pentoolbar.h"
 #include "qg_selectionwidget.h"
@@ -1630,6 +1633,231 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     }
     file.write(QJsonDocument(contract).toJson(QJsonDocument::Indented));
     return file.commit() && screenshotSaved;
+}
+
+bool QC_ApplicationWindow::runKuubikToolOptionsSmoke(
+    const QString& outputDirectory)
+{
+    QDir output(outputDirectory);
+    if (!output.exists() && !QDir().mkpath(output.absolutePath())) {
+        return false;
+    }
+
+    setWindowState(windowState() & ~Qt::WindowMaximized);
+    resize(1280, 600);
+    applyKuubikWorkspace(false);
+    show();
+    QApplication::processEvents();
+
+    QWidget* toolbarHost = findChild<QWidget*>(
+        QStringLiteral("kuubikOptionToolbarHost"));
+    const auto containedBy = [](QWidget* child, QWidget* ancestor) {
+        if (child == nullptr || ancestor == nullptr) return false;
+        const QRect mappedRect(child->mapTo(ancestor, QPoint(0, 0)), child->size());
+        return ancestor->rect().contains(mappedRect);
+    };
+    const auto containedThroughAncestors = [](QWidget* child, QWidget* root) {
+        if (child == nullptr || root == nullptr) return false;
+        QWidget* current = child;
+        while (current != root) {
+            QWidget* parent = current->parentWidget();
+            if (parent == nullptr) return false;
+            const QRect mappedRect(current->mapTo(parent, QPoint(0, 0)),
+                                   current->size());
+            if (!parent->rect().contains(mappedRect)) return false;
+            current = parent;
+        }
+        return true;
+    };
+    const auto geometryObject = [](QWidget* widget) {
+        QJsonObject geometry;
+        geometry.insert(QStringLiteral("x"), widget == nullptr ? 0 : widget->x());
+        geometry.insert(QStringLiteral("y"), widget == nullptr ? 0 : widget->y());
+        geometry.insert(QStringLiteral("width"), widget == nullptr ? 0 : widget->width());
+        geometry.insert(QStringLiteral("height"), widget == nullptr ? 0 : widget->height());
+        return geometry;
+    };
+
+    QJsonObject report;
+    report.insert(QStringLiteral("schemaVersion"), 1);
+    report.insert(QStringLiteral("platform"),
+                  qEnvironmentVariable("QT_QPA_PLATFORM"));
+    report.insert(QStringLiteral("windowWidth"), width());
+    report.insert(QStringLiteral("windowHeight"), height());
+    report.insert(QStringLiteral("devicePixelRatio"), devicePixelRatioF());
+
+    QJsonObject toolbarObject;
+    toolbarObject.insert(QStringLiteral("present"), optionWidget != nullptr);
+    toolbarObject.insert(QStringLiteral("objectName"),
+                         optionWidget == nullptr ? QString() : optionWidget->objectName());
+    toolbarObject.insert(QStringLiteral("visible"),
+                         optionWidget != nullptr && optionWidget->isVisible());
+    toolbarObject.insert(QStringLiteral("hostPresent"), toolbarHost != nullptr);
+    toolbarObject.insert(QStringLiteral("hostObjectName"),
+                         toolbarHost == nullptr ? QString() : toolbarHost->objectName());
+    toolbarObject.insert(QStringLiteral("hostVisible"),
+                         toolbarHost != nullptr && toolbarHost->isVisible());
+    toolbarObject.insert(QStringLiteral("nativeToolbarInRibbon"),
+                         optionWidget != nullptr && kuubikRibbon != nullptr
+                             && kuubikRibbon->isAncestorOf(optionWidget));
+    toolbarObject.insert(QStringLiteral("directChildOfHost"),
+                         optionWidget != nullptr
+                             && optionWidget->parentWidget() == toolbarHost);
+    toolbarObject.insert(QStringLiteral("containedByHost"),
+                         containedBy(optionWidget, toolbarHost));
+    toolbarObject.insert(QStringLiteral("containedThroughWindowAncestors"),
+                         containedThroughAncestors(optionWidget, this));
+    toolbarObject.insert(QStringLiteral("positiveSize"),
+                         optionWidget != nullptr && optionWidget->width() > 0
+                             && optionWidget->height() > 0 && toolbarHost != nullptr
+                             && toolbarHost->width() > 0 && toolbarHost->height() > 0);
+    toolbarObject.insert(QStringLiteral("geometry"), geometryObject(optionWidget));
+    toolbarObject.insert(QStringLiteral("hostGeometry"), geometryObject(toolbarHost));
+    report.insert(QStringLiteral("optionsToolbar"), toolbarObject);
+
+    bool allPassed = optionWidget != nullptr && toolbarHost != nullptr
+                     && optionWidget->objectName() == QStringLiteral("options_toolbar")
+                     && toolbarHost->objectName()
+                            == QStringLiteral("kuubikOptionToolbarHost")
+                     && optionWidget->isVisible() && toolbarHost->isVisible()
+                     && kuubikRibbon != nullptr
+                     && kuubikRibbon->isAncestorOf(optionWidget)
+                     && optionWidget->parentWidget() == toolbarHost
+                     && containedBy(optionWidget, toolbarHost)
+                     && containedThroughAncestors(optionWidget, this)
+                     && optionWidget->width() > 0 && optionWidget->height() > 0
+                     && toolbarHost->width() > 0 && toolbarHost->height() > 0;
+
+    const auto captureState = [&](const QString& actionKey,
+                                  RS2::ActionType expectedActionType,
+                                  const QStringList& expectedWidgetNames,
+                                  const QString& screenshotName) {
+        slotKillAllActions();
+        QApplication::processEvents();
+
+        QAction* action = a_map.value(actionKey, nullptr);
+        QToolButton* ribbonButton = kuubikRibbon == nullptr
+                                        ? nullptr
+                                        : kuubikRibbon->buttonForAction(actionKey);
+        if (action != nullptr && action->isEnabled()) {
+            action->trigger();
+            QApplication::processEvents();
+        }
+
+        QC_MDIWindow* mdi = getMDIWindow();
+        RS_ActionInterface* activeAction = mdi == nullptr
+                                               || mdi->getEventHandler() == nullptr
+                                           ? nullptr
+                                           : mdi->getEventHandler()->getCurrentAction();
+        const bool actionActive = activeAction != nullptr
+                                  && activeAction->rtti() == expectedActionType;
+        const bool ribbonIdentity = action != nullptr && ribbonButton != nullptr
+                                    && ribbonButton->defaultAction() == action
+                                    && ribbonButton->property("kuubikActionKey").toString()
+                                           == actionKey;
+
+        QJsonArray widgetObjects;
+        bool widgetsPassed = true;
+        for (const QString& objectName : expectedWidgetNames) {
+            QWidget* widget = optionWidget == nullptr
+                                  ? nullptr
+                                  : optionWidget->findChild<QWidget*>(objectName);
+            bool nativeType = false;
+            if (objectName == QStringLiteral("Ui_LineOptions")) {
+                nativeType = qobject_cast<QG_LineOptions*>(widget) != nullptr;
+            } else if (objectName == QStringLiteral("Ui_DimOptions")) {
+                nativeType = qobject_cast<QG_DimOptions*>(widget) != nullptr;
+            } else if (objectName == QStringLiteral("Ui_DimLinearOptions")) {
+                nativeType = qobject_cast<QG_DimLinearOptions*>(widget) != nullptr;
+            }
+            const bool visible = widget != nullptr && widget->isVisible();
+            const bool insideToolbar = containedBy(widget, optionWidget);
+            const bool insideHost = containedBy(widget, toolbarHost);
+            const bool insideWindow = containedBy(widget, this);
+            const bool insideAllAncestors = containedThroughAncestors(widget, this);
+            const bool positiveSize = widget != nullptr && widget->width() > 0
+                                      && widget->height() > 0;
+            const bool widgetPassed = nativeType && visible && insideToolbar
+                                      && insideHost && insideWindow
+                                      && insideAllAncestors && positiveSize;
+            widgetsPassed = widgetsPassed && widgetPassed;
+
+            QJsonObject widgetObject;
+            widgetObject.insert(QStringLiteral("objectName"), objectName);
+            widgetObject.insert(QStringLiteral("present"), widget != nullptr);
+            widgetObject.insert(QStringLiteral("nativeType"), nativeType);
+            widgetObject.insert(QStringLiteral("visible"), visible);
+            widgetObject.insert(QStringLiteral("containedByToolbar"), insideToolbar);
+            widgetObject.insert(QStringLiteral("containedByHost"), insideHost);
+            widgetObject.insert(QStringLiteral("containedByWindow"), insideWindow);
+            widgetObject.insert(QStringLiteral("containedThroughWindowAncestors"),
+                                insideAllAncestors);
+            widgetObject.insert(QStringLiteral("positiveSize"), positiveSize);
+            widgetObject.insert(QStringLiteral("geometry"), geometryObject(widget));
+            widgetObject.insert(QStringLiteral("passed"), widgetPassed);
+            widgetObjects.append(widgetObject);
+        }
+
+        const QString screenshotPath = output.filePath(screenshotName);
+        const QPixmap screenshot = grab();
+        const bool screenshotSaved = screenshot.save(screenshotPath, "PNG");
+        const bool screenshotSizeValid = screenshot.width() == 1280
+                                         && screenshot.height() == 600;
+        const bool statePassed = action != nullptr && action->isEnabled()
+                                 && ribbonIdentity && actionActive
+                                 && widgetsPassed && screenshotSaved
+                                 && screenshotSizeValid;
+
+        QJsonObject state;
+        state.insert(QStringLiteral("actionKey"), actionKey);
+        state.insert(QStringLiteral("actionPresent"), action != nullptr);
+        state.insert(QStringLiteral("actionEnabled"),
+                     action != nullptr && action->isEnabled());
+        state.insert(QStringLiteral("ribbonIdentity"), ribbonIdentity);
+        state.insert(QStringLiteral("expectedActionType"),
+                     static_cast<int>(expectedActionType));
+        state.insert(QStringLiteral("activeActionType"),
+                     activeAction == nullptr ? static_cast<int>(RS2::ActionNone)
+                                             : static_cast<int>(activeAction->rtti()));
+        state.insert(QStringLiteral("nativeActionActive"), actionActive);
+        state.insert(QStringLiteral("widgets"), widgetObjects);
+        state.insert(QStringLiteral("screenshot"), screenshotName);
+        state.insert(QStringLiteral("screenshotSaved"), screenshotSaved);
+        state.insert(QStringLiteral("screenshotPixelWidth"), screenshot.width());
+        state.insert(QStringLiteral("screenshotPixelHeight"), screenshot.height());
+        state.insert(QStringLiteral("screenshotDevicePixelRatio"),
+                     screenshot.devicePixelRatioF());
+        state.insert(QStringLiteral("passed"), statePassed);
+        return state;
+    };
+
+    QJsonArray states;
+    const QJsonObject lineState = captureState(
+        QStringLiteral("DrawLine"), RS2::ActionDrawLine,
+        {QStringLiteral("Ui_LineOptions")},
+        QStringLiteral("tool-options-line-1280.png"));
+    states.append(lineState);
+    allPassed = allPassed && lineState.value(QStringLiteral("passed")).toBool();
+
+    const QJsonObject dimLinearState = captureState(
+        QStringLiteral("DimLinear"), RS2::ActionDimLinear,
+        {QStringLiteral("Ui_DimOptions"), QStringLiteral("Ui_DimLinearOptions")},
+        QStringLiteral("tool-options-dimlinear-1280.png"));
+    states.append(dimLinearState);
+    allPassed = allPassed && dimLinearState.value(QStringLiteral("passed")).toBool();
+    report.insert(QStringLiteral("states"), states);
+
+    slotKillAllActions();
+    QApplication::processEvents();
+    report.insert(QStringLiteral("status"),
+                  allPassed ? QStringLiteral("PASS") : QStringLiteral("FAIL"));
+
+    QSaveFile file(output.filePath(QStringLiteral("tool-options-1280.json")));
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        return false;
+    }
+    file.write(QJsonDocument(report).toJson(QJsonDocument::Indented));
+    return file.commit() && allPassed;
 }
 
 bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
