@@ -32,10 +32,12 @@ new percentage claim.
 
 - replace inherited ribbon icons with original Kuubik SVG icons and provenance;
 - refine ribbon density, labels, active/disabled states and keyboard access;
-- add a real dockable Properties experience only if it edits native entities;
+- preserve the existing read-only Properties dock and delegate editing to the
+  existing native `ModifyEntity` workflow rather than adding another editor;
 - improve command history/status clarity;
 - preserve Classic workspace and all inherited menu commands;
-- verify 1920×1080 at 96 DPI plus common high-DPI scaling.
+- keep the qwindows + Qt scale-factor responsive smoke and separately verify
+  real Windows Settings display scaling at 100%, 125%, and 150%.
 
 ## Reliability wave
 

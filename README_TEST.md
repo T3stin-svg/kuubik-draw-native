@@ -4,6 +4,11 @@ This is an experimental Windows x64 preview of Kuubik Draw, based on LibreCAD
 2.2.1.5. It is a native, offline 2D CAD application. It does not require
 Node.js, Python, internet access, installation, or administrator rights.
 
+The public `v0.2.0-preview.2` release remains fixed to its published source
+commit. A later CI artifact carrying this guide is a development checkpoint,
+not a replacement release; use its `build-manifest.json` for the exact source
+commit and workflow run.
+
 ## Start
 
 1. Extract the whole ZIP to a writable folder. Do not run the EXE from inside
@@ -22,10 +27,16 @@ LibreCAD's settings or the old React Kuubik Draw data.
   ribbon. Ribbon buttons call LibreCAD's real actions; the original commands
   remain available through the menus.
 - Quick Access contains New, Open, Save, Undo, Redo, and Print. The ribbon has
-  Home, Annotate, Insert, View, and Output tabs.
-- Layers and Blocks are tabbed on the right. Use `View -> Workspace -> Palette
-  Left/Right` to move them, `Reset Kuubik Workspace` to restore the default, or
-  `Classic workspace` to show the familiar LibreCAD toolbars.
+  Home, Insert, Annotate, View, Manage, and Output tabs. Its controls reuse
+  LibreCAD's existing native actions.
+- The Home ribbon has a real current-layer selector. Changing it changes the
+  native document's current layer; the selector is not a display-only label.
+- Properties, Layers, and Blocks are tabbed on the right. Properties is a
+  read-only native selection/document summary; `Open Full Properties` delegates
+  editing to LibreCAD's existing `ModifyEntity` action.
+- Use `View -> Workspace -> Palette Left/Right` to move the right work area,
+  `Reset Kuubik Workspace` to restore the default, or `Classic workspace` to
+  show the familiar LibreCAD toolbars and menus.
 - The command line is full-width at the bottom. GRID, ORTHO, END, MID, CEN, and
   INT status controls use the same checked/enabled state as their real actions.
 
@@ -46,8 +57,11 @@ LibreCAD's settings or the old React Kuubik Draw data.
 
 The Windows build also runs a native GUI smoke at 1920×1080. It sends a real
 mouse event to the ribbon `LINE` button, clicks two canvas points, requires
-exactly one new native LINE, saves the DXF and reads it through an independent
-parser, and publishes active/committed PNG evidence with the CI run.
+exactly one new native LINE on the selected layer, saves and natively reopens
+the DXF, and reads it through an independent parser. Separate qwindows + Qt
+scale-factor screenshots cover 100%, 125%, and 150% rendering, including a
+1280-logical-pixel narrow case. They do not replace a real Windows Settings
+display-scale check on owner-controlled hardware.
 
 ## Scope and known limitations
 
@@ -56,12 +70,13 @@ parser, and publishes active/committed PNG evidence with the CI run.
   roundtrip workflow.
 - `.kdraw` files from the old web application are not imported; use DXF for
   exchange.
-- LibreCAD 2.2.1.5 exposes entity Properties as a real command/dialog, not as a
-  permanent right-side Properties palette.
+- The right Properties palette is intentionally read-only. It shows native
+  document and selection state; entity editing remains in LibreCAD's existing
+  Properties/`ModifyEntity` workflow rather than a second editor.
 - The compact ribbon covers the everyday tools only. Every other inherited
   LibreCAD function remains available from the menus or Classic workspace.
 - The v0.2 ribbon uses the existing GPL LibreCAD icons. A complete custom icon
-  redraw and a live Properties palette are intentionally deferred.
+  redraw with recorded Kuubik provenance is still deferred.
 
 Report a problem with the exact command, input values, smallest non-confidential
 DXF that reproduces it, and a screenshot. Do not upload client drawings.

@@ -42,11 +42,12 @@ presence of upstream experimental DWG code does not certify DWG roundtrip,
 DWT, XREF or AutoCAD-native fidelity. A future native compatibility investment
 requires a separate legal/technical decision such as licensed ODA/RealDWG.
 
-## D-007 — Functions before deep visual imitation
+## D-007 — Owner-reproduced functional failures remain the absolute P0
 
-The first native visual shell is implemented, but owner-found functional bugs
-are P0. Deep icon redraw, live Properties palette and pixel-level visual work
-must not outrank broken drawing, Modify, layer or file workflows.
+A reproducible owner-found failure in drawing, Modify, layers, annotation,
+blocks or file workflows interrupts visual work and becomes the first P0.
+When no such failure is open, D-011 makes the AutoCAD-familiar visual and
+workflow integration the active primary wave rather than deferred polish.
 
 ## D-008 — Evidence must exercise the real GUI path
 
@@ -66,3 +67,26 @@ credentials, user settings or local user-profile paths.
 The full chat contains obsolete plans, repetition and potentially private
 context. `docs/CHAT_PLAN_SUMMARY.md` is the canonical sanitized record of the
 relevant decisions and plan evolution.
+
+## D-011 — AutoCAD-familiar native workspace is the active primary wave
+
+Reio explicitly prioritized an AutoCAD 2024 Drafting & Annotation-familiar
+visual hierarchy, command placement and workflow for building and civil
+engineering work. This includes the ribbon, current-layer and pen controls,
+annotation, blocks, right-side Properties/Layers/Blocks, command line and
+status controls.
+
+Familiarity does not authorize copying Autodesk assets or making parity claims.
+Every command and state remains backed by LibreCAD's existing QAction,
+document, entity, layer, block, selection, undo and file behavior.
+
+## D-012 — One primary window with internal Terra High agents
+
+The active integration is coordinated in one primary Codex conversation and
+one active codex integration branch. Parallel subtasks may use only internal
+gpt-5.6-terra agents at High reasoning inside that conversation. Separate
+sidebar tasks and parallel integration sessions are not part of this workflow.
+
+The primary agent owns Git state, reviews all internal-agent evidence,
+integrates changes through explicit allowlists and checks progress at least
+once per hour.

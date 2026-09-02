@@ -1,6 +1,6 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-01**
+Status date: **2026-09-02**
 
 ## Product
 
@@ -21,7 +21,7 @@ administrator rights at runtime.
 - Old web experiment: `T3stin-svg/kuubik-draw` — separate and not the native
   product
 
-## Current release
+## Last published release (immutable historical checkpoint)
 
 - Version: `0.2.0-preview.2`
 - Tag: `v0.2.0-preview.2`
@@ -35,6 +35,24 @@ administrator rights at runtime.
 The product branch also contains later documentation and public handoff files.
 Do not move the release tag: its exact executable source is intentionally
 immutable.
+
+## Verified development checkpoint (not a release)
+
+- Integration branch: `codex/autocad-visual-integration-root`
+- Tested source commit:
+  `d7e3b58c4d05e7b0f5d485c7244451c5ee635a8e`
+- Successful Windows MSVC x64 / Qt 5.15 run:
+  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33641126389>
+- Tested portable ZIP SHA-256:
+  `901877c3a403fc181b6088f7aac0e92320c796c1a27eccdc7dfca8d72c4cb2b0`
+- GUI evidence artifact SHA-256:
+  `1020b07feac5b3b361000d56a857ccbcb5de158e16f26ea0ec847edf97ce1602`
+- Portable artifact wrapper SHA-256:
+  `a5a2271eda798add8cd321d2d6405e0a0bd86c4844e678b07d8c54d243d28020`
+
+These are expiring workflow artifacts, not a GitHub release. They must not
+replace `v0.2.0-preview.2` or be represented as a new public preview without
+Reio's explicit approval.
 
 ## Implemented Kuubik layer
 
@@ -53,6 +71,17 @@ immutable.
 - native GUI proof for ribbon LINE and two canvas clicks;
 - public CI and local Windows screenshot/JSON/DXF evidence.
 
+The development checkpoint additionally provides:
+
+- Home, Insert, Annotate, View, Manage, and Output ribbon organization using
+  existing LibreCAD `QAction` identities;
+- responsive Home panels that collapse to their same-action overflow menus at
+  narrow widths;
+- a real native current-layer selector embedded in the ribbon;
+- a right-side read-only Properties dock tabbed with Layers and Blocks;
+- native no/single/multiple selection summaries and `ModifyEntity` delegation;
+- a tested Kuubik-to-Classic workspace restore path.
+
 ## Verified behaviors
 
 - portable startup from a path containing spaces;
@@ -69,15 +98,35 @@ immutable.
 Evidence is under `evidence/releases/v0.2.0-preview.2` and summarized in
 `docs/TEST_REPORT.md`.
 
+For development commit `d7e3b58c4`, run `33641126389` additionally verified:
+
+- 71 distinct ribbon `QAction` bindings/action keys retain their exact native
+  identity;
+- selecting `KUUBIK-SMOKE-LAYER` changes the native current layer and a newly
+  committed LINE remains on that layer after save and native reopen;
+- Properties receives native document and selection callbacks and its full
+  edit button activates the existing `ModifyEntity` action;
+- DXF open/edit/save/reopen, vector A4 PDF, and SVG pass independent read-back;
+- qwindows + Qt scale-factor render smoke at 100%, 125%, and 150% produces
+  1280×600, 1600×750, and 1800×900 PNGs without clipping or overlap;
+- `build-manifest.json` fixes the source commit, while the generated adjacent
+  `.zip.sha256` file records the tested portable ZIP checksum above.
+
 ## Honest limits
 
 - This is a prerelease, not production.
 - No native 133-row AutoCAD parity percentage has been certified for this fork.
 - DWG roundtrip, DWT and XREF parity are not certified.
-- Properties opens the real LibreCAD dialog; there is no permanent Properties
-  palette yet.
+- The permanent right Properties palette is read-only; full entity editing is
+  still delegated to LibreCAD's existing native dialog/action.
 - The ribbon covers common tools; inherited commands remain in menus/Classic.
 - The ribbon currently uses inherited GPL LibreCAD icons.
+- The automated 125% and 150% screenshots use qwindows with
+  `QT_SCALE_FACTOR`; real Windows Settings display-scale checks at 100%, 125%,
+  and 150% remain pending on controlled Windows hardware.
+- At 1280 logical pixels the Home Draw and Modify panels are available through
+  their `More` overflow menus, not as always-visible direct buttons. Reio must
+  accept this responsive priority or request a separate layout revision.
 - Full owner testing of Modify, layers, annotation, blocks and complex file
   workflows is still required on Reio's real workflow.
 - No `.kdraw` import from the web experiment exists; use DXF exchange.

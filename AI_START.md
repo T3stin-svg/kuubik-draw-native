@@ -12,8 +12,9 @@ its own product branch, release, design layer, tests and roadmap.
 ## One-sentence continuation prompt
 
 > Open `T3stin-svg/kuubik-draw-native` from GitHub, read `AI_START.md` and the
-> linked handoff files completely, then continue the first unfinished P0 in
-> `NEXT_TASKS.md` without restarting the project or changing the release claims.
+> linked handoff files completely, then continue the first unfinished phase in
+> `docs/CURRENT_GOAL.md` and `NEXT_TASKS.md` without restarting the project or
+> changing the release claims.
 
 ## New computer bootstrap
 
@@ -44,12 +45,14 @@ Read these files completely before editing:
 1. `AGENTS.md` — repository rules and safety boundaries;
 2. `docs/PROJECT_STATE.md` — what exists now;
 3. `docs/DECISIONS.md` — decisions that must not be silently reversed;
-4. `docs/CHAT_PLAN_SUMMARY.md` — sanitized history of the plans from the working
+4. `docs/CURRENT_GOAL.md` — the owner-approved active objective and evidence
+   required for completion;
+5. `docs/CHAT_PLAN_SUMMARY.md` — sanitized history of the plans from the working
    conversation;
-5. `docs/ROADMAP.md` — product direction;
-6. `NEXT_TASKS.md` — exact next work order;
-7. `docs/TEST_REPORT.md` and `README_TEST.md` — proof and manual checks;
-8. `FORK_NOTICE.md`, `LICENSE`, and `THIRD_PARTY_NOTICES.md` — provenance and
+6. `docs/ROADMAP.md` — product direction;
+7. `NEXT_TASKS.md` — exact next work order;
+8. `docs/TEST_REPORT.md` and `README_TEST.md` — proof and manual checks;
+9. `FORK_NOTICE.md`, `LICENSE`, and `THIRD_PARTY_NOTICES.md` — provenance and
    licensing.
 
 ## Current certified checkpoint
@@ -73,8 +76,13 @@ does not certify DWG/DWT/XREF or full AutoCAD parity.
 
 1. Inspect the real branch and dirty worktree before making assumptions.
 2. If Reio reports a bug from the preview, that bug becomes the first P0.
-3. Otherwise take the first unchecked P0 from `NEXT_TASKS.md`.
-4. Work in a new `codex/` branch or isolated worktree.
+3. Otherwise take the first unchecked phase item shared by
+   `docs/CURRENT_GOAL.md` and `NEXT_TASKS.md`.
+4. For the active AutoCAD-familiar integration wave, continue the existing
+   `codex/autocad-visual-integration-root` branch in the primary Codex
+   conversation. Do not create sidebar tasks or another integration worktree.
+   Parallel work may use only internal `gpt-5.6-terra` High agents in that
+   conversation, and the primary agent reviews and integrates their work.
 5. Reuse LibreCAD's real `QAction` and native entity/document model; do not
    duplicate CAD behavior in a second UI engine.
 6. Add a targeted native test and independent DXF/PDF read-back where the

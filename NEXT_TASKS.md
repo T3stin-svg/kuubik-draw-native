@@ -10,8 +10,12 @@ The first owner-reported reproducible problem always outranks this list.
 - [ ] Add a native GUI smoke for PLINE from ribbon to committed entity and DXF
   read-back.
 - [ ] Add a native GUI smoke for MOVE or COPY including atomic Undo/Redo.
-- [ ] Add a layer create/current workflow and verify the saved DXF layer.
-- [ ] Add DXF open → edit → save-as → close/reopen read-back in the packaged EXE.
+- [x] Add an automated packaged-MSVC layer create/current workflow and verify
+  the saved DXF layer (`d7e3b58c4`, run `33641126389`).
+- [x] Add automated DXF open → edit → save-as → close/reopen and independent
+  read-back in the packaged EXE (`d7e3b58c4`, run `33641126389`).
+- [ ] Replay both workflows on Reio's owner-controlled Windows system and
+  record any discrepancy from the synthetic smoke.
 
 Definition of done: the changed action runs through ribbon/menu → native canvas
 or selection → native document → undo/file output, with no silent failure.
@@ -28,9 +32,14 @@ or selection → native document → undo/file output, with no silent failure.
 ## P1 — Kuubik visual refinement
 
 - [ ] original Kuubik icon set with provenance;
-- [ ] better Properties workflow backed by native entity editing;
+- [ ] validate the existing native `ModifyEntity` edit dialog on Reio's real
+  selections; keep the right Properties summary read-only;
 - [ ] ribbon keyboard/focus/disabled/checked states;
-- [ ] high-DPI and narrower desktop layouts;
+- [x] qwindows + Qt scale-factor smoke at 100%, 125%, and 150%, including a
+  narrow 1280-logical-pixel case (`d7e3b58c4`, run `33641126389`);
+- [ ] real Windows Settings display-scale checks at 100%, 125%, and 150%;
+- [ ] Reio accept/deny: keep Draw/Modify in `More` at 1280 logical pixels or
+  request a separate hybrid direct-button layout;
 - [ ] command line history clarity and error states.
 
 ## P2 — reliability and distribution
