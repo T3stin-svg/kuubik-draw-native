@@ -11,9 +11,9 @@ The first owner-reported reproducible problem always outranks this list.
   read-back.
 - [ ] Add a native GUI smoke for MOVE or COPY including atomic Undo/Redo.
 - [x] Add an automated packaged-MSVC layer create/current workflow and verify
-  the saved DXF layer (`d7e3b58c4`, run `33641126389`).
+  the saved DXF layer (`ee8e29264`, run `33645437662`).
 - [x] Add automated DXF open → edit → save-as → close/reopen and independent
-  read-back in the packaged EXE (`d7e3b58c4`, run `33641126389`).
+  read-back in the packaged EXE (`ee8e29264`, run `33645437662`).
 - [ ] Replay both workflows on Reio's owner-controlled Windows system and
   record any discrepancy from the synthetic smoke.
 
@@ -37,7 +37,7 @@ or selection → native document → undo/file output, with no silent failure.
   selections; keep the right Properties summary read-only;
 - [ ] ribbon keyboard/focus/disabled/checked states;
 - [x] qwindows + Qt scale-factor smoke at 100%, 125%, and 150%, including a
-  narrow 1280-logical-pixel case (`d7e3b58c4`, run `33641126389`);
+  narrow 1280-logical-pixel case (`ee8e29264`, run `33645437662`);
 - [ ] real Windows Settings display-scale checks at 100%, 125%, and 150%;
 - [ ] Reio accept/deny: keep Draw/Modify in `More` at 1280 logical pixels or
   request a separate hybrid direct-button layout;

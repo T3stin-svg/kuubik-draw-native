@@ -87,15 +87,15 @@ This section is branch evidence, not a release and not a replacement for the
 immutable public `v0.2.0-preview.2` artifact.
 
 - branch: `codex/autocad-visual-integration-root`
-- tested source: `d7e3b58c4d05e7b0f5d485c7244451c5ee635a8e`
+- tested source: `ee8e29264d335dd8c060cc819e6bd79051d1f7e1`
 - Windows run:
-  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33641126389>
+  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33645437662>
 - tested portable ZIP SHA-256:
-  `901877c3a403fc181b6088f7aac0e92320c796c1a27eccdc7dfca8d72c4cb2b0`
+  `42042173912cc0854684cb00a09f291836c6e16eb2421c6af9b31986064e8007`
 - GUI evidence artifact SHA-256:
-  `1020b07feac5b3b361000d56a857ccbcb5de158e16f26ea0ec847edf97ce1602`
+  `81ccc21ca0d9067b0ed64535c36392d9a5a3fcfee6d46c63d44be25b18d901a6`
 - portable artifact wrapper SHA-256:
-  `a5a2271eda798add8cd321d2d6405e0a0bd86c4844e678b07d8c54d243d28020`
+  `1e239efab576845122239e968d8dcc814be5e1ce7f09a8b56fa163d05010cb08`
 
 The MSVC x64 / Qt 5.15.2 build, package isolation, payload allowlist, Gitleaks,
 UI contract v2, native LINE canvas flow, native layer selector, Properties

@@ -122,8 +122,8 @@ The primary agent must:
 
 ## Evidence checkpoint — 2026-09-02
 
-Development source `d7e3b58c4d05e7b0f5d485c7244451c5ee635a8e` passed the
-Windows MSVC x64 / Qt 5.15 workflow in run `33641126389`. The run verified the
+Development source `ee8e29264d335dd8c060cc819e6bd79051d1f7e1` passed the
+Windows MSVC x64 / Qt 5.15 workflow in run `33645437662`. The run verified the
 native current-layer selector, native Properties callbacks and
 `ModifyEntity` delegation, Kuubik-to-Classic restoration, a real ribbon LINE
 canvas flow, DXF save/reopen, independent DXF/PDF/SVG read-back, package
