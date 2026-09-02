@@ -93,6 +93,11 @@ int main(int argc, char** argv)
 
     RS_DEBUG->setLevel(RS_Debug::D_WARNING);
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+#endif
+
     LC_Application app(argc, argv);
     QCoreApplication::setOrganizationName(KUUBIK_DRAW_ORGANIZATION);
     QCoreApplication::setOrganizationDomain("kuubik3d.ee");

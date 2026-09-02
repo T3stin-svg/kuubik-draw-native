@@ -56,6 +56,13 @@ function Run-Native(
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $Executable
     $startInfo.UseShellExecute = $false
+    foreach ($name in @(
+        'QT_SCALE_FACTOR', 'QT_SCREEN_SCALE_FACTORS', 'QT_AUTO_SCREEN_SCALE_FACTOR',
+        'QT_DEVICE_PIXEL_RATIO', 'QT_FONT_DPI', 'QT_USE_PHYSICAL_DPI',
+        'QT_SCALE_FACTOR_ROUNDING_POLICY'
+    )) {
+        [void]$startInfo.Environment.Remove($name)
+    }
     foreach ($entry in $Environment.GetEnumerator()) {
         $startInfo.Environment[$entry.Key] = $entry.Value
     }
@@ -286,11 +293,53 @@ foreach ($key in @('logicalDpiX', 'logicalDpiY', 'devicePixelRatio', 'windowLogi
     }
 }
 
+$dpiEvidenceRoot = Join-Path $smokeRoot 'dpi-evidence'
+New-Item -ItemType Directory -Path $dpiEvidenceRoot | Out-Null
+foreach ($dpiCase in @(
+    @{ Name = '100'; Factor = '1.00'; Expected = 1.0 },
+    @{ Name = '125'; Factor = '1.25'; Expected = 1.25 },
+    @{ Name = '150'; Factor = '1.50'; Expected = 1.5 }
+)) {
+    $dpiDirectory = Join-Path $dpiEvidenceRoot $dpiCase.Name
+    New-Item -ItemType Directory -Path $dpiDirectory | Out-Null
+    $dpiContractPath = Join-Path $dpiDirectory 'kuubik-ui-contract.json'
+    $dpiScreenshotPath = Join-Path $dpiDirectory 'workspace.png'
+    $dpiEnvironment = $portableQtEnvironment.Clone()
+    $dpiEnvironment['QT_QPA_PLATFORM'] = 'windows'
+    $dpiEnvironment['QT_ENABLE_HIGHDPI_SCALING'] = '1'
+    $dpiEnvironment['QT_SCALE_FACTOR'] = $dpiCase.Factor
+    $dpiEnvironment['KUUBIK_UI_CONTRACT_PATH'] = $dpiContractPath
+    $dpiEnvironment['KUUBIK_UI_SCREENSHOT_PATH'] = $dpiScreenshotPath
+    $dpiEnvironment['KUUBIK_UI_CONTRACT_WIDTH'] = '1280'
+    $dpiEnvironment['KUUBIK_UI_CONTRACT_HEIGHT'] = '800'
+    Run-Native -Executable $portableExe -Arguments @() -Label "Kuubik $($dpiCase.Name)% DPI contract" -Environment $dpiEnvironment
+    Require-Path $dpiContractPath
+    Require-Path $dpiScreenshotPath
+
+    $dpiContract = Get-Content -LiteralPath $dpiContractPath -Raw | ConvertFrom-Json
+    $dpiState = Require-JsonProperty $dpiContract 'dpi' "dpiContract.$($dpiCase.Name)"
+    $actualScale = Require-JsonNumber $dpiState 'devicePixelRatio' "dpiContract.$($dpiCase.Name).dpi"
+    $requestedScale = Require-JsonNumber $dpiState 'requestedScaleFactor' "dpiContract.$($dpiCase.Name).dpi"
+    $screenshotPixelWidth = Require-JsonNumber $dpiState 'screenshotPixelWidth' "dpiContract.$($dpiCase.Name).dpi"
+    $screenshotPixelHeight = Require-JsonNumber $dpiState 'screenshotPixelHeight' "dpiContract.$($dpiCase.Name).dpi"
+    if ([Math]::Abs($actualScale - $dpiCase.Expected) -gt 0.06 -or
+        [Math]::Abs($requestedScale - $dpiCase.Expected) -gt 0.001 -or
+        (Require-JsonNumber $dpiState 'windowLogicalWidth' "dpiContract.$($dpiCase.Name).dpi") -ne 1280 -or
+        (Require-JsonNumber $dpiState 'windowLogicalHeight' "dpiContract.$($dpiCase.Name).dpi") -ne 800 -or
+        [Math]::Abs($screenshotPixelWidth - (1280 * $dpiCase.Expected)) -gt 2 -or
+        [Math]::Abs($screenshotPixelHeight - (800 * $dpiCase.Expected)) -gt 2 -or
+        -not (Require-JsonBoolean $dpiState 'screenshotSaved' "dpiContract.$($dpiCase.Name).dpi") -or
+        (Get-Item -LiteralPath $dpiScreenshotPath).Length -lt 10000) {
+        throw "Kuubik $($dpiCase.Name)% DPI evidence is incomplete or uses the wrong scale."
+    }
+}
+
 $guiSmokeDirectory = Join-Path $smokeRoot 'gui-evidence'
 New-Item -ItemType Directory -Path $guiSmokeDirectory | Out-Null
-$env:KUUBIK_GUI_SMOKE_DIR = $guiSmokeDirectory
-Run-Native -Executable $portableExe -Arguments @() -Label 'Ribbon LINE mouse workflow smoke' -Environment $offscreenEnvironment
-Remove-Item Env:KUUBIK_GUI_SMOKE_DIR
+$guiSmokeEnvironment = $offscreenEnvironment.Clone()
+$guiSmokeEnvironment['KUUBIK_GUI_SMOKE_DIR'] = $guiSmokeDirectory
+$guiSmokeEnvironment['KUUBIK_GUI_SMOKE_INPUT_DXF'] = $fixture
+Run-Native -Executable $portableExe -Arguments @() -Label 'Ribbon LINE mouse workflow smoke' -Environment $guiSmokeEnvironment
 
 $guiSmokeReportPath = Join-Path $guiSmokeDirectory 'line-gui-smoke.json'
 $guiActiveImagePath = Join-Path $guiSmokeDirectory 'line-active.png'
@@ -306,7 +355,7 @@ foreach ($key in @(
     'schemaVersion', 'status', 'prerequisites', 'ribbonActionKey', 'ribbonMouseEvent',
     'actionActiveAfterRibbon', 'windowWidth', 'windowHeight', 'entitiesBefore',
     'entitiesAfterFirstClick', 'entitiesAfterSecondClick', 'linesBefore',
-    'linesAfterSecondClick', 'dxfSaved'
+    'linesAfterSecondClick', 'dxfSaved', 'sourceDxfLoaded', 'documentLifecycle'
 )) {
     [void](Require-JsonProperty $guiSmoke $key 'guiSmoke')
 }
@@ -316,6 +365,7 @@ if ($guiSmoke.schemaVersion -ne 2 -or
     $guiSmoke.ribbonActionKey -ne 'DrawLine' -or
     -not $guiSmoke.ribbonMouseEvent -or
     -not $guiSmoke.actionActiveAfterRibbon -or
+    -not $guiSmoke.sourceDxfLoaded -or
     $guiSmoke.windowWidth -ne 1920 -or
     $guiSmoke.windowHeight -ne 1080 -or
     $guiSmoke.entitiesAfterFirstClick -ne $guiSmoke.entitiesBefore -or
@@ -338,7 +388,7 @@ if ($selectedLayer -ne $nativeCurrentLayer -or $selectedLayer -ne $createdLineLa
 
 $propertiesStates = Require-JsonProperty $guiSmoke 'propertiesStates' 'guiSmoke'
 foreach ($expected in @(
-    @{ Name = 'none'; Mode = 'none'; Count = 0 },
+    @{ Name = 'document'; Mode = 'document'; Count = 0 },
     @{ Name = 'single'; Mode = 'single'; Count = 1 },
     @{ Name = 'multiple'; Mode = 'multiple'; Count = 2 }
 )) {
@@ -350,13 +400,22 @@ foreach ($expected in @(
         $null -eq (Require-JsonProperty $state 'summary' $stateContext)) {
         throw "Properties smoke state is incomplete: $stateContext"
     }
-    if ($expected.Name -eq 'none' -and (Require-JsonNumber $state 'count' $stateContext) -ne 0) {
-        throw 'Properties none-selection state must have zero selected entities.'
+    if ($expected.Name -eq 'document' -and (Require-JsonNumber $state 'count' $stateContext) -ne 0) {
+        throw 'Properties document state must have zero selected entities.'
     }
     if ($expected.Name -eq 'single') {
         $summary = Require-JsonProperty $state 'summary' $stateContext
         [void](Require-JsonString $summary 'type' "$stateContext.summary")
         [void](Require-JsonString $summary 'layer' "$stateContext.summary")
+    }
+}
+$documentLifecycle = Require-JsonProperty $guiSmoke 'documentLifecycle' 'guiSmoke'
+foreach ($key in @(
+    'reopenedNativeDxf', 'originalRestoredAfterSwitch',
+    'originalRestoredAfterClose', 'passed'
+)) {
+    if (-not (Require-JsonBoolean $documentLifecycle $key 'guiSmoke.documentLifecycle')) {
+        throw "Native DXF reopen or multi-document lifecycle failed: $key"
     }
 }
 if ((Get-Item -LiteralPath $guiActiveImagePath).Length -lt 10000 -or

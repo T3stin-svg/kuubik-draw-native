@@ -39,6 +39,7 @@
 #include <QFileDialog>
 #include <QFont>
 #include <QFrame>
+#include <QHash>
 #include <QImageWriter>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -51,6 +52,7 @@
 #include <QMouseEvent>
 #include <QPagedPaintDevice>
 #include <QPluginLoader>
+#include <QPixmap>
 #include <QPrinter>
 #include <QPrintDialog>
 #include <QRegExp>
@@ -1314,10 +1316,26 @@ void QC_ApplicationWindow::setKuubikPaletteSide(Qt::DockWidgetArea area,
 
 bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
 {
+    bool widthOk = false;
+    bool heightOk = false;
+    const int requestedWidth = qEnvironmentVariable("KUUBIK_UI_CONTRACT_WIDTH").toInt(&widthOk);
+    const int requestedHeight = qEnvironmentVariable("KUUBIK_UI_CONTRACT_HEIGHT").toInt(&heightOk);
+    if (widthOk && heightOk && requestedWidth > 0 && requestedHeight > 0) {
+        setWindowState(windowState() & ~Qt::WindowMaximized);
+        resize(requestedWidth, requestedHeight);
+        show();
+        QApplication::processEvents();
+    }
+
     QJsonObject contract;
     QSettings settings;
     const QString previousWorkspaceMode = settings.value(
         "Workspace/Mode", QStringLiteral("kuubik")).toString();
+    QHash<QToolBar*, bool> previousToolbarVisibility;
+    const auto previousToolbars = findChildren<QToolBar*>();
+    for (QToolBar* toolbar : previousToolbars) {
+        previousToolbarVisibility.insert(toolbar, toolbar->isVisible());
+    }
     const bool kuubikMenuBarVisible = menuBar()->isVisible();
     applyClassicWorkspace();
     QApplication::processEvents();
@@ -1326,6 +1344,10 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         applyClassicWorkspace();
     } else {
         applyKuubikWorkspace(false);
+        for (auto it = previousToolbarVisibility.cbegin();
+             it != previousToolbarVisibility.cend(); ++it) {
+            it.key()->setVisible(it.value());
+        }
     }
     QApplication::processEvents();
 
@@ -1544,6 +1566,22 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     dpiObject.insert("devicePixelRatio", devicePixelRatioF());
     dpiObject.insert("windowLogicalWidth", width());
     dpiObject.insert("windowLogicalHeight", height());
+    bool scaleOk = false;
+    const double requestedScaleFactor = qEnvironmentVariable("QT_SCALE_FACTOR").toDouble(&scaleOk);
+    dpiObject.insert("requestedScaleFactor", scaleOk ? requestedScaleFactor : 1.0);
+    const QString screenshotPath = qEnvironmentVariable("KUUBIK_UI_SCREENSHOT_PATH");
+    bool screenshotSaved = screenshotPath.isEmpty();
+    int screenshotPixelWidth = 0;
+    int screenshotPixelHeight = 0;
+    if (!screenshotPath.isEmpty()) {
+        const QPixmap screenshot = grab();
+        screenshotPixelWidth = screenshot.width();
+        screenshotPixelHeight = screenshot.height();
+        screenshotSaved = screenshot.save(screenshotPath, "PNG");
+    }
+    dpiObject.insert("screenshotSaved", screenshotSaved);
+    dpiObject.insert("screenshotPixelWidth", screenshotPixelWidth);
+    dpiObject.insert("screenshotPixelHeight", screenshotPixelHeight);
     contract.insert("dpi", dpiObject);
 
     QJsonObject colors;
@@ -1558,7 +1596,7 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         return false;
     }
     file.write(QJsonDocument(contract).toJson(QJsonDocument::Indented));
-    return file.commit();
+    return file.commit() && screenshotSaved;
 }
 
 bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
@@ -1574,6 +1612,12 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
     resize(1920, 1080);
     show();
     QApplication::processEvents();
+
+    const QString inputDxfPath = qEnvironmentVariable("KUUBIK_GUI_SMOKE_INPUT_DXF");
+    if (!inputDxfPath.isEmpty()) {
+        slotFileOpen(inputDxfPath, RS2::FormatDXFRW);
+        QApplication::processEvents();
+    }
 
     auto* mdi = getMDIWindow();
     auto* view = mdi == nullptr ? nullptr : mdi->getGraphicView();
@@ -1631,12 +1675,18 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
     report.insert(QStringLiteral("viewportRequestedHeight"), 1080);
     report.insert(QStringLiteral("windowWidth"), width());
     report.insert(QStringLiteral("windowHeight"), height());
+    const bool sourceDxfLoaded = inputDxfPath.isEmpty()
+                                 || (mdi != nullptr && mdi->getDocument() != nullptr
+                                     && QFileInfo(mdi->getDocument()->getFilename()).absoluteFilePath()
+                                            == QFileInfo(inputDxfPath).absoluteFilePath());
+    report.insert(QStringLiteral("sourceDxfLoaded"), sourceDxfLoaded);
 
     const bool prerequisites = mdi != nullptr && view != nullptr
                                && graphic != nullptr && button != nullptr
                                && button->defaultAction() == a_map.value("DrawLine", nullptr)
                                && kuubikCurrentLayerSelector != nullptr
                                && kuubikPropertiesPalette != nullptr
+                               && sourceDxfLoaded
                                && view->width() >= 300 && view->height() >= 200;
     report.insert(QStringLiteral("prerequisites"), prerequisites);
     if (!prerequisites) {
@@ -1660,6 +1710,10 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                                : layerList->getActive()->getName();
         const int entitiesBefore = graphic->getEntityList().size();
         const int linesBefore = lineCount(graphic);
+        QSet<RS_Entity*> entitiesBeforeSet;
+        for (RS_Entity* entity : graphic->getEntityList()) {
+            entitiesBeforeSet.insert(entity);
+        }
         const QPoint ribbonPoint = button->rect().center();
         const QPoint firstPoint(view->width() / 3, view->height() / 3);
         const QPoint previewPoint(view->width() / 2, view->height() / 2);
@@ -1691,7 +1745,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
 
         RS_Entity* firstCreatedLine = nullptr;
         for (RS_Entity* entity : graphic->getEntityList()) {
-            if (entity != nullptr && entity->rtti() == RS2::EntityLine) {
+            if (entity != nullptr && !entitiesBeforeSet.contains(entity)
+                && entity->rtti() == RS2::EntityLine) {
                 firstCreatedLine = entity;
             }
         }
@@ -1728,12 +1783,12 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         int refreshGeneration = kuubikPropertiesPalette->state()
                                     .value("selectionRefreshGeneration").toInt();
         RS_DIALOGFACTORY->updateSelectionWidget(0, 0.0);
-        const QVariantMap noneState = kuubikPropertiesPalette->state();
-        const bool noneCallback = noneState.value("selectionRefreshGeneration").toInt()
-                                  > refreshGeneration;
+        const QVariantMap documentState = kuubikPropertiesPalette->state();
+        const bool documentCallback = documentState.value("selectionRefreshGeneration").toInt()
+                                      > refreshGeneration;
 
         if (firstCreatedLine != nullptr) firstCreatedLine->setSelected(true);
-        refreshGeneration = noneState.value("selectionRefreshGeneration").toInt();
+        refreshGeneration = documentState.value("selectionRefreshGeneration").toInt();
         RS_DIALOGFACTORY->updateSelectionWidget(
             graphic->countSelected(), graphic->totalSelectedLength());
         const QVariantMap singleState = kuubikPropertiesPalette->state();
@@ -1749,8 +1804,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                       > refreshGeneration;
 
         QJsonObject propertiesStates;
-        propertiesStates.insert(QStringLiteral("none"),
-                                propertiesStateObject(noneState, noneCallback));
+        propertiesStates.insert(QStringLiteral("document"),
+                                propertiesStateObject(documentState, documentCallback));
         propertiesStates.insert(QStringLiteral("single"),
                                 propertiesStateObject(singleState, singleCallback));
         propertiesStates.insert(QStringLiteral("multiple"),
@@ -1766,6 +1821,62 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         layerSelectorObject.insert(QStringLiteral("createdLineLayer"), createdLineLayer);
         report.insert(QStringLiteral("layerSelector"), layerSelectorObject);
 
+        // Reopen the native DXF through the normal file adapter, switch between
+        // both documents, and close the reopened copy. This proves that the
+        // selector and Properties palette follow the active MDI document and
+        // release their listeners safely when that document is closed.
+        slotFileOpen(dxfPath, RS2::FormatDXFRW);
+        QApplication::processEvents();
+        QC_MDIWindow* reopenedMdi = getMDIWindow();
+        RS_Graphic* reopenedGraphic = reopenedMdi == nullptr
+                                          ? nullptr
+                                          : reopenedMdi->getGraphic();
+        const int reopenedLayerIndex = kuubikCurrentLayerSelector->findText(smokeLayerName);
+        if (reopenedLayerIndex >= 0) {
+            kuubikCurrentLayerSelector->setCurrentIndex(reopenedLayerIndex);
+        }
+        QApplication::processEvents();
+        const bool reopenedBound = reopenedMdi != nullptr && reopenedMdi != mdi
+                                   && reopenedGraphic != nullptr
+                                   && lineCount(reopenedGraphic) == linesBefore + 1
+                                   && reopenedGraphic->getLayerList()->find(smokeLayerName) != nullptr
+                                   && kuubikCurrentLayerSelector->layerList()
+                                          == reopenedGraphic->getLayerList()
+                                   && kuubikCurrentLayerSelector->currentText() == smokeLayerName
+                                   && kuubikPropertiesPalette->document()
+                                          == reopenedMdi->getDocument();
+
+        doActivate(mdi);
+        QApplication::processEvents();
+        const bool originalRestored = getMDIWindow() == mdi
+                                      && kuubikCurrentLayerSelector->layerList() == layerList
+                                      && kuubikCurrentLayerSelector->currentText() == smokeLayerName
+                                      && kuubikPropertiesPalette->document() == mdi->getDocument();
+
+        if (reopenedMdi != nullptr && reopenedMdi != mdi) {
+            doActivate(reopenedMdi);
+            QApplication::processEvents();
+            doClose(reopenedMdi, true);
+            QApplication::processEvents();
+        }
+        const bool closeRestoredOriginal = getMDIWindow() == mdi
+                                           && kuubikCurrentLayerSelector->layerList() == layerList
+                                           && kuubikCurrentLayerSelector->currentText()
+                                                  == smokeLayerName
+                                           && kuubikPropertiesPalette->document()
+                                                  == mdi->getDocument();
+        const bool documentLifecyclePassed = reopenedBound
+                                             && originalRestored
+                                             && closeRestoredOriginal;
+        QJsonObject documentLifecycle;
+        documentLifecycle.insert(QStringLiteral("reopenedNativeDxf"), reopenedBound);
+        documentLifecycle.insert(QStringLiteral("originalRestoredAfterSwitch"),
+                                 originalRestored);
+        documentLifecycle.insert(QStringLiteral("originalRestoredAfterClose"),
+                                 closeRestoredOriginal);
+        documentLifecycle.insert(QStringLiteral("passed"), documentLifecyclePassed);
+        report.insert(QStringLiteral("documentLifecycle"), documentLifecycle);
+
         const bool selectorPassed = kuubikCurrentLayerSelector->isEnabled()
                                     && selectedLayer == smokeLayerName
                                     && selectedLayer == nativeCurrentLayer
@@ -1778,9 +1889,9 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                       && secondCreatedLine->getLayer(true) != nullptr
                                       && secondCreatedLine->getLayer(true)->getName()
                                              == smokeLayerName
-                                      && noneState.value("selectionCount").toInt() == 0
-                                      && noneState.value("mode").toString() == "none"
-                                      && noneCallback
+                                      && documentState.value("selectionCount").toInt() == 0
+                                      && documentState.value("mode").toString() == "document"
+                                      && documentCallback
                                       && singleState.value("selectionCount").toInt() == 1
                                       && singleState.value("mode").toString() == "single"
                                       && singleState.value("type").toString() == tr("Line")
@@ -1794,7 +1905,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                             && entitiesAfterSecond == entitiesBefore + 1
                             && linesAfterSecond == linesBefore + 1
                             && activeImageSaved && committedImageSaved && dxfSaved
-                            && selectorPassed && propertiesPassed;
+                            && selectorPassed && propertiesPassed
+                            && documentLifecyclePassed;
 
         report.insert(QStringLiteral("ribbonActionKey"), QStringLiteral("DrawLine"));
         report.insert(QStringLiteral("ribbonMouseEvent"), true);

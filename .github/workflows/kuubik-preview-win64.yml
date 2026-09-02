@@ -67,6 +67,15 @@ jobs:
           py7zrversion: '==0.20.*'
           extra: '--external 7z'
 
+      - name: Validate Kuubik icon registry
+        shell: pwsh
+        run: python .\scripts\check-kuubik-icons.py
+
+      - name: Scan source for committed secrets
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install Boost headers
         shell: pwsh
         run: |
@@ -109,7 +118,7 @@ jobs:
       - name: Independently read back DXF, PDF and SVG
         shell: pwsh
         run: |
-          python -m pip install --disable-pip-version-check --quiet ezdxf pypdf
+          python -m pip install --disable-pip-version-check --quiet ezdxf pypdf pillow
           python .\scripts\verify-preview-outputs.py "$env:RUNNER_TEMP\Kuubik Draw portable smoke"
 
       - name: Upload native GUI evidence
@@ -121,6 +130,8 @@ jobs:
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-committed.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.json
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.dxf
+            ${{ runner.temp }}/Kuubik Draw portable smoke/dpi-evidence/**/workspace.png
+            ${{ runner.temp }}/Kuubik Draw portable smoke/dpi-evidence/**/kuubik-ui-contract.json
           if-no-files-found: error
           retention-days: 30
 

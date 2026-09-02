@@ -134,9 +134,9 @@ QVariantMap KuubikPropertiesPalette::state() const
 {
     QVariantMap result;
     const QString mode = currentDocument == nullptr
-                             ? QStringLiteral("no-document")
+                             ? QStringLiteral("none")
                              : selectionCount == 0
-                                   ? QStringLiteral("none")
+                                   ? QStringLiteral("document")
                                    : selectionCount == 1
                                          ? QStringLiteral("single")
                                          : QStringLiteral("multiple");
