@@ -47,6 +47,40 @@ function Require-JsonNumber([object]$Object, [string]$Name, [string]$Context) {
     return $value
 }
 
+function Assert-RibbonMouseInvocation([object]$Invocation, [string]$Context) {
+    if (-not (Require-JsonBoolean $Invocation 'passed' $Context) -or
+        -not (Require-JsonBoolean $Invocation 'actionTriggeredByMouse' $Context) -or
+        -not (Require-JsonBoolean $Invocation 'sourceButtonEnabled' $Context) -or
+        -not (Require-JsonBoolean $Invocation 'sourceButtonIdentity' $Context)) {
+        throw "Ribbon invocation did not trigger the expected native QAction: $Context"
+    }
+
+    $surface = Require-JsonString $Invocation 'invocationSurface' $Context
+    if ($surface -eq 'directButton') {
+        if (-not (Require-JsonBoolean $Invocation 'sourceButtonVisible' $Context) -or
+            (Require-JsonBoolean $Invocation 'panelCollapsed' $Context)) {
+            throw "Direct ribbon invocation did not use a visible expanded button: $Context"
+        }
+    } elseif ($surface -eq 'collapsedPanelOverflow') {
+        if ((Require-JsonBoolean $Invocation 'sourceButtonVisible' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'panelCollapsed' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'overflowButtonPresent' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'overflowButtonVisible' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'overflowButtonEnabled' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'overflowMenuPresent' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'overflowActionIdentity' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'overflowMenuInteractionRan' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'overflowMenuVisibleAfterOpen' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'overflowActionGeometryValid' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'overflowActionAtPoint' $Context) -or
+            -not (Require-JsonBoolean $Invocation 'overflowMenuClosedAfterSelection' $Context)) {
+            throw "Collapsed ribbon invocation did not use the visible native overflow menu row: $Context"
+        }
+    } else {
+        throw "Unknown ribbon invocation surface '$surface': $Context"
+    }
+}
+
 function Run-Native(
     [string]$Executable,
     [string[]]$Arguments,
@@ -465,7 +499,8 @@ foreach ($key in @(
     'actionActiveAfterRibbon', 'windowWidth', 'windowHeight', 'entitiesBefore',
     'entitiesAfterFirstClick', 'entitiesAfterSecondClick', 'linesBefore',
     'linesAfterSecondClick', 'dxfSaved', 'sourceDxfLoaded', 'documentLifecycle',
-    'fullPropertiesAction', 'polylineUndoRedo'
+    'fullPropertiesAction', 'ribbonInvocation', 'propertiesLineRibbonInvocation',
+    'polylineUndoRedo'
 )) {
     [void](Require-JsonProperty $guiSmoke $key 'guiSmoke')
 }
@@ -484,6 +519,8 @@ if ($guiSmoke.schemaVersion -ne 3 -or
     -not $guiSmoke.dxfSaved) {
     throw 'Ribbon LINE mouse workflow did not create exactly one native LINE.'
 }
+Assert-RibbonMouseInvocation (Require-JsonProperty $guiSmoke 'ribbonInvocation' 'guiSmoke') 'guiSmoke.ribbonInvocation'
+Assert-RibbonMouseInvocation (Require-JsonProperty $guiSmoke 'propertiesLineRibbonInvocation' 'guiSmoke') 'guiSmoke.propertiesLineRibbonInvocation'
 $guiLayerSelector = Require-JsonProperty $guiSmoke 'layerSelector' 'guiSmoke'
 if (-not (Require-JsonBoolean $guiLayerSelector 'present' 'guiSmoke.layerSelector') -or
     -not (Require-JsonBoolean $guiLayerSelector 'enabled' 'guiSmoke.layerSelector')) {
@@ -542,11 +579,10 @@ if (-not (Require-JsonBoolean $polylineUndoRedo 'passed' 'guiSmoke.polylineUndoR
 $polylineRibbon = Require-JsonProperty $polylineUndoRedo 'ribbon' 'guiSmoke.polylineUndoRedo'
 if ((Require-JsonString $polylineRibbon 'actionKey' 'guiSmoke.polylineUndoRedo.ribbon') -ne 'DrawPolyline' -or
     -not (Require-JsonBoolean $polylineRibbon 'nativeIdentity' 'guiSmoke.polylineUndoRedo.ribbon') -or
-    -not (Require-JsonBoolean $polylineRibbon 'visible' 'guiSmoke.polylineUndoRedo.ribbon') -or
-    -not (Require-JsonBoolean $polylineRibbon 'actionTriggeredByMouse' 'guiSmoke.polylineUndoRedo.ribbon') -or
     -not (Require-JsonBoolean $polylineRibbon 'nativeActionActive' 'guiSmoke.polylineUndoRedo.ribbon')) {
     throw 'Ribbon PLINE did not activate the native DrawPolyline action through a mouse event.'
 }
+Assert-RibbonMouseInvocation $polylineRibbon 'guiSmoke.polylineUndoRedo.ribbon'
 $polylineEntity = Require-JsonProperty $polylineUndoRedo 'polyline' 'guiSmoke.polylineUndoRedo'
 if (-not (Require-JsonBoolean $polylineEntity 'created' 'guiSmoke.polylineUndoRedo.polyline') -or
     (Require-JsonBoolean $polylineEntity 'entityUndoneBeforeUndo' 'guiSmoke.polylineUndoRedo.polyline') -or

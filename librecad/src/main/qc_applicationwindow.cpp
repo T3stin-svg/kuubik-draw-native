@@ -47,6 +47,7 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QMdiArea>
+#include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMouseEvent>
@@ -2001,6 +2002,152 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         sendMouseClick(target, point, Qt::LeftButton);
     };
 
+    // A responsive ribbon panel may expose an action through its visible More
+    // menu while the original item button is hidden. Exercise only a surface a
+    // user can actually click: either that direct button or the visible
+    // overflow button followed by the exact native QAction's menu geometry.
+    auto invokeRibbonActionWithMouse = [&sendClick, this](
+                                               QToolButton* sourceButton,
+                                               QAction* expectedAction) {
+        const bool sourceButtonVisible = sourceButton != nullptr
+                                         && sourceButton->isVisibleTo(this);
+        const bool sourceButtonEnabled = sourceButton != nullptr
+                                         && sourceButton->isEnabled();
+        const bool sourceButtonIdentity = sourceButton != nullptr
+                                          && sourceButton->defaultAction()
+                                                 == expectedAction;
+        QFrame* panel = sourceButton == nullptr
+                            ? nullptr
+                            : qobject_cast<QFrame*>(sourceButton->parentWidget());
+        const bool panelCollapsed = panel != nullptr
+                                    && panel->property("kuubikCollapsed").toBool();
+        QToolButton* overflowButton = panel == nullptr
+                                          ? nullptr
+                                          : panel->findChild<QToolButton*>(
+                                                QStringLiteral(
+                                                  "kuubikRibbonPanelOverflow"),
+                                                Qt::FindDirectChildrenOnly);
+        const bool overflowButtonVisible = overflowButton != nullptr
+                                           && overflowButton->isVisibleTo(this);
+        const bool overflowButtonEnabled = overflowButton != nullptr
+                                           && overflowButton->isEnabled();
+        QMenu* overflowMenu = overflowButton == nullptr
+                                  ? nullptr
+                                  : overflowButton->menu();
+        const bool overflowActionIdentity = overflowMenu != nullptr
+                                            && expectedAction != nullptr
+                                            && overflowMenu->actions().contains(
+                                                 expectedAction);
+
+        bool actionTriggeredByMouse = false;
+        bool overflowMenuInteractionRan = false;
+        bool overflowMenuVisibleAfterOpen = false;
+        bool overflowActionGeometryValid = false;
+        bool overflowActionAtPoint = false;
+        bool overflowMenuClosedAfterSelection = false;
+        QString invocationSurface = QStringLiteral("unavailable");
+        const QMetaObject::Connection triggerConnection = connect(
+            expectedAction, &QAction::triggered, this,
+            [&actionTriggeredByMouse](bool) {
+                actionTriggeredByMouse = true;
+            });
+
+        if (sourceButtonVisible && sourceButtonEnabled && sourceButtonIdentity) {
+            invocationSurface = QStringLiteral("directButton");
+            sendClick(sourceButton, sourceButton->rect().center());
+        } else if (!sourceButtonVisible && panelCollapsed
+                   && overflowButtonVisible && overflowButtonEnabled
+                   && overflowActionIdentity) {
+            invocationSurface = QStringLiteral("collapsedPanelOverflow");
+            // InstantPopup may run a nested menu event loop. Queue the menu-row
+            // click first so the same helper works whether Qt opens the menu
+            // synchronously or returns from the tool-button press immediately.
+            QTimer menuClickTimer;
+            menuClickTimer.setSingleShot(true);
+            connect(&menuClickTimer, &QTimer::timeout, &menuClickTimer,
+                    [&sendClick, overflowMenu, expectedAction,
+                     &overflowMenuInteractionRan,
+                     &overflowMenuVisibleAfterOpen,
+                     &overflowActionGeometryValid, &overflowActionAtPoint,
+                     &overflowMenuClosedAfterSelection] {
+                overflowMenuInteractionRan = true;
+                overflowMenuVisibleAfterOpen = overflowMenu->isVisible();
+                const QRect actionGeometry = overflowMenu->actionGeometry(
+                    expectedAction);
+                overflowActionGeometryValid = actionGeometry.isValid()
+                                              && !actionGeometry.isEmpty();
+                const QPoint actionPoint = actionGeometry.center();
+                overflowActionAtPoint = overflowActionGeometryValid
+                                        && overflowMenu->actionAt(actionPoint)
+                                               == expectedAction;
+                if (overflowMenuVisibleAfterOpen && overflowActionAtPoint
+                    && expectedAction->isEnabled()) {
+                    sendClick(overflowMenu, actionPoint);
+                    overflowMenuClosedAfterSelection =
+                        !overflowMenu->isVisible();
+                }
+            });
+            menuClickTimer.start(0);
+            sendClick(overflowButton, overflowButton->rect().center());
+            menuClickTimer.stop();
+            overflowMenuClosedAfterSelection =
+                overflowMenuClosedAfterSelection || !overflowMenu->isVisible();
+        }
+        disconnect(triggerConnection);
+
+        const bool directPassed = invocationSurface
+                                      == QStringLiteral("directButton")
+                                  && sourceButtonVisible && sourceButtonEnabled
+                                  && sourceButtonIdentity;
+        const bool overflowPassed = invocationSurface
+                                        == QStringLiteral(
+                                          "collapsedPanelOverflow")
+                                    && !sourceButtonVisible && panelCollapsed
+                                    && overflowButtonVisible
+                                    && overflowButtonEnabled
+                                    && overflowActionIdentity
+                                    && overflowMenuInteractionRan
+                                    && overflowMenuVisibleAfterOpen
+                                    && overflowActionGeometryValid
+                                    && overflowActionAtPoint
+                                    && overflowMenuClosedAfterSelection;
+
+        QJsonObject result;
+        result.insert(QStringLiteral("invocationSurface"), invocationSurface);
+        result.insert(QStringLiteral("sourceButtonVisible"),
+                      sourceButtonVisible);
+        result.insert(QStringLiteral("sourceButtonEnabled"),
+                      sourceButtonEnabled);
+        result.insert(QStringLiteral("sourceButtonIdentity"),
+                      sourceButtonIdentity);
+        result.insert(QStringLiteral("panelCollapsed"), panelCollapsed);
+        result.insert(QStringLiteral("overflowButtonPresent"),
+                      overflowButton != nullptr);
+        result.insert(QStringLiteral("overflowButtonVisible"),
+                      overflowButtonVisible);
+        result.insert(QStringLiteral("overflowButtonEnabled"),
+                      overflowButtonEnabled);
+        result.insert(QStringLiteral("overflowMenuPresent"),
+                      overflowMenu != nullptr);
+        result.insert(QStringLiteral("overflowActionIdentity"),
+                      overflowActionIdentity);
+        result.insert(QStringLiteral("overflowMenuInteractionRan"),
+                      overflowMenuInteractionRan);
+        result.insert(QStringLiteral("overflowMenuVisibleAfterOpen"),
+                      overflowMenuVisibleAfterOpen);
+        result.insert(QStringLiteral("overflowActionGeometryValid"),
+                      overflowActionGeometryValid);
+        result.insert(QStringLiteral("overflowActionAtPoint"),
+                      overflowActionAtPoint);
+        result.insert(QStringLiteral("overflowMenuClosedAfterSelection"),
+                      overflowMenuClosedAfterSelection);
+        result.insert(QStringLiteral("actionTriggeredByMouse"),
+                      actionTriggeredByMouse);
+        result.insert(QStringLiteral("passed"),
+                      actionTriggeredByMouse && (directPassed || overflowPassed));
+        return result;
+    };
+
     auto propertiesStateObject = [](const QVariantMap& state, bool nativeCallback) {
         QJsonObject summary;
         for (const QString& key : {QStringLiteral("document"),
@@ -2076,13 +2223,15 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         for (RS_Entity* entity : graphic->getEntityList()) {
             entitiesBeforeSet.insert(entity);
         }
-        const QPoint ribbonPoint = button->rect().center();
         const QPoint firstPoint(view->width() / 3, view->height() / 3);
         const QPoint previewPoint(view->width() / 2, view->height() / 2);
         const QPoint secondPoint((view->width() * 2) / 3,
                                  (view->height() * 2) / 3);
 
-        sendClick(button, ribbonPoint);
+        const QJsonObject lineRibbonInvocation = invokeRibbonActionWithMouse(
+            button, a_map.value("DrawLine", nullptr));
+        const bool lineRibbonMouseEvent = lineRibbonInvocation.value(
+            QStringLiteral("passed")).toBool();
         const bool actionActiveAfterRibbon = mdi->getEventHandler() != nullptr
                                              && mdi->getEventHandler()->hasAction();
         sendClick(view, firstPoint);
@@ -2133,14 +2282,11 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const QPoint polylineThirdPoint((view->width() * 3) / 4,
                                         (view->height() * 2) / 5);
 
-        bool polylineActionTriggeredByMouse = false;
-        const QMetaObject::Connection polylineConnection = connect(
-            a_map.value("DrawPolyline", nullptr), &QAction::triggered, this,
-            [&polylineActionTriggeredByMouse](bool) {
-                polylineActionTriggeredByMouse = true;
-            });
-        sendClick(polylineButton, polylineButton->rect().center());
-        disconnect(polylineConnection);
+        const QJsonObject polylineRibbonInvocation = invokeRibbonActionWithMouse(
+            polylineButton, a_map.value("DrawPolyline", nullptr));
+        const bool polylineActionTriggeredByMouse =
+            polylineRibbonInvocation.value(
+              QStringLiteral("actionTriggeredByMouse")).toBool();
         RS_ActionInterface* polylineAction = mdi->getEventHandler() == nullptr
                                                  ? nullptr
                                                  : mdi->getEventHandler()
@@ -2243,8 +2389,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                                    "kuubikActionKey").toString()
                                                    == QStringLiteral("DrawPolyline");
         const bool polylinePassed = polylineRibbonIdentity
-                                    && polylineButton->isVisible()
-                                    && polylineActionTriggeredByMouse
+                                    && polylineRibbonInvocation.value(
+                                         QStringLiteral("passed")).toBool()
                                     && polylineActionActive
                                     && createdPolyline != nullptr
                                     && !createdPolyline->isClosed()
@@ -2271,15 +2417,11 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                     && polylineAfterUndoSaved
                                     && polylineAfterRedoSaved;
 
-        QJsonObject polylineRibbonObject;
+        QJsonObject polylineRibbonObject = polylineRibbonInvocation;
         polylineRibbonObject.insert(QStringLiteral("actionKey"),
                                     QStringLiteral("DrawPolyline"));
         polylineRibbonObject.insert(QStringLiteral("nativeIdentity"),
                                     polylineRibbonIdentity);
-        polylineRibbonObject.insert(QStringLiteral("visible"),
-                                    polylineButton->isVisible());
-        polylineRibbonObject.insert(QStringLiteral("actionTriggeredByMouse"),
-                                    polylineActionTriggeredByMouse);
         polylineRibbonObject.insert(QStringLiteral("activeActionType"),
                                     polylineActiveActionType);
         polylineRibbonObject.insert(QStringLiteral("nativeActionActive"),
@@ -2379,7 +2521,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         }
         const QPoint propertyFirstPoint(view->width() / 4, (view->height() * 2) / 3);
         const QPoint propertySecondPoint(view->width() / 2, (view->height() * 3) / 4);
-        sendClick(button, ribbonPoint);
+        const QJsonObject propertiesLineRibbonInvocation =
+            invokeRibbonActionWithMouse(button, a_map.value("DrawLine", nullptr));
         sendClick(view, propertyFirstPoint);
         sendClick(view, propertySecondPoint);
         slotKillAllActions();
@@ -2452,6 +2595,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                           fullPropertiesActionActive);
         report.insert(QStringLiteral("fullPropertiesAction"),
                       fullPropertiesActionObject);
+        report.insert(QStringLiteral("propertiesLineRibbonInvocation"),
+                      propertiesLineRibbonInvocation);
 
         QJsonObject layerSelectorObject;
         layerSelectorObject.insert(QStringLiteral("present"), true);
@@ -2524,6 +2669,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                     && selectedLayer == createdLineLayer;
         const bool propertiesPassed = firstCreatedLine != nullptr
                                       && secondCreatedLine != nullptr
+                                      && propertiesLineRibbonInvocation.value(
+                                           QStringLiteral("passed")).toBool()
                                       && graphic->getEntityList().size()
                                              == entitiesBeforePropertyLine + 1
                                       && lineCount(graphic) == linesBeforePropertyLine + 1
@@ -2543,7 +2690,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                       && multipleState.value("selectionCount").toInt() == 2
                                       && multipleState.value("mode").toString() == "multiple"
                                       && multipleCallback;
-        const bool passed = actionActiveAfterRibbon
+        const bool passed = lineRibbonMouseEvent && actionActiveAfterRibbon
                             && entitiesAfterFirst == entitiesBefore
                             && entitiesAfterSecond == entitiesBefore + 1
                             && linesAfterSecond == linesBefore + 1
@@ -2552,7 +2699,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                             && documentLifecyclePassed && polylinePassed;
 
         report.insert(QStringLiteral("ribbonActionKey"), QStringLiteral("DrawLine"));
-        report.insert(QStringLiteral("ribbonMouseEvent"), true);
+        report.insert(QStringLiteral("ribbonMouseEvent"), lineRibbonMouseEvent);
+        report.insert(QStringLiteral("ribbonInvocation"), lineRibbonInvocation);
         report.insert(QStringLiteral("actionActiveAfterRibbon"), actionActiveAfterRibbon);
         report.insert(QStringLiteral("entitiesBefore"), entitiesBefore);
         report.insert(QStringLiteral("entitiesAfterFirstClick"), entitiesAfterFirst);

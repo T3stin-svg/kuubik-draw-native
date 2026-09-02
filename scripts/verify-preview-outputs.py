@@ -17,6 +17,38 @@ def require(condition: bool, message: object) -> None:
         raise RuntimeError(message)
 
 
+def require_ribbon_mouse_invocation(invocation: dict, context: str) -> None:
+    for key in (
+        "passed",
+        "actionTriggeredByMouse",
+        "sourceButtonEnabled",
+        "sourceButtonIdentity",
+    ):
+        require(invocation[key] is True, (context, key, invocation))
+    surface = invocation["invocationSurface"]
+    if surface == "directButton":
+        require(invocation["sourceButtonVisible"] is True, (context, invocation))
+        require(invocation["panelCollapsed"] is False, (context, invocation))
+    elif surface == "collapsedPanelOverflow":
+        require(invocation["sourceButtonVisible"] is False, (context, invocation))
+        for key in (
+            "panelCollapsed",
+            "overflowButtonPresent",
+            "overflowButtonVisible",
+            "overflowButtonEnabled",
+            "overflowMenuPresent",
+            "overflowActionIdentity",
+            "overflowMenuInteractionRan",
+            "overflowMenuVisibleAfterOpen",
+            "overflowActionGeometryValid",
+            "overflowActionAtPoint",
+            "overflowMenuClosedAfterSelection",
+        ):
+            require(invocation[key] is True, (context, key, invocation))
+    else:
+        raise RuntimeError((context, "unexpected invocation surface", surface))
+
+
 def main() -> None:
     smoke = Path(sys.argv[1])
     dxf_path = smoke / "preview-smoke.dxf"
@@ -102,6 +134,13 @@ def main() -> None:
         gui_report = json.load(report_file)
     require(gui_report["schemaVersion"] == 3, gui_report.get("schemaVersion"))
     require(gui_report["sourceDxfLoaded"] is True, gui_report.get("sourceDxfLoaded"))
+    require_ribbon_mouse_invocation(
+        gui_report["ribbonInvocation"], "ribbonInvocation"
+    )
+    require_ribbon_mouse_invocation(
+        gui_report["propertiesLineRibbonInvocation"],
+        "propertiesLineRibbonInvocation",
+    )
     layer_selector = gui_report["layerSelector"]
     require(layer_selector["present"] is True, layer_selector)
     require(layer_selector["enabled"] is True, layer_selector)
@@ -233,6 +272,9 @@ def main() -> None:
     )
     polyline_undo_redo = gui_report["polylineUndoRedo"]
     require(polyline_undo_redo["passed"] is True, polyline_undo_redo)
+    require_ribbon_mouse_invocation(
+        polyline_undo_redo["ribbon"], "polylineUndoRedo.ribbon"
+    )
     require(
         polyline_undo_redo["ribbon"]["actionTriggeredByMouse"] is True,
         polyline_undo_redo["ribbon"],
