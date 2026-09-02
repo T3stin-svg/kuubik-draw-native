@@ -214,12 +214,13 @@ if (-not (Require-JsonBoolean $propertiesDock 'present' 'uiContract.kuubikProper
     throw 'Kuubik Properties dock is absent or not on the right.'
 }
 $propertiesTabGroup = @(Require-JsonProperty $propertiesDock 'tabGroupObjectNames' 'uiContract.kuubikPropertiesDock')
+$activePropertiesTab = Require-JsonString $propertiesDock 'activeTabObjectName' 'uiContract.kuubikPropertiesDock'
 if ($propertiesTabGroup.Count -lt 3 -or
     'kuubikPropertiesDock' -notin $propertiesTabGroup -or
     'layer_dockwidget' -notin $propertiesTabGroup -or
     'block_dockwidget' -notin $propertiesTabGroup -or
-    (Require-JsonString $propertiesDock 'activeTabObjectName' 'uiContract.kuubikPropertiesDock') -ne 'kuubikPropertiesDock') {
-    throw 'Properties, Layers, and Blocks must share a right-side tab group with Properties selected by default.'
+    $activePropertiesTab -ne 'kuubikPropertiesDock') {
+    throw "Properties, Layers, and Blocks must share a right-side tab group with Properties selected by default. Active='$activePropertiesTab'; group='$($propertiesTabGroup -join ',')'."
 }
 
 $ribbonPanels = @(Require-JsonProperty $uiContract 'ribbonPanels' 'uiContract')

@@ -1509,12 +1509,37 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         for (QDockWidget* dock : tabified) tabGroupNames.append(dock->objectName());
         tabGroupNames.removeDuplicates();
         tabGroupNames.sort();
+
+        const auto normalizedTabTitle = [](QString title) {
+            title.remove(QLatin1Char('&'));
+            return title.simplified();
+        };
+        QHash<QString, QDockWidget*> docksByTitle;
         for (const QString& objectName : tabGroupNames) {
-            QDockWidget* dock = findChild<QDockWidget*>(objectName);
-            if (dock != nullptr && dock->isVisible() && dock->widget() != nullptr
-                && dock->widget()->isVisible()) {
-                activeTabObjectName = objectName;
+            if (QDockWidget* dock = findChild<QDockWidget*>(objectName)) {
+                docksByTitle.insert(normalizedTabTitle(dock->windowTitle()), dock);
             }
+        }
+        const auto dockTabBars = findChildren<QTabBar*>();
+        for (QTabBar* tabBar : dockTabBars) {
+            QSet<QString> matchingTitles;
+            for (int index = 0; index < tabBar->count(); ++index) {
+                const QString title = normalizedTabTitle(tabBar->tabText(index));
+                if (docksByTitle.contains(title)) {
+                    matchingTitles.insert(title);
+                }
+            }
+            if (matchingTitles.size() != docksByTitle.size()
+                || tabBar->currentIndex() < 0) {
+                continue;
+            }
+
+            const QString activeTitle = normalizedTabTitle(
+                tabBar->tabText(tabBar->currentIndex()));
+            if (QDockWidget* activeDock = docksByTitle.value(activeTitle, nullptr)) {
+                activeTabObjectName = activeDock->objectName();
+            }
+            break;
         }
     }
     propertiesDockObject.insert("tabGroupObjectNames",
