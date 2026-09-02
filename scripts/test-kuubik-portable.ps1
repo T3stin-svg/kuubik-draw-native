@@ -376,8 +376,7 @@ if (-not (Require-JsonBoolean $optionsToolbar 'present' 'toolOptionsReport.optio
     -not (Require-JsonBoolean $optionsToolbar 'nativeToolbarInRibbon' 'toolOptionsReport.optionsToolbar') -or
     -not (Require-JsonBoolean $optionsToolbar 'directChildOfHost' 'toolOptionsReport.optionsToolbar') -or
     -not (Require-JsonBoolean $optionsToolbar 'containedByHost' 'toolOptionsReport.optionsToolbar') -or
-    -not (Require-JsonBoolean $optionsToolbar 'containedThroughWindowAncestors' 'toolOptionsReport.optionsToolbar') -or
-    -not (Require-JsonBoolean $optionsToolbar 'positiveSize' 'toolOptionsReport.optionsToolbar')) {
+    -not (Require-JsonBoolean $optionsToolbar 'containedThroughWindowAncestors' 'toolOptionsReport.optionsToolbar')) {
     throw 'The native options_toolbar is not visible and geometrically contained in the Kuubik ribbon host.'
 }
 
@@ -398,12 +397,25 @@ foreach ($expectedState in @(
         -not (Require-JsonBoolean $state[0] 'actionEnabled' $stateContext) -or
         -not (Require-JsonBoolean $state[0] 'ribbonIdentity' $stateContext) -or
         -not (Require-JsonBoolean $state[0] 'nativeActionActive' $stateContext) -or
+        -not (Require-JsonBoolean $state[0] 'optionsToolbarPositiveSize' $stateContext) -or
+        -not (Require-JsonBoolean $state[0] 'optionsHostPositiveSize' $stateContext) -or
+        -not (Require-JsonBoolean $state[0] 'optionsToolbarContainedByHost' $stateContext) -or
+        -not (Require-JsonBoolean $state[0] 'optionsToolbarContainedThroughWindowAncestors' $stateContext) -or
+        -not (Require-JsonBoolean $state[0] 'settledWidgetCounts' $stateContext) -or
         -not (Require-JsonBoolean $state[0] 'screenshotSaved' $stateContext) -or
         (Require-JsonNumber $state[0] 'screenshotPixelWidth' $stateContext) -ne 1280 -or
         (Require-JsonNumber $state[0] 'screenshotPixelHeight' $stateContext) -ne 600 -or
         [Math]::Abs((Require-JsonNumber $state[0] 'screenshotDevicePixelRatio' $stateContext) - 1.0) -gt 0.06 -or
         -not (Require-JsonBoolean $state[0] 'passed' $stateContext)) {
         throw "Tool Options native action or screenshot failed: $($expectedState.ActionKey)"
+    }
+    $visibleWidgetCounts = Require-JsonProperty $state[0] 'visibleNativeWidgetCounts' $stateContext
+    $expectedLineCount = if ($expectedState.ActionKey -eq 'DrawLine') { 1 } else { 0 }
+    $expectedDimensionCount = if ($expectedState.ActionKey -eq 'DimLinear') { 1 } else { 0 }
+    if ((Require-JsonNumber $visibleWidgetCounts 'line' "$stateContext.visibleNativeWidgetCounts") -ne $expectedLineCount -or
+        (Require-JsonNumber $visibleWidgetCounts 'dimension' "$stateContext.visibleNativeWidgetCounts") -ne $expectedDimensionCount -or
+        (Require-JsonNumber $visibleWidgetCounts 'dimLinear' "$stateContext.visibleNativeWidgetCounts") -ne $expectedDimensionCount) {
+        throw "Tool Options retained a stale or duplicate native widget: $($expectedState.ActionKey)"
     }
     $stateWidgets = @(Require-JsonProperty $state[0] 'widgets' $stateContext)
     if ($stateWidgets.Count -ne $expectedState.Widgets.Count) {

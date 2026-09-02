@@ -1707,7 +1707,7 @@ bool QC_ApplicationWindow::runKuubikToolOptionsSmoke(
                          containedBy(optionWidget, toolbarHost));
     toolbarObject.insert(QStringLiteral("containedThroughWindowAncestors"),
                          containedThroughAncestors(optionWidget, this));
-    toolbarObject.insert(QStringLiteral("positiveSize"),
+    toolbarObject.insert(QStringLiteral("idlePositiveSize"),
                          optionWidget != nullptr && optionWidget->width() > 0
                              && optionWidget->height() > 0 && toolbarHost != nullptr
                              && toolbarHost->width() > 0 && toolbarHost->height() > 0);
@@ -1724,15 +1724,15 @@ bool QC_ApplicationWindow::runKuubikToolOptionsSmoke(
                      && kuubikRibbon->isAncestorOf(optionWidget)
                      && optionWidget->parentWidget() == toolbarHost
                      && containedBy(optionWidget, toolbarHost)
-                     && containedThroughAncestors(optionWidget, this)
-                     && optionWidget->width() > 0 && optionWidget->height() > 0
-                     && toolbarHost->width() > 0 && toolbarHost->height() > 0;
+                     && containedThroughAncestors(optionWidget, this);
 
     const auto captureState = [&](const QString& actionKey,
                                   RS2::ActionType expectedActionType,
                                   const QStringList& expectedWidgetNames,
                                   const QString& screenshotName) {
         slotKillAllActions();
+        QApplication::processEvents();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         QApplication::processEvents();
 
         QAction* action = a_map.value(actionKey, nullptr);
@@ -1741,6 +1741,12 @@ bool QC_ApplicationWindow::runKuubikToolOptionsSmoke(
                                         : kuubikRibbon->buttonForAction(actionKey);
         if (action != nullptr && action->isEnabled()) {
             action->trigger();
+            QApplication::processEvents();
+            // QAction setup can replace an option widget more than once. A
+            // real user click returns to the event loop, where deleteLater()
+            // removes the replaced QWidgetAction content. Flush that queue
+            // before measuring so the smoke observes the settled UI state.
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
             QApplication::processEvents();
         }
 
@@ -1755,6 +1761,40 @@ bool QC_ApplicationWindow::runKuubikToolOptionsSmoke(
                                     && ribbonButton->defaultAction() == action
                                     && ribbonButton->property("kuubikActionKey").toString()
                                            == actionKey;
+        const bool toolbarPositiveSize = optionWidget != nullptr
+                                         && optionWidget->width() > 0
+                                         && optionWidget->height() > 0;
+        const bool hostPositiveSize = toolbarHost != nullptr
+                                      && toolbarHost->width() > 0
+                                      && toolbarHost->height() > 0;
+        const bool toolbarInsideHost = containedBy(optionWidget, toolbarHost);
+        const bool toolbarInsideAllAncestors = containedThroughAncestors(
+            optionWidget, this);
+
+        int visibleLineOptions = 0;
+        int visibleDimensionOptions = 0;
+        int visibleDimLinearOptions = 0;
+        if (optionWidget != nullptr) {
+            for (QG_LineOptions* widget
+                 : optionWidget->findChildren<QG_LineOptions*>()) {
+                if (widget->isVisible()) ++visibleLineOptions;
+            }
+            for (QG_DimOptions* widget
+                 : optionWidget->findChildren<QG_DimOptions*>()) {
+                if (widget->isVisible()) ++visibleDimensionOptions;
+            }
+            for (QG_DimLinearOptions* widget
+                 : optionWidget->findChildren<QG_DimLinearOptions*>()) {
+                if (widget->isVisible()) ++visibleDimLinearOptions;
+            }
+        }
+        const bool settledWidgetCounts = actionKey == QStringLiteral("DrawLine")
+                                             ? visibleLineOptions == 1
+                                                   && visibleDimensionOptions == 0
+                                                   && visibleDimLinearOptions == 0
+                                             : visibleLineOptions == 0
+                                                   && visibleDimensionOptions == 1
+                                                   && visibleDimLinearOptions == 1;
 
         QJsonArray widgetObjects;
         bool widgetsPassed = true;
@@ -1805,7 +1845,9 @@ bool QC_ApplicationWindow::runKuubikToolOptionsSmoke(
                                          && screenshot.height() == 600;
         const bool statePassed = action != nullptr && action->isEnabled()
                                  && ribbonIdentity && actionActive
-                                 && widgetsPassed && screenshotSaved
+                                 && toolbarPositiveSize && hostPositiveSize
+                                 && toolbarInsideHost && toolbarInsideAllAncestors
+                                 && settledWidgetCounts && widgetsPassed && screenshotSaved
                                  && screenshotSizeValid;
 
         QJsonObject state;
@@ -1820,6 +1862,26 @@ bool QC_ApplicationWindow::runKuubikToolOptionsSmoke(
                      activeAction == nullptr ? static_cast<int>(RS2::ActionNone)
                                              : static_cast<int>(activeAction->rtti()));
         state.insert(QStringLiteral("nativeActionActive"), actionActive);
+        state.insert(QStringLiteral("optionsToolbarGeometry"),
+                     geometryObject(optionWidget));
+        state.insert(QStringLiteral("optionsHostGeometry"),
+                     geometryObject(toolbarHost));
+        state.insert(QStringLiteral("optionsToolbarPositiveSize"),
+                     toolbarPositiveSize);
+        state.insert(QStringLiteral("optionsHostPositiveSize"), hostPositiveSize);
+        state.insert(QStringLiteral("optionsToolbarContainedByHost"),
+                     toolbarInsideHost);
+        state.insert(QStringLiteral("optionsToolbarContainedThroughWindowAncestors"),
+                     toolbarInsideAllAncestors);
+        QJsonObject visibleWidgetCounts;
+        visibleWidgetCounts.insert(QStringLiteral("line"), visibleLineOptions);
+        visibleWidgetCounts.insert(QStringLiteral("dimension"),
+                                   visibleDimensionOptions);
+        visibleWidgetCounts.insert(QStringLiteral("dimLinear"),
+                                   visibleDimLinearOptions);
+        state.insert(QStringLiteral("visibleNativeWidgetCounts"),
+                     visibleWidgetCounts);
+        state.insert(QStringLiteral("settledWidgetCounts"), settledWidgetCounts);
         state.insert(QStringLiteral("widgets"), widgetObjects);
         state.insert(QStringLiteral("screenshot"), screenshotName);
         state.insert(QStringLiteral("screenshotSaved"), screenshotSaved);

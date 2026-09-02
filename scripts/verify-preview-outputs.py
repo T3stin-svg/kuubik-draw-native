@@ -163,7 +163,7 @@ def main() -> None:
     for flag in (
         "present", "visible", "hostPresent", "hostVisible",
         "nativeToolbarInRibbon", "directChildOfHost", "containedByHost",
-        "containedThroughWindowAncestors", "positiveSize",
+        "containedThroughWindowAncestors",
     ):
         require(toolbar[flag] is True, (flag, toolbar))
 
@@ -180,11 +180,24 @@ def main() -> None:
         state = states[action_key]
         for flag in (
             "actionPresent", "actionEnabled", "ribbonIdentity",
-            "nativeActionActive", "screenshotSaved", "passed",
+            "nativeActionActive", "optionsToolbarPositiveSize",
+            "optionsHostPositiveSize", "optionsToolbarContainedByHost",
+            "optionsToolbarContainedThroughWindowAncestors",
+            "settledWidgetCounts", "screenshotSaved", "passed",
         ):
             require(state[flag] is True, (action_key, flag, state))
         require(state["activeActionType"] == state["expectedActionType"], state)
         require(abs(float(state["screenshotDevicePixelRatio"]) - 1.0) <= 0.06, state)
+        expected_counts = {
+            "line": 1 if action_key == "DrawLine" else 0,
+            "dimension": 1 if action_key == "DimLinear" else 0,
+            "dimLinear": 1 if action_key == "DimLinear" else 0,
+        }
+        require(state["visibleNativeWidgetCounts"] == expected_counts, state)
+        require(state["optionsToolbarGeometry"]["width"] > 0, state)
+        require(state["optionsToolbarGeometry"]["height"] > 0, state)
+        require(state["optionsHostGeometry"]["width"] > 0, state)
+        require(state["optionsHostGeometry"]["height"] > 0, state)
         widgets = {widget["objectName"]: widget for widget in state["widgets"]}
         require(set(widgets) == set(expected_widgets), widgets)
         for widget_name in expected_widgets:
