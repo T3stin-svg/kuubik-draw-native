@@ -17,6 +17,12 @@ architecture therefore prioritizes:
 - a right-side Properties, Layers and Blocks workflow;
 - a full-width command line and compact drafting status controls;
 - reliable DXF open/edit/save/reopen and vector PDF export.
+- AutoCAD-familiar LINE/PLINE continuation: each click commits the next
+  segment and `Enter` finishes the active command without deleting committed
+  geometry.
+- cursor-adjacent live length and angle feedback for LINE/PLINE, with direct
+  numeric entry and `Tab` switching between the two values;
+- `Esc` always returns the canvas to a state with no active command.
 
 This goal is not a claim of certified AutoCAD parity. Familiarity applies to
 layout, density, terminology and workflow, not to Autodesk assets or
@@ -143,9 +149,9 @@ Windows Settings OS display scaling was changed.
 The goal remains active. Before completion it still requires:
 
 - real Windows Settings 100%/125%/150% visual checks on controlled hardware;
-- Reio's accept/deny decision for the current responsive Home layout: Draw and
-  Modify are shown through `More` in the automated 1200/1280 qwindows captures,
-  and Draw also used its working `More` route in the 1920 offscreen workflow;
+- Windows verification of Reio's 2026-09-03 layout decision: Home Draw must
+  retain direct `Line`, `Polyline`, `Circle` and `Arc` commands instead of
+  collapsing to a generic `More` tile at 1200/1280 logical widths;
 - Reio's accept/deny decision on a separate qwindows LINE visual-capture gate;
 - Reio's accept/deny decision on keeping the now-validated native Tool Options
   toolbar inline versus moving it to a separate row;

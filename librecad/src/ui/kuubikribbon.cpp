@@ -65,8 +65,10 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
 
     auto* applicationButton = new QToolButton(quickBar);
     applicationButton->setObjectName("kuubikApplicationButton");
-    applicationButton->setText(tr("Application"));
-    applicationButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    applicationButton->setText(tr("Kuubik"));
+    applicationButton->setIcon(QIcon(QStringLiteral(":/main/kuubikdraw.png")));
+    applicationButton->setIconSize(QSize(18, 18));
+    applicationButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     applicationButton->setPopupMode(QToolButton::InstantPopup);
     applicationMenu = new QMenu(applicationButton);
     for (const QString& key : {QStringLiteral("FileNew"), QStringLiteral("FileOpen"),
@@ -112,8 +114,12 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
 
     const QList<TabSpec> specs {
         {tr("Home"), {
-            {tr("Draw"), {{"DrawLine", ItemSize::Large}, {"DrawPolyline", ItemSize::Large}, {"DrawLineRectangle", ItemSize::Small}, {"DrawCircle", ItemSize::Medium}, {"DrawArc", ItemSize::Small}, {"DrawHatch", ItemSize::Small}}, 1},
-            {tr("Modify"), {{"ModifyMove", ItemSize::Large}, {"ModifyDuplicate", ItemSize::Large}, {"ModifyTrim", ItemSize::Large}, {"ModifyTrim2", ItemSize::Small}, {"ModifyCut", ItemSize::Small}, {"ModifyOffset", ItemSize::Medium}, {"ModifyRotate", ItemSize::Medium}, {"ModifyMirror", ItemSize::Small}, {"ModifyScale", ItemSize::Small}, {"ModifyRound", ItemSize::Small}, {"ModifyDeleteQuick", ItemSize::Small}}, 2},
+            // Keep the four everyday geometry commands visible, matching the
+            // command hierarchy familiar from AutoCAD's Home ribbon.  The
+            // panel is deliberately non-collapsible; secondary panels yield
+            // first when the window is narrow.
+            {tr("Draw"), {{"DrawLine", ItemSize::Large}, {"DrawPolyline", ItemSize::Large}, {"DrawCircle", ItemSize::Large}, {"DrawArc", ItemSize::Large}, {"DrawLineRectangle", ItemSize::Small}, {"DrawHatch", ItemSize::Small}}, -1},
+            {tr("Modify"), {{"ModifyMove", ItemSize::Large}, {"ModifyDuplicate", ItemSize::Large}, {"ModifyTrim", ItemSize::Large}, {"ModifyTrim2", ItemSize::Small}, {"ModifyCut", ItemSize::Small}, {"ModifyOffset", ItemSize::Medium}, {"ModifyRotate", ItemSize::Medium}, {"ModifyMirror", ItemSize::Small}, {"ModifyScale", ItemSize::Small}, {"ModifyRound", ItemSize::Small}, {"ModifyDeleteQuick", ItemSize::Small}}, 1},
             {tr("Annotation"), {{"DrawText", ItemSize::Medium}, {"DrawMText", ItemSize::Medium}, {"DimLinear", ItemSize::Small}, {"DimAligned", ItemSize::Small}, {"DimLinearHor", ItemSize::Small}, {"DimLinearVer", ItemSize::Small}, {"DimRadial", ItemSize::Small}, {"DimDiametric", ItemSize::Small}, {"DimAngular", ItemSize::Small}, {"DimLeader", ItemSize::Small}}, 200},
             {tr("Layers"), {{"LayersAdd", ItemSize::Medium}, {"LayersEdit", ItemSize::Medium}, {"LayersToggleView", ItemSize::Small}, {"LayersToggleLock", ItemSize::Small}}, 600},
             {tr("Block"), {{"BlocksInsert", ItemSize::Large}, {"BlocksCreate", ItemSize::Medium}, {"BlocksEdit", ItemSize::Small}, {"BlocksExplode", ItemSize::Small}, {"BlocksImport", ItemSize::Small}}, 300},
@@ -173,8 +179,36 @@ QToolButton* KuubikRibbon::createActionButton(const QString& key, QWidget* paren
     button->setProperty("kuubikActionKey", key);
     button->setProperty("kuubikItemSize", static_cast<int>(size));
     button->setDefaultAction(action);
+    // QAction labels describe some LibreCAD construction variants (for
+    // example "2 Points") rather than the familiar top-level CAD command.
+    // Keep the QAction identity, but use concise ribbon-facing command names.
+    const QMap<QString, QString> ribbonLabels {
+        {QStringLiteral("DrawLine"), tr("Line")},
+        {QStringLiteral("DrawPolyline"), tr("Polyline")},
+        {QStringLiteral("DrawCircle"), tr("Circle")},
+        {QStringLiteral("DrawArc"), tr("Arc")},
+        {QStringLiteral("DrawLineRectangle"), tr("Rectangle")},
+        {QStringLiteral("DrawHatch"), tr("Hatch")},
+        {QStringLiteral("ModifyMove"), tr("Move")},
+        {QStringLiteral("ModifyDuplicate"), tr("Copy")},
+        {QStringLiteral("ModifyTrim"), tr("Trim")},
+        {QStringLiteral("ModifyOffset"), tr("Offset")},
+        {QStringLiteral("ModifyRotate"), tr("Rotate")}
+    };
+    const QString ribbonText = ribbonLabels.value(key, action->text().remove('&'));
+    button->setText(ribbonText);
     const QIcon icon = KuubikIconRegistry::iconForAction(key);
     if (!icon.isNull()) button->setIcon(icon);
+    // QToolButton::setDefaultAction() deliberately mirrors later QAction
+    // text/icon changes. LibreCAD changes some action presentation while a
+    // construction mode is active (for example LINE becomes "2 Points").
+    // Preserve those native state/enabled/trigger connections, but keep the
+    // Kuubik ribbon's command identity visually stable.
+    connect(action, &QAction::changed, button,
+            [button, ribbonText, icon] {
+                button->setText(ribbonText);
+                if (!icon.isNull()) button->setIcon(icon);
+            }, Qt::QueuedConnection);
     button->setAutoRaise(false);
     if (iconOnly) {
         button->setIconSize(QSize(16, 16));
@@ -225,8 +259,14 @@ QFrame* KuubikRibbon::createActionGroup(const PanelSpec& spec, QWidget* parent, 
     layout->addLayout(grid, 1);
     auto* overflowButton = new QToolButton(frame);
     overflowButton->setObjectName("kuubikRibbonPanelOverflow");
-    overflowButton->setText(tr("More"));
-    overflowButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    if (!spec.items.isEmpty()) {
+        overflowButton->setIcon(KuubikIconRegistry::iconForAction(
+            spec.items.constFirst().actionKey));
+    }
+    overflowButton->setIconSize(QSize(30, 30));
+    overflowButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    overflowButton->setAccessibleName(tr("Show %1 tools").arg(spec.title));
+    overflowButton->setToolTip(tr("Show %1 tools").arg(spec.title));
     overflowButton->setPopupMode(QToolButton::InstantPopup);
     auto* menu = new QMenu(overflowButton);
     for (const ItemSpec& item : spec.items) {

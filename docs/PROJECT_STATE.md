@@ -1,6 +1,6 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-02**
+Status date: **2026-09-03**
 
 ## Product
 
@@ -94,6 +94,33 @@ The development checkpoint additionally provides:
   source click and quick-access Undo/Redo, with three independently read-back
   DXF states.
 
+The current uncommitted owner-review wave additionally keeps the Home `Draw`
+panel expanded at narrow widths and presents `Line`, `Polyline`, `Circle` and
+`Arc` as four direct large commands, with `Rectangle` and `Hatch` beside them.
+Collapsed secondary panels use their first Kuubik command icon instead of a
+generic `More` tile. This layout has compiled and rendered locally with Qt 5 at
+1280x600. The same wave makes `Enter` finish native LINE and PLINE from either
+the canvas or an empty command-line submission while retaining committed
+segments and PLINE's atomic native Undo/Redo behavior. It is not yet a Windows
+development checkpoint. Ribbon command text and Kuubik icons are also pinned
+to their stable command identity while LibreCAD changes the underlying native
+action's active construction mode. LINE and PLINE now share a cursor-adjacent
+length/angle dynamic input with numeric entry and `Tab` switching; canvas
+`Esc` globally clears the active command stack. While either drawing action is
+active, the global command-line key filter routes numeric keys, Backspace and
+Tab to this dynamic input instead of stealing canvas focus.
+
+Kuubik workspace now uses one compact AutoCAD-familiar bottom status row. The
+legacy LibreCAD snap toolbar and diagnostic selection/layer/grid labels are
+hidden in Kuubik mode, while Classic mode restores them. The visible Kuubik row
+contains MODEL, GRID, ORTHO and the OSNAP popup.
+
+The status bar now groups the seven supported native snap modes into one
+`OSNAP` popup and uses distinct temporary symbols for endpoint, midpoint,
+center, intersection and nearest snaps. Higher-order AutoCAD snaps and
+acquisition tracking remain explicitly unimplemented rather than appearing as
+non-functional menu entries.
+
 ## Verified behaviors
 
 - portable startup from a path containing spaces;
@@ -153,13 +180,21 @@ For development commit `d17e8b23b`, run `33665520217` additionally verified:
 - The automated 125% and 150% screenshots use qwindows with
   `QT_SCALE_FACTOR`; real Windows Settings display-scale checks at 100%, 125%,
   and 150% remain pending on controlled Windows hardware.
-- In the automated 1200/1280 qwindows captures the Home Draw and Modify panels
-  are available through their `More` overflow menus, not as always-visible
-  direct buttons. The 1920 offscreen native workflow also selected Draw through
-  that visible menu. The route is now mouse-tested and functional, but Reio
-  must accept this responsive priority or request a separate layout revision.
+- The last verified Windows checkpoint still shows Home Draw and Modify through
+  responsive overflow at 1200/1280 logical widths. Reio has since rejected the
+  generic `More`-first presentation and requested an AutoCAD-familiar direct
+  Draw layout. The replacement is locally rendered but still needs the Windows
+  workflow and real display-scale checks.
 - Full owner testing of Modify, layers, annotation, blocks and complex file
   workflows is still required on Reio's real workflow.
+- The local Kuubik workspace now has the full compact drafting row and an
+  expanded native OSNAP menu. Linux build/smoke is green; dedicated numeric
+  fixtures for every newly added snap mode and Windows qwindows verification
+  remain pending.
+- The drafting row is icon-first rather than text-first. GRID, SNAP, ORTHO,
+  POLAR, OSNAP, OTRACK, dynamic input, lineweight, selection cycling and clean
+  screen use original Kuubik technical-line SVG symbols; extended OSNAP menu
+  entries also have matching symbols.
 - No `.kdraw` import from the web experiment exists; use DXF exchange.
 
 ## Build authority

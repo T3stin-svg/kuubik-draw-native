@@ -64,7 +64,17 @@ struct RS_SnapMode {
         RestrictHorizontal  = 1 << 8,
         RestrictVertical    = 1 << 9,
         RestrictOrthogonal  = RestrictHorizontal | RestrictVertical,
-        SnapAngle           = 1 << 10
+        SnapAngle           = 1 << 10,
+        SnapQuadrant        = 1 << 11,
+        SnapNode            = 1 << 12,
+        SnapInsertion       = 1 << 13,
+        SnapPerpendicular   = 1 << 14,
+        SnapTangent         = 1 << 15,
+        SnapGeometricCenter = 1 << 16,
+        SnapApparentIntersection = 1 << 17,
+        SnapExtension       = 1 << 18,
+        SnapParallel        = 1 << 19,
+        SnapTracking        = 1 << 20
     };
 
     bool snapIntersection   {false}; //< Whether to snap to intersections or not.
@@ -76,6 +86,16 @@ struct RS_SnapMode {
     bool snapGrid           {false}; //< Whether to snap to grid or not.
     bool snapFree           {false}; //< Whether to snap freely
     bool snapAngle          {false}; //< Whether to snap along line under certain angle
+    bool snapQuadrant       {false};
+    bool snapNode           {false};
+    bool snapInsertion      {false};
+    bool snapPerpendicular  {false};
+    bool snapTangent        {false};
+    bool snapGeometricCenter {false};
+    bool snapApparentIntersection {false};
+    bool snapExtension      {false};
+    bool snapParallel       {false};
+    bool snapTracking       {false};
 
     RS2::SnapRestriction restriction {RS2::RestrictNothing}; /// The restriction on the free snap.
 
@@ -163,6 +183,15 @@ public:
     RS_Vector snapMiddle(const RS_Vector& coord);
     RS_Vector snapDist(const RS_Vector& coord);
     RS_Vector snapIntersection(const RS_Vector& coord);
+    RS_Vector snapQuadrant(const RS_Vector& coord);
+    RS_Vector snapNode(const RS_Vector& coord);
+    RS_Vector snapInsertion(const RS_Vector& coord);
+    RS_Vector snapPerpendicular(const RS_Vector& coord);
+    RS_Vector snapTangent(const RS_Vector& coord);
+    RS_Vector snapGeometricCenter(const RS_Vector& coord);
+    RS_Vector snapApparentIntersection(const RS_Vector& coord);
+    RS_Vector snapExtension(const RS_Vector& coord);
+    RS_Vector snapParallel(const RS_Vector& coord);
     //RS_Vector snapDirect(RS_Vector coord, bool abs);
     RS_Vector snapToAngle(const RS_Vector &coord, const RS_Vector &ref_coord, const double ang_res = 15.);
     RS_Vector snapToRelativeAngle(double baseAngle, const RS_Vector &currentCoord, const RS_Vector &referenceCoord, const double angularResolution  = 15.);

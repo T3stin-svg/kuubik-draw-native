@@ -29,6 +29,7 @@
 #include <vector>
 
 #include <QAction>
+#include <QKeyEvent>
 #include <QMouseEvent>
 
 #include "rs_actiondrawline.h"
@@ -41,6 +42,8 @@
 #include "rs_coordinateevent.h"
 #include "rs_preview.h"
 #include "rs_debug.h"
+#include "kuubikdynamicinput.h"
+#include "qg_graphicview.h"
 
 struct RS_ActionDrawLine::History
 {
@@ -98,7 +101,8 @@ size_t RS_ActionDrawLine::Points::index(const int offset /*= 0*/)
 RS_ActionDrawLine::RS_ActionDrawLine(RS_EntityContainer& container,
                                      RS_GraphicView& graphicView) :
     RS_PreviewActionInterface( "Draw lines", container, graphicView),
-    pPoints( new Points{})
+    pPoints( new Points{}),
+    dynamicInput(new KuubikDynamicInput(dynamic_cast<QWidget*>(&graphicView)))
 {
     RS_DEBUG->print("RS_ActionDrawLine::RS_ActionDrawLine");
     actionType=RS2::ActionDrawLine;
@@ -147,6 +151,8 @@ void RS_ActionDrawLine::mouseMoveEvent(QMouseEvent* e)
 {
     RS_Vector mouse = snapPoint(e);
     if (getStatus() == SetEndpoint && pPoints->data.startpoint.valid) {
+        dynamicInput->update(pPoints->data.startpoint, mouse,
+                             e->pos().x(), e->pos().y());
         // Snapping to angle(15*) if shift key is pressed
         if (e->modifiers() & Qt::ShiftModifier) {
             mouse = snapToAngle(mouse, pPoints->data.startpoint);
@@ -190,6 +196,40 @@ void RS_ActionDrawLine::mouseReleaseEvent(QMouseEvent* e)
     }
 }
 
+void RS_ActionDrawLine::keyPressEvent(QKeyEvent* e)
+{
+    if (e != nullptr && e->key() == Qt::Key_Escape) {
+        dynamicInput->hide();
+        finish(true);
+        RS_DIALOGFACTORY->updateMouseWidget();
+        e->accept();
+        return;
+    }
+    if (dynamicInput->handleKey(e)) return;
+    if (e != nullptr
+        && (e->key() == Qt::Key_Enter || e->key() == Qt::Key_Return)) {
+        if (getStatus() == SetEndpoint && dynamicInput->hasTypedValue()) {
+            RS_CoordinateEvent coordinate(dynamicInput->endpoint());
+            coordinateEvent(&coordinate);
+            dynamicInput->resetValues();
+        } else {
+            finishFromEnter();
+        }
+        e->accept();
+        return;
+    }
+    RS_PreviewActionInterface::keyPressEvent(e);
+}
+
+void RS_ActionDrawLine::finishFromEnter()
+{
+    // Every completed segment already owns its native undo cycle.  Enter only
+    // discards the pending preview and returns to the default command state.
+    dynamicInput->hide();
+    finish(true);
+    RS_DIALOGFACTORY->updateMouseWidget();
+}
+
 void RS_ActionDrawLine::coordinateEvent(RS_CoordinateEvent* e)
 {
     RS_DEBUG->print("RS_ActionDrawLine::coordinateEvent");
@@ -209,6 +249,7 @@ void RS_ActionDrawLine::coordinateEvent(RS_CoordinateEvent* e)
     switch (getStatus()) {
     case SetStartpoint:
         pPoints->data.startpoint = mouse;
+        dynamicInput->resetValues();
         pPoints->startOffset = 0;
         addHistory( HA_SetStartpoint, graphicView->getRelativeZero(), mouse, pPoints->startOffset);
         setStatus(SetEndpoint);
@@ -224,6 +265,7 @@ void RS_ActionDrawLine::coordinateEvent(RS_CoordinateEvent* e)
             addHistory( HA_SetEndpoint, pPoints->data.startpoint, mouse, pPoints->startOffset);
             trigger();
             pPoints->data.startpoint = pPoints->data.endpoint;
+            dynamicInput->resetValues();
             if (pPoints->history.size() >= 2) {
                 updateMouseButtonHints();
             }
@@ -241,7 +283,13 @@ void RS_ActionDrawLine::commandEvent(RS_CommandEvent* e)
 {
     RS_DEBUG->print("RS_ActionDrawLine::commandEvent");
 
-    QString c = e->getCommand().toLower();
+    QString c = e->getCommand().toLower().trimmed();
+
+    if (c.isEmpty()) {
+        finishFromEnter();
+        e->accept();
+        return;
+    }
 
     switch (getStatus()) {
     case SetStartpoint:

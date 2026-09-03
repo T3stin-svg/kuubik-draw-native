@@ -27,6 +27,7 @@
 #include <cmath>
 
 #include <QAction>
+#include <QKeyEvent>
 #include <QMouseEvent>
 
 #include <muParser.h>
@@ -44,6 +45,8 @@
 #include "rs_math.h"
 #include "rs_polyline.h"
 #include "rs_preview.h"
+#include "kuubikdynamicinput.h"
+#include "qg_graphicview.h"
 
 #ifdef EMU_C99
 #include "emu_c99.h"
@@ -87,6 +90,7 @@ RS_ActionDrawPolyline::RS_ActionDrawPolyline(RS_EntityContainer& container,
                                      RS_GraphicView& graphicView)
         :RS_PreviewActionInterface("Draw polylines",
 						   container, graphicView)
+        , dynamicInput(new KuubikDynamicInput(dynamic_cast<QWidget*>(&graphicView)))
         , pPoints(std::make_unique<Points>())
 {
 	actionType=RS2::ActionDrawPolyline;
@@ -156,6 +160,7 @@ void RS_ActionDrawPolyline::mouseMoveEvent(QMouseEvent* e)
     double bulge=solveBulge(mouse);
 
 	if (getStatus()==SetNextPoint && pPoints->point.valid) {
+        dynamicInput->update(pPoints->point, mouse, e->pos().x(), e->pos().y());
         deletePreview();
         // clearPreview();
 
@@ -212,6 +217,41 @@ void RS_ActionDrawPolyline::mouseReleaseEvent(QMouseEvent* e)
         deleteSnapper();
         init(getStatus()-1);
     }
+}
+
+void RS_ActionDrawPolyline::keyPressEvent(QKeyEvent* e)
+{
+    if (e != nullptr && e->key() == Qt::Key_Escape) {
+        finishFromEnter();
+        e->accept();
+        return;
+    }
+    if (dynamicInput->handleKey(e)) return;
+    if (e != nullptr
+        && (e->key() == Qt::Key_Enter || e->key() == Qt::Key_Return)) {
+        if (getStatus() == SetNextPoint && dynamicInput->hasTypedValue()) {
+            RS_CoordinateEvent coordinate(dynamicInput->endpoint());
+            coordinateEvent(&coordinate);
+            dynamicInput->resetValues();
+        } else {
+            finishFromEnter();
+        }
+        e->accept();
+        return;
+    }
+    RS_PreviewActionInterface::keyPressEvent(e);
+}
+
+void RS_ActionDrawPolyline::finishFromEnter()
+{
+    // The live polyline enters the document on its first segment.  Trigger it
+    // once before finishing so all of its vertices form one native undo cycle.
+    dynamicInput->hide();
+    if (pPoints->polyline != nullptr) {
+        trigger();
+    }
+    finish(true);
+    RS_DIALOGFACTORY->updateMouseWidget();
 }
 
 
@@ -325,6 +365,7 @@ void RS_ActionDrawPolyline::coordinateEvent(RS_CoordinateEvent* e) {
         //	data.startpoint = mouse;
         //printf ("SetStartpoint\n");
         pPoints->point = mouse;
+        dynamicInput->resetValues();
         pPoints->history.clear();
         pPoints->history.append(mouse);
         pPoints->bHistory.clear();
@@ -347,6 +388,7 @@ void RS_ActionDrawPolyline::coordinateEvent(RS_CoordinateEvent* e) {
     case SetNextPoint:
     if (!endPointSettingOn) {
         pPoints->point = mouse;
+        dynamicInput->resetValues();
         pPoints->history.append(mouse);
         pPoints->bHistory.append(bulge);
         if (!pPoints->polyline) {
@@ -419,6 +461,12 @@ bool RS_ActionDrawPolyline::isReversed() const{
 void RS_ActionDrawPolyline::commandEvent(RS_CommandEvent* e)
 {
     QString c = e->getCommand().toLower().replace(" ", "");
+
+    if (c.isEmpty()) {
+        finishFromEnter();
+        e->accept();
+        return;
+    }
 
     switch (getStatus())
     {

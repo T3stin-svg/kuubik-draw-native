@@ -194,3 +194,64 @@ the qwindows screenshots, where text is rendered, remain the visual-layout
 gate. The goal also still requires real Windows Settings 100%/125%/150% checks
 on controlled hardware and remaining native Modify/Annotation/Blocks workflow
 evidence.
+
+## Local direct-Draw layout check — 2026-09-03
+
+The owner rejected the generic `More`-first Home ribbon shown by the preceding
+Windows checkpoint. A local Arch Linux Qt 5 release build now keeps Home Draw
+expanded at 1280x600 and renders direct `Line`, `Polyline`, `Circle` and `Arc`
+buttons, plus `Rectangle` and `Hatch`. Secondary collapsed panels render a
+representative Kuubik icon instead of `More`. The build completed successfully
+and the offscreen UI contract/screenshot writer completed successfully.
+
+This is local visual evidence only. The Windows MSVC/Qt 5.15 portable workflow,
+qwindows DPI captures and native QAction-to-canvas smoke have not yet been run
+for this uncommitted layout wave.
+
+## Local LINE/PLINE Enter workflow check — 2026-09-03
+
+The Arch Linux Qt 5 release build completed successfully after adding native
+`Enter` completion to LINE and PLINE. The full offscreen GUI smoke exited 0 and
+reported `PASS`. It physically invoked both ribbon actions, drew through canvas
+clicks and sent `Qt::Key_Return` to the canvas.
+
+The report recorded `accepted: true` and `finishedAction: true` for both LINE
+and PLINE. LINE retained its committed segment. PLINE retained two segments as
+one open entity, and its existing Undo/Redo roundtrip passed. The packaged
+Windows qwindows run remains required before this local result is described as
+Windows-verified.
+
+The same GUI smoke now also captures each LINE/PLINE ribbon button before
+activation and verifies that its visible text and Kuubik icon remain unchanged
+after the native action starts. Both presentation-stability checks passed.
+
+The extended smoke additionally found a visible cursor-adjacent dynamic input
+containing both `L` and `A`, and verified that a canvas Escape event was
+accepted and left no active action. The full smoke remained `PASS`, including
+LINE/PLINE creation and PLINE atomic Undo/Redo.
+
+After an owner screenshot showed numeric input landing in the bottom command
+edit, the command-widget filter was corrected so active LINE/PLINE dynamic
+input owns numeric keys, Backspace and Tab. The rebuilt full GUI smoke remained
+`PASS`.
+
+The bottom-status refinement hides the legacy snap toolbar and diagnostic
+status widgets in Kuubik mode and restores them in Classic mode. The full local
+GUI smoke remained `PASS` after the MODEL/GRID/ORTHO/OSNAP single-row change.
+
+The OSNAP status/menu and type-specific overlay marker wave compiled in the
+same Qt 5 release build. The full offscreen GUI smoke remained `PASS`; a native
+Windows qwindows snap-interaction matrix is still required.
+
+The expanded drafting-status/OSNAP wave on 2026-09-03 compiled with Qt 5 and
+the full offscreen native GUI smoke reported `PASS`. Its report retained
+`dynamicInputVisible: true`, `escapeCancelsAll: true`, successful LINE/PLINE
+Enter completion, Undo/Redo, document lifecycle and DXF saves. The new snap
+candidate matrix still requires dedicated geometry fixtures and the Windows
+MSVC/qwindows workflow before release certification.
+
+The status-symbol refinement on 2026-09-03 added original Kuubik SVG symbols
+for the ten drafting controls and the extended OSNAP menu. The Qt 5 build and
+full offscreen GUI smoke both passed after the resource and layout change;
+`git diff --check` also passed. A live Wayland capture confirmed the compact
+single-row rendering at a narrow half-screen window width.

@@ -162,6 +162,7 @@ void QG_SnapToolBar::saveSnapMode()
 void QG_SnapToolBar::setSnaps ( RS_SnapMode const& s )
 {
 	if(getSnaps()==s) return;
+    snapMode = s;
     snapFree->setChecked(s.snapFree);
     snapGrid->setChecked(s.snapGrid);
     snapEnd->setChecked(s.snapEndpoint);
@@ -178,7 +179,7 @@ void QG_SnapToolBar::setSnaps ( RS_SnapMode const& s )
 
 RS_SnapMode QG_SnapToolBar::getSnaps ( void ) const
 {
-    RS_SnapMode s;
+    RS_SnapMode s = snapMode;
 
     s.snapFree         = snapFree->isChecked();
     s.snapGrid         = snapGrid->isChecked();
@@ -252,4 +253,3 @@ void QG_SnapToolBar::actionTriggered()
 {
     actionHandler->slotSetSnaps(getSnaps());
 }
-

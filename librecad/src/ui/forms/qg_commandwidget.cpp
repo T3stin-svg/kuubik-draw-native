@@ -40,6 +40,7 @@
 #include "rs_commandevent.h"
 #include "rs_commands.h"
 #include "rs_debug.h"
+#include "rs_actioninterface.h"
 #include "rs_settings.h"
 #include "rs_system.h"
 #include "rs_utility.h"
@@ -124,6 +125,30 @@ bool QG_CommandWidget::eventFilter(QObject */*obj*/, QEvent *event)
 {
     if (event != nullptr && event->type() == QEvent::KeyPress) {
         QKeyEvent* e=static_cast<QKeyEvent*>(event);
+
+        // LINE/PLINE dynamic input owns numeric typing while the canvas has
+        // focus. Do not redirect those keys to the bottom command edit.
+        RS_ActionInterface* currentAction = actionHandler == nullptr
+                                                ? nullptr
+                                                : actionHandler->getCurrentAction();
+        const bool dynamicDrawAction = currentAction != nullptr
+                                       && (currentAction->rtti()
+                                               == RS2::ActionDrawLine
+                                           || currentAction->rtti()
+                                                  == RS2::ActionDrawPolyline);
+        const QString typed = e->text();
+        const bool dynamicInputKey = e->key() == Qt::Key_Tab
+                                     || e->key() == Qt::Key_Backtab
+                                     || e->key() == Qt::Key_Backspace
+                                     || (typed.size() == 1
+                                         && (typed.at(0).isDigit()
+                                             || typed == QStringLiteral(".")
+                                             || typed == QStringLiteral(",")
+                                             || typed == QStringLiteral("-")));
+        if (dynamicDrawAction && dynamicInputKey) {
+            currentAction->keyPressEvent(e);
+            if (e->isAccepted()) return true;
+        }
 
         int key {e->key()};
         switch(key) {

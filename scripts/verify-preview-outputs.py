@@ -144,10 +144,15 @@ def main() -> None:
     require_ribbon_mouse_invocation(
         gui_report["ribbonInvocation"], "ribbonInvocation"
     )
+    require(gui_report["lineRibbonPresentationStable"] is True, gui_report)
+    require(gui_report["dynamicInputVisible"] is True, gui_report)
+    require(gui_report["escapeCancelsAll"] is True, gui_report)
     require_ribbon_mouse_invocation(
         gui_report["propertiesLineRibbonInvocation"],
         "propertiesLineRibbonInvocation",
     )
+    require(gui_report["lineEnter"]["accepted"] is True, gui_report["lineEnter"])
+    require(gui_report["lineEnter"]["finishedAction"] is True, gui_report["lineEnter"])
     layer_selector = gui_report["layerSelector"]
     require(layer_selector["present"] is True, layer_selector)
     require(layer_selector["enabled"] is True, layer_selector)
@@ -279,11 +284,17 @@ def main() -> None:
     )
     polyline_undo_redo = gui_report["polylineUndoRedo"]
     require(polyline_undo_redo["passed"] is True, polyline_undo_redo)
+    require(polyline_undo_redo["enter"]["accepted"] is True, polyline_undo_redo["enter"])
+    require(polyline_undo_redo["enter"]["finishedAction"] is True, polyline_undo_redo["enter"])
     require_ribbon_mouse_invocation(
         polyline_undo_redo["ribbon"], "polylineUndoRedo.ribbon"
     )
     require(
         polyline_undo_redo["ribbon"]["actionTriggeredByMouse"] is True,
+        polyline_undo_redo["ribbon"],
+    )
+    require(
+        polyline_undo_redo["ribbon"]["presentationStable"] is True,
         polyline_undo_redo["ribbon"],
     )
     require(

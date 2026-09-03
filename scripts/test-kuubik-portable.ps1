@@ -496,11 +496,11 @@ Require-Path $guiDxfPath
 $guiSmoke = Get-Content -LiteralPath $guiSmokeReportPath -Raw | ConvertFrom-Json
 foreach ($key in @(
     'schemaVersion', 'status', 'prerequisites', 'ribbonActionKey', 'ribbonMouseEvent',
-    'actionActiveAfterRibbon', 'windowWidth', 'windowHeight', 'entitiesBefore',
-    'entitiesAfterFirstClick', 'entitiesAfterSecondClick', 'linesBefore',
+    'actionActiveAfterRibbon', 'lineRibbonPresentationStable', 'windowWidth', 'windowHeight', 'entitiesBefore',
+    'entitiesAfterFirstClick', 'dynamicInputVisible', 'escapeCancelsAll', 'entitiesAfterSecondClick', 'linesBefore',
     'linesAfterSecondClick', 'dxfSaved', 'sourceDxfLoaded', 'documentLifecycle',
     'fullPropertiesAction', 'ribbonInvocation', 'propertiesLineRibbonInvocation',
-    'polylineUndoRedo', 'copyUndoRedo', 'moveUndoRedo'
+    'lineEnter', 'polylineUndoRedo', 'copyUndoRedo', 'moveUndoRedo'
 )) {
     [void](Require-JsonProperty $guiSmoke $key 'guiSmoke')
 }
@@ -510,10 +510,13 @@ if ($guiSmoke.schemaVersion -ne 5 -or
     $guiSmoke.ribbonActionKey -ne 'DrawLine' -or
     -not $guiSmoke.ribbonMouseEvent -or
     -not $guiSmoke.actionActiveAfterRibbon -or
+    -not $guiSmoke.lineRibbonPresentationStable -or
     -not $guiSmoke.sourceDxfLoaded -or
     $guiSmoke.windowWidth -ne 1920 -or
     $guiSmoke.windowHeight -ne 1080 -or
     $guiSmoke.entitiesAfterFirstClick -ne $guiSmoke.entitiesBefore -or
+    -not $guiSmoke.dynamicInputVisible -or
+    -not $guiSmoke.escapeCancelsAll -or
     $guiSmoke.entitiesAfterSecondClick -ne ($guiSmoke.entitiesBefore + 1) -or
     $guiSmoke.linesAfterSecondClick -ne ($guiSmoke.linesBefore + 1) -or
     -not $guiSmoke.dxfSaved) {
@@ -521,6 +524,11 @@ if ($guiSmoke.schemaVersion -ne 5 -or
 }
 Assert-RibbonMouseInvocation (Require-JsonProperty $guiSmoke 'ribbonInvocation' 'guiSmoke') 'guiSmoke.ribbonInvocation'
 Assert-RibbonMouseInvocation (Require-JsonProperty $guiSmoke 'propertiesLineRibbonInvocation' 'guiSmoke') 'guiSmoke.propertiesLineRibbonInvocation'
+$lineEnter = Require-JsonProperty $guiSmoke 'lineEnter' 'guiSmoke'
+if (-not (Require-JsonBoolean $lineEnter 'accepted' 'guiSmoke.lineEnter') -or
+    -not (Require-JsonBoolean $lineEnter 'finishedAction' 'guiSmoke.lineEnter')) {
+    throw 'Enter did not finish the native LINE action.'
+}
 $guiLayerSelector = Require-JsonProperty $guiSmoke 'layerSelector' 'guiSmoke'
 if (-not (Require-JsonBoolean $guiLayerSelector 'present' 'guiSmoke.layerSelector') -or
     -not (Require-JsonBoolean $guiLayerSelector 'enabled' 'guiSmoke.layerSelector')) {
@@ -576,10 +584,16 @@ $polylineUndoRedo = Require-JsonProperty $guiSmoke 'polylineUndoRedo' 'guiSmoke'
 if (-not (Require-JsonBoolean $polylineUndoRedo 'passed' 'guiSmoke.polylineUndoRedo')) {
     throw 'Native PLINE and quick-access Undo/Redo workflow failed.'
 }
+$polylineEnter = Require-JsonProperty $polylineUndoRedo 'enter' 'guiSmoke.polylineUndoRedo'
+if (-not (Require-JsonBoolean $polylineEnter 'accepted' 'guiSmoke.polylineUndoRedo.enter') -or
+    -not (Require-JsonBoolean $polylineEnter 'finishedAction' 'guiSmoke.polylineUndoRedo.enter')) {
+    throw 'Enter did not finish the native PLINE action.'
+}
 $polylineRibbon = Require-JsonProperty $polylineUndoRedo 'ribbon' 'guiSmoke.polylineUndoRedo'
 if ((Require-JsonString $polylineRibbon 'actionKey' 'guiSmoke.polylineUndoRedo.ribbon') -ne 'DrawPolyline' -or
     -not (Require-JsonBoolean $polylineRibbon 'nativeIdentity' 'guiSmoke.polylineUndoRedo.ribbon') -or
-    -not (Require-JsonBoolean $polylineRibbon 'nativeActionActive' 'guiSmoke.polylineUndoRedo.ribbon')) {
+    -not (Require-JsonBoolean $polylineRibbon 'nativeActionActive' 'guiSmoke.polylineUndoRedo.ribbon') -or
+    -not (Require-JsonBoolean $polylineRibbon 'presentationStable' 'guiSmoke.polylineUndoRedo.ribbon')) {
     throw 'Ribbon PLINE did not activate the native DrawPolyline action through a mouse event.'
 }
 Assert-RibbonMouseInvocation $polylineRibbon 'guiSmoke.polylineUndoRedo.ribbon'

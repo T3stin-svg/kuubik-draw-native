@@ -819,6 +819,7 @@ HEADERS += ui/lc_actionfactory.h \
     ui/kuubikcurrentlayerselector.h \
     ui/kuubikpropertiespalette.h \
     ui/kuubikribbon.h \
+    ui/kuubikdynamicinput.h \
     ui/kuubikiconregistry.h \
     ui/kuubiktheme.h \
     ui/twostackedlabels.h \
@@ -928,6 +929,7 @@ SOURCES += ui/lc_actionfactory.cpp \
     ui/kuubikcurrentlayerselector.cpp \
     ui/kuubikpropertiespalette.cpp \
     ui/kuubikribbon.cpp \
+    ui/kuubikdynamicinput.cpp \
     ui/kuubikiconregistry.cpp \
     ui/kuubiktheme.cpp \
     ui/twostackedlabels.cpp \

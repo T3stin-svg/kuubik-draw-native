@@ -63,6 +63,7 @@
 #include <QRegExp>
 #include <QSaveFile>
 #include <QSet>
+#include <QSignalBlocker>
 #include <QShortcut>
 #include <QSizePolicy>
 #include <QSplitter>
@@ -87,6 +88,7 @@
 #include "twostackedlabels.h"
 #include "widgetcreator.h"
 #include "kuubikcurrentlayerselector.h"
+#include "kuubikiconregistry.h"
 #include "kuubikpropertiespalette.h"
 #include "kuubikribbon.h"
 #include "kuubiktheme.h"
@@ -1103,13 +1105,13 @@ void QC_ApplicationWindow::createKuubikWorkspaceMenu()
 
 void QC_ApplicationWindow::createKuubikStatusControls()
 {
+    auto* modelLabel = new QLabel(QStringLiteral("MODEL"), statusBar());
+    modelLabel->setObjectName(QStringLiteral("kuubikModelStatus"));
+    modelLabel->setAlignment(Qt::AlignCenter);
+    statusBar()->addWidget(modelLabel);
+
     const QList<QPair<QString, QString>> statusActions {
-        {"ViewGrid", "GRID"},
-        {"RestrictOrthogonal", "ORTHO"},
-        {"SnapEnd", "END"},
-        {"SnapMiddle", "MID"},
-        {"SnapCenter", "CEN"},
-        {"SnapIntersection", "INT"}
+        {"ViewGrid", "GRID"}
     };
 
     for (const auto& item : statusActions) {
@@ -1122,10 +1124,198 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         button->setProperty("kuubikActionKey", item.first);
         button->setDefaultAction(action);
         button->setText(item.second);
-        button->setToolButtonStyle(Qt::ToolButtonTextOnly);
+        button->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-grid.svg")));
+        button->setIconSize(QSize(20, 20));
+        button->setToolButtonStyle(Qt::ToolButtonIconOnly);
         button->setAutoRaise(false);
         button->setAccessibleName(action->text().remove('&'));
-        statusBar()->addPermanentWidget(button);
+        statusBar()->addWidget(button);
+    }
+
+    const auto addSnapToggle = [this](const QString& text, const QString& iconPath,
+                                      bool RS_SnapMode::*flag,
+                                      const QString& tooltip) {
+        auto* button = new QToolButton(statusBar());
+        button->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        button->setText(text);
+        button->setIcon(QIcon(iconPath));
+        button->setIconSize(QSize(20, 20));
+        button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        button->setCheckable(true);
+        button->setChecked(actionHandler != nullptr && actionHandler->getSnaps().*flag);
+        button->setToolTip(tooltip);
+        button->setAccessibleName(tooltip);
+        connect(button, &QToolButton::toggled, this, [this, flag](bool checked) {
+            if (actionHandler == nullptr) return;
+            RS_SnapMode mode = actionHandler->getSnaps();
+            mode.*flag = checked;
+            actionHandler->slotSetSnaps(mode);
+        });
+        statusBar()->addWidget(button);
+        return button;
+    };
+    addSnapToggle(QStringLiteral("SNAP"), QStringLiteral(":/icons/kuubik/view/status-snap.svg"), &RS_SnapMode::snapGrid,
+                  tr("Snap mode"));
+    if (QAction* orthoAction = a_map.value(QStringLiteral("RestrictOrthogonal"), nullptr)) {
+        auto* orthoButton = new QToolButton(statusBar());
+        orthoButton->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        orthoButton->setDefaultAction(orthoAction);
+        orthoButton->setText(QStringLiteral("ORTHO"));
+        orthoButton->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-ortho.svg")));
+        orthoButton->setIconSize(QSize(20, 20));
+        orthoButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        orthoButton->setAutoRaise(false);
+        statusBar()->addWidget(orthoButton);
+    }
+    addSnapToggle(QStringLiteral("POLAR"), QStringLiteral(":/icons/kuubik/view/status-polar.svg"), &RS_SnapMode::snapAngle,
+                  tr("Polar tracking"));
+
+    auto* osnapButton = new QToolButton(statusBar());
+    osnapButton->setObjectName(QStringLiteral("kuubikOsnapButton"));
+    osnapButton->setProperty("kuubikActionKey", QStringLiteral("ObjectSnapMenu"));
+    osnapButton->setText(QStringLiteral("OSNAP"));
+    osnapButton->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-osnap.svg")));
+    osnapButton->setIconSize(QSize(20, 20));
+    osnapButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    osnapButton->setPopupMode(QToolButton::MenuButtonPopup);
+    osnapButton->setAutoRaise(false);
+    osnapButton->setAccessibleName(tr("Object Snap modes"));
+    osnapButton->setToolTip(tr("Object Snap modes"));
+
+    auto* osnapMenu = new QMenu(osnapButton);
+    osnapMenu->setObjectName(QStringLiteral("kuubikOsnapMenu"));
+    const auto addNativeSnap = [this, osnapMenu](const QString& key, const QString& label) {
+        if (QAction* nativeAction = a_map.value(key, nullptr)) {
+            QIcon icon = KuubikIconRegistry::iconForAction(key);
+            if (icon.isNull()) icon = nativeAction->icon();
+            auto* menuAction = osnapMenu->addAction(icon, label);
+            menuAction->setCheckable(true);
+            menuAction->setChecked(nativeAction->isChecked());
+            connect(menuAction, &QAction::triggered, nativeAction,
+                    [nativeAction] { nativeAction->trigger(); });
+            connect(nativeAction, &QAction::changed, menuAction,
+                    [nativeAction, menuAction] {
+                        const QSignalBlocker blocker(menuAction);
+                        menuAction->setChecked(nativeAction->isChecked());
+                        menuAction->setEnabled(nativeAction->isEnabled());
+                    });
+        }
+    };
+    const auto addExtendedSnap = [this, osnapMenu](const QString& label, const QString& icon,
+                                                   bool RS_SnapMode::*flag) {
+        auto* menuAction = osnapMenu->addAction(QIcon(icon), label);
+        menuAction->setCheckable(true);
+        menuAction->setChecked(actionHandler != nullptr
+                               && actionHandler->getSnaps().*flag);
+        connect(menuAction, &QAction::toggled, this,
+                [this, flag](bool checked) {
+                    if (actionHandler == nullptr) return;
+                    RS_SnapMode mode = actionHandler->getSnaps();
+                    mode.*flag = checked;
+                    actionHandler->slotSetSnaps(mode);
+                });
+    };
+    addNativeSnap(QStringLiteral("SnapEnd"), tr("Endpoint"));
+    addNativeSnap(QStringLiteral("SnapMiddle"), tr("Midpoint"));
+    addNativeSnap(QStringLiteral("SnapCenter"), tr("Center"));
+    addExtendedSnap(tr("Geometric Center"), QStringLiteral(":/icons/kuubik/view/snap-geometric-center.svg"), &RS_SnapMode::snapGeometricCenter);
+    addExtendedSnap(tr("Node"), QStringLiteral(":/icons/kuubik/view/snap-node.svg"), &RS_SnapMode::snapNode);
+    addExtendedSnap(tr("Quadrant"), QStringLiteral(":/icons/kuubik/view/snap-quadrant.svg"), &RS_SnapMode::snapQuadrant);
+    addNativeSnap(QStringLiteral("SnapIntersection"), tr("Intersection"));
+    addExtendedSnap(tr("Extension"), QStringLiteral(":/icons/kuubik/view/snap-extension.svg"), &RS_SnapMode::snapExtension);
+    addExtendedSnap(tr("Insertion"), QStringLiteral(":/icons/kuubik/view/snap-insertion.svg"), &RS_SnapMode::snapInsertion);
+    addExtendedSnap(tr("Perpendicular"), QStringLiteral(":/icons/kuubik/view/snap-perpendicular.svg"), &RS_SnapMode::snapPerpendicular);
+    addExtendedSnap(tr("Tangent"), QStringLiteral(":/icons/kuubik/view/snap-tangent.svg"), &RS_SnapMode::snapTangent);
+    addNativeSnap(QStringLiteral("SnapEntity"), tr("Nearest"));
+    addExtendedSnap(tr("Apparent Intersection"), QStringLiteral(":/icons/kuubik/view/snap-apparent.svg"), &RS_SnapMode::snapApparentIntersection);
+    addExtendedSnap(tr("Parallel"), QStringLiteral(":/icons/kuubik/view/snap-parallel.svg"), &RS_SnapMode::snapParallel);
+    osnapMenu->addSeparator();
+    if (QAction* settings = a_map.value(QStringLiteral("OptionsGeneral"),
+                                        nullptr)) {
+        auto* settingsAction = osnapMenu->addAction(
+            tr("Object Snap Settings..."));
+        connect(settingsAction, &QAction::triggered, settings,
+                [settings] { settings->trigger(); });
+    }
+    osnapButton->setMenu(osnapMenu);
+    connect(osnapButton, &QToolButton::clicked, this, [this, osnapButton] {
+        if (actionHandler == nullptr) return;
+        RS_SnapMode mode = actionHandler->getSnaps();
+        const bool enabled = mode.snapEndpoint || mode.snapMiddle || mode.snapCenter
+            || mode.snapIntersection || mode.snapOnEntity || mode.snapDistance
+            || mode.snapQuadrant || mode.snapNode || mode.snapInsertion
+            || mode.snapPerpendicular || mode.snapTangent
+            || mode.snapGeometricCenter || mode.snapApparentIntersection
+            || mode.snapExtension || mode.snapParallel;
+        if (enabled) {
+            osnapButton->setProperty("kuubikSavedOsnap", RS_SnapMode::toInt(mode));
+            mode.snapEndpoint = mode.snapMiddle = mode.snapCenter = false;
+            mode.snapIntersection = mode.snapOnEntity = mode.snapDistance = false;
+            mode.snapQuadrant = mode.snapNode = mode.snapInsertion = false;
+            mode.snapPerpendicular = mode.snapTangent = false;
+            mode.snapGeometricCenter = mode.snapApparentIntersection = false;
+            mode.snapExtension = mode.snapParallel = false;
+        } else {
+            const unsigned saved = osnapButton->property("kuubikSavedOsnap").toUInt();
+            RS_SnapMode restored = saved == 0
+                ? RS_SnapMode::fromInt(RS_SnapMode::SnapEndpoint
+                                       | RS_SnapMode::SnapMiddle
+                                       | RS_SnapMode::SnapCenter
+                                       | RS_SnapMode::SnapIntersection)
+                : RS_SnapMode::fromInt(saved);
+            restored.snapGrid = mode.snapGrid;
+            restored.snapAngle = mode.snapAngle;
+            restored.snapTracking = mode.snapTracking;
+            restored.restriction = mode.restriction;
+            mode = restored;
+        }
+        actionHandler->slotSetSnaps(mode);
+        osnapButton->setProperty("osnapEnabled", !enabled);
+        osnapButton->style()->unpolish(osnapButton);
+        osnapButton->style()->polish(osnapButton);
+    });
+    statusBar()->addWidget(osnapButton);
+
+    addSnapToggle(QStringLiteral("OTRACK"), QStringLiteral(":/icons/kuubik/view/status-otrack.svg"), &RS_SnapMode::snapTracking,
+                  tr("Object snap tracking"));
+
+    const auto addLocalToggle = [this](const QString& text, const QString& iconPath, const QString& key,
+                                       bool initial, const QString& tooltip) {
+        auto* button = new QToolButton(statusBar());
+        button->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        button->setText(text);
+        button->setIcon(QIcon(iconPath));
+        button->setIconSize(QSize(20, 20));
+        button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        button->setCheckable(true);
+        button->setChecked(initial);
+        button->setToolTip(tooltip);
+        button->setAccessibleName(tooltip);
+        connect(button, &QToolButton::toggled, this, [key](bool checked) {
+            QSettings().setValue(QStringLiteral("KuubikStatus/") + key, checked);
+        });
+        statusBar()->addWidget(button);
+    };
+    QSettings statusSettings;
+    addLocalToggle(QStringLiteral("DYN"), QStringLiteral(":/icons/kuubik/view/status-dynamic.svg"), QStringLiteral("DynamicInput"),
+                   statusSettings.value(QStringLiteral("KuubikStatus/DynamicInput"), true).toBool(),
+                   tr("Dynamic input"));
+    addLocalToggle(QStringLiteral("LWT"), QStringLiteral(":/icons/kuubik/view/status-lineweight.svg"), QStringLiteral("Lineweight"),
+                   statusSettings.value(QStringLiteral("KuubikStatus/Lineweight"), true).toBool(),
+                   tr("Show lineweight"));
+    addLocalToggle(QStringLiteral("SC"), QStringLiteral(":/icons/kuubik/view/status-selection.svg"), QStringLiteral("SelectionCycling"),
+                   statusSettings.value(QStringLiteral("KuubikStatus/SelectionCycling"), false).toBool(),
+                   tr("Selection cycling"));
+    if (QAction* fullScreen = a_map.value(QStringLiteral("Fullscreen"), nullptr)) {
+        auto* cleanScreen = new QToolButton(statusBar());
+        cleanScreen->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        cleanScreen->setDefaultAction(fullScreen);
+        cleanScreen->setText(QStringLiteral("CLEAN"));
+        cleanScreen->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-clean.svg")));
+        cleanScreen->setIconSize(QSize(20, 20));
+        cleanScreen->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        cleanScreen->setToolTip(tr("Clean screen"));
+        statusBar()->addWidget(cleanScreen);
     }
 }
 
@@ -1197,6 +1387,27 @@ void QC_ApplicationWindow::applyKuubikWorkspace(bool resetLayout)
 
     statusBar()->setMinimumHeight(KuubikTheme::statusBarHeight());
     statusBar()->setMaximumHeight(KuubikTheme::statusBarHeight());
+    if (snapToolBar != nullptr) snapToolBar->hide();
+    const auto kuubikToolbars = findChildren<QToolBar*>(
+        QString(), Qt::FindDirectChildrenOnly);
+    for (QToolBar* toolbar : kuubikToolbars) {
+        if (toolbar != kuubikRibbonToolbar) toolbar->hide();
+    }
+    if (coordinateWidget != nullptr) coordinateWidget->hide();
+    if (mouseWidget != nullptr) mouseWidget->hide();
+    if (selectionWidget != nullptr) selectionWidget->hide();
+    if (m_pActiveLayerName != nullptr) m_pActiveLayerName->hide();
+    if (grid_status != nullptr) grid_status->hide();
+    if (auto* model = statusBar()->findChild<QLabel*>(
+            QStringLiteral("kuubikModelStatus"))) {
+        model->show();
+    }
+    for (QToolButton* button : statusBar()->findChildren<QToolButton*>()) {
+        if (button->objectName() == QStringLiteral("kuubikStatusToggle")
+            || button->objectName() == QStringLiteral("kuubikOsnapButton")) {
+            button->show();
+        }
+    }
 
     auto* commandDock = findChild<QDockWidget*>("command_dockwidget");
     if (commandDock != nullptr) {
@@ -1213,13 +1424,6 @@ void QC_ApplicationWindow::applyKuubikWorkspace(bool resetLayout)
     }
 
     if (resetLayout) {
-        const auto toolbars = findChildren<QToolBar*>(QString(), Qt::FindDirectChildrenOnly);
-        for (auto* toolbar : toolbars) {
-            if (toolbar != kuubikRibbonToolbar) {
-                toolbar->hide();
-            }
-        }
-
         const QStringList primaryDocks {
             "kuubikPropertiesDock", "layer_dockwidget", "block_dockwidget",
             "command_dockwidget"
@@ -1258,6 +1462,21 @@ void QC_ApplicationWindow::applyClassicWorkspace()
         kuubikRibbonToolbar->hide();
     }
     menuBar()->show();
+    if (coordinateWidget != nullptr) coordinateWidget->show();
+    if (mouseWidget != nullptr) mouseWidget->show();
+    if (selectionWidget != nullptr) selectionWidget->show();
+    if (m_pActiveLayerName != nullptr) m_pActiveLayerName->show();
+    if (grid_status != nullptr) grid_status->show();
+    if (auto* model = statusBar()->findChild<QLabel*>(
+            QStringLiteral("kuubikModelStatus"))) {
+        model->hide();
+    }
+    for (QToolButton* button : statusBar()->findChildren<QToolButton*>()) {
+        if (button->objectName() == QStringLiteral("kuubikStatusToggle")
+            || button->objectName() == QStringLiteral("kuubikOsnapButton")) {
+            button->hide();
+        }
+    }
 
     const QStringList classicToolbars {
         "file_toolbar", "edit_toolbar", "view_toolbar", "pen_toolbar",
@@ -2261,18 +2480,33 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const QPoint secondPoint((view->width() * 2) / 3,
                                  (view->height() * 2) / 3);
 
+        const QString lineRibbonTextBefore = button->text();
+        const qint64 lineRibbonIconBefore = button->icon().cacheKey();
         const QJsonObject lineRibbonInvocation = invokeRibbonActionWithMouse(
             button, a_map.value("DrawLine", nullptr));
         const bool lineRibbonMouseEvent = lineRibbonInvocation.value(
             QStringLiteral("passed")).toBool();
         const bool actionActiveAfterRibbon = mdi->getEventHandler() != nullptr
                                              && mdi->getEventHandler()->hasAction();
+        const bool lineRibbonPresentationStable =
+            lineRibbonTextBefore == QStringLiteral("Line")
+            && button->text() == lineRibbonTextBefore
+            && button->icon().cacheKey() == lineRibbonIconBefore;
         sendClick(view, firstPoint);
 
         QMouseEvent move(QEvent::MouseMove, QPointF(previewPoint),
                          Qt::NoButton, Qt::NoButton, Qt::NoModifier);
         QApplication::sendEvent(view, &move);
         QApplication::processEvents();
+
+        QLabel* dynamicInputLabel = view->findChild<QLabel*>(
+            QStringLiteral("kuubikDynamicInput"));
+        const bool dynamicInputVisible = dynamicInputLabel != nullptr
+                                         && dynamicInputLabel->isVisible()
+                                         && dynamicInputLabel->text().contains(
+                                                QStringLiteral("L "))
+                                         && dynamicInputLabel->text().contains(
+                                                QStringLiteral("A "));
 
         const int entitiesAfterFirst = graphic->getEntityList().size();
         const QString activeImagePath = output.filePath(QStringLiteral("line-active.png"));
@@ -2284,8 +2518,17 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const QString committedImagePath = output.filePath(QStringLiteral("line-committed.png"));
         const bool committedImageSaved = grab().save(committedImagePath, "PNG");
 
-        slotKillAllActions();
+        QKeyEvent lineEnterEvent(QEvent::KeyPress, Qt::Key_Return,
+                                 Qt::NoModifier);
+        const bool lineEnterAccepted = QApplication::sendEvent(
+            view, &lineEnterEvent);
         QApplication::processEvents();
+        const bool lineFinishedByEnter = mdi->getEventHandler() != nullptr
+                                         && !mdi->getEventHandler()->hasAction();
+        if (!lineFinishedByEnter) {
+            slotKillAllActions();
+            QApplication::processEvents();
+        }
 
         RS_Entity* firstCreatedLine = nullptr;
         for (RS_Entity* entity : graphic->getEntityList()) {
@@ -2301,6 +2544,14 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const QString dxfPath = output.filePath(QStringLiteral("line-gui-smoke.dxf"));
         const bool dxfSaved = graphic->saveAs(dxfPath, RS2::FormatDXFRW, true);
 
+        invokeRibbonActionWithMouse(button, a_map.value("DrawLine", nullptr));
+        QKeyEvent escapeEvent(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+        QApplication::sendEvent(view, &escapeEvent);
+        QApplication::processEvents();
+        const bool escapeCancelsAll = escapeEvent.isAccepted()
+                                      && mdi->getEventHandler() != nullptr
+                                      && !mdi->getEventHandler()->hasAction();
+
         // Exercise a second native Draw command and the quick-access Undo/Redo
         // buttons through real widget mouse events. The three saved DXFs are
         // independently parsed in CI so the producer's in-memory assertions
@@ -2315,6 +2566,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const QPoint polylineThirdPoint((view->width() * 3) / 4,
                                         (view->height() * 2) / 5);
 
+        const QString polylineRibbonTextBefore = polylineButton->text();
+        const qint64 polylineRibbonIconBefore = polylineButton->icon().cacheKey();
         const QJsonObject polylineRibbonInvocation = invokeRibbonActionWithMouse(
             polylineButton, a_map.value("DrawPolyline", nullptr));
         const bool polylineActionTriggeredByMouse =
@@ -2327,6 +2580,10 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const bool polylineActionActive = polylineAction != nullptr
                                           && polylineAction->rtti()
                                                  == RS2::ActionDrawPolyline;
+        const bool polylineRibbonPresentationStable =
+            polylineRibbonTextBefore == QStringLiteral("Polyline")
+            && polylineButton->text() == polylineRibbonTextBefore
+            && polylineButton->icon().cacheKey() == polylineRibbonIconBefore;
         const int polylineActiveActionType = polylineAction == nullptr
                                                  ? static_cast<int>(RS2::ActionNone)
                                                  : static_cast<int>(
@@ -2334,9 +2591,17 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         sendClick(view, polylineFirstPoint);
         sendClick(view, polylineSecondPoint);
         sendClick(view, polylineThirdPoint);
-        sendMouseClick(view, polylineThirdPoint, Qt::RightButton);
-        slotKillAllActions();
+        QKeyEvent polylineEnterEvent(QEvent::KeyPress, Qt::Key_Return,
+                                     Qt::NoModifier);
+        const bool polylineEnterAccepted = QApplication::sendEvent(
+            view, &polylineEnterEvent);
         QApplication::processEvents();
+        const bool polylineFinishedByEnter = mdi->getEventHandler() != nullptr
+                                             && !mdi->getEventHandler()->hasAction();
+        if (!polylineFinishedByEnter) {
+            slotKillAllActions();
+            QApplication::processEvents();
+        }
 
         RS_Polyline* createdPolyline = nullptr;
         for (RS_Entity* entity : graphic->getEntityList()) {
@@ -2425,6 +2690,9 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                     && polylineRibbonInvocation.value(
                                          QStringLiteral("passed")).toBool()
                                     && polylineActionActive
+                                    && polylineRibbonPresentationStable
+                                    && polylineEnterAccepted
+                                    && polylineFinishedByEnter
                                     && createdPolyline != nullptr
                                     && !createdPolyline->isClosed()
                                     && polylineSegmentCount == 2
@@ -2459,6 +2727,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                     polylineActiveActionType);
         polylineRibbonObject.insert(QStringLiteral("nativeActionActive"),
                                     polylineActionActive);
+        polylineRibbonObject.insert(QStringLiteral("presentationStable"),
+                                    polylineRibbonPresentationStable);
 
         QJsonObject polylineEntityObject;
         polylineEntityObject.insert(QStringLiteral("created"),
@@ -2542,6 +2812,13 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                           firstLineActiveAfterRedo));
         polylineUndoRedoObject.insert(QStringLiteral("files"),
                                       polylineFilesObject);
+        QJsonObject polylineEnterObject;
+        polylineEnterObject.insert(QStringLiteral("accepted"),
+                                   polylineEnterAccepted);
+        polylineEnterObject.insert(QStringLiteral("finishedAction"),
+                                   polylineFinishedByEnter);
+        polylineUndoRedoObject.insert(QStringLiteral("enter"),
+                                      polylineEnterObject);
         polylineUndoRedoObject.insert(QStringLiteral("passed"), polylinePassed);
         report.insert(QStringLiteral("polylineUndoRedo"),
                       polylineUndoRedoObject);
@@ -3640,7 +3917,11 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         report.insert(QStringLiteral("moveUndoRedo"), moveUndoRedoObject);
 
         const bool passed = lineRibbonMouseEvent && actionActiveAfterRibbon
+                            && lineRibbonPresentationStable
+                            && lineEnterAccepted && lineFinishedByEnter
                             && entitiesAfterFirst == entitiesBefore
+                            && dynamicInputVisible
+                            && escapeCancelsAll
                             && entitiesAfterSecond == entitiesBefore + 1
                             && linesAfterSecond == linesBefore + 1
                             && activeImageSaved && committedImageSaved && dxfSaved
@@ -3652,8 +3933,17 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         report.insert(QStringLiteral("ribbonMouseEvent"), lineRibbonMouseEvent);
         report.insert(QStringLiteral("ribbonInvocation"), lineRibbonInvocation);
         report.insert(QStringLiteral("actionActiveAfterRibbon"), actionActiveAfterRibbon);
+        report.insert(QStringLiteral("lineRibbonPresentationStable"),
+                      lineRibbonPresentationStable);
+        QJsonObject lineEnterObject;
+        lineEnterObject.insert(QStringLiteral("accepted"), lineEnterAccepted);
+        lineEnterObject.insert(QStringLiteral("finishedAction"),
+                               lineFinishedByEnter);
+        report.insert(QStringLiteral("lineEnter"), lineEnterObject);
         report.insert(QStringLiteral("entitiesBefore"), entitiesBefore);
         report.insert(QStringLiteral("entitiesAfterFirstClick"), entitiesAfterFirst);
+        report.insert(QStringLiteral("dynamicInputVisible"), dynamicInputVisible);
+        report.insert(QStringLiteral("escapeCancelsAll"), escapeCancelsAll);
         report.insert(QStringLiteral("entitiesAfterSecondClick"), entitiesAfterSecond);
         report.insert(QStringLiteral("linesBefore"), linesBefore);
         report.insert(QStringLiteral("linesAfterSecondClick"), linesAfterSecond);

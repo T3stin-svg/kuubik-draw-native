@@ -90,3 +90,59 @@ sidebar tasks and parallel integration sessions are not part of this workflow.
 The primary agent owns Git state, reviews all internal-agent evidence,
 integrates changes through explicit allowlists and checks progress at least
 once per hour.
+
+## D-013 — Everyday Draw commands stay directly visible
+
+Reio rejected the generic `More` tiles as the primary Home-ribbon presentation.
+The Home Draw panel keeps `Line`, `Polyline`, `Circle` and `Arc` visible as
+large icon-and-label commands, with `Rectangle` and `Hatch` alongside them, in
+an AutoCAD 2024-familiar hierarchy. Secondary panels may still collapse when
+space is constrained, but their collapsed tile uses a representative Kuubik
+icon rather than the word `More`.
+
+This is a layout decision only. Every button remains bound to its existing
+LibreCAD QAction and no Autodesk artwork or proprietary behavior is copied.
+
+## D-014 — Enter finishes native LINE and PLINE
+
+For the everyday LINE and PLINE workflows, `Enter` on the drawing canvas or an
+empty command-line submission finishes the active native action. Already
+committed LINE segments remain in the document. A live PLINE is finalized as
+one native undoable entity; only its uncommitted preview disappears.
+
+This behavior is implemented inside the existing `RS_ActionDrawLine` and
+`RS_ActionDrawPolyline` actions. It does not add a parallel command or document
+path, and Escape/right-click behavior remains available.
+
+## D-015 — Dynamic length/angle input and global Escape
+
+LINE and PLINE show live length (`L`) and angle (`A`) next to the cursor after
+the first point. Keyboard numbers edit the highlighted value, `Tab` switches
+between length and angle, and `Enter` commits the exact endpoint through the
+existing native coordinate-event path. Canvas `Esc` lets the current action
+finalize any already committed geometry and then guarantees that no command
+remains active.
+
+## D-016 — OSNAP exposes only working native modes
+
+The status bar uses one AutoCAD-familiar `OSNAP` popup. Its checked menu items
+are the existing native Endpoint, Midpoint, Center, Intersection, Nearest,
+Distance and Grid actions. Endpoint, midpoint, center, intersection and nearest
+render distinct temporary overlay symbols; configured dashed snap guides remain
+overlay-only and never enter the drawing.
+
+Perpendicular, tangent, quadrant, extension and acquisition tracking are not
+shown until equivalent native geometry and regression evidence exist.
+
+## D-017 — Expanded native OSNAP state and compact drafting status bar
+
+The Kuubik workspace now uses a single compact drafting row and hides all
+legacy top-level toolbars outside the ribbon. Snap flags are appended to the
+persisted bit mask, preserving every older flag value. Quadrant, node,
+insertion, perpendicular, tangent, geometric center, apparent intersection,
+extension and parallel candidates are calculated by the existing native
+entity geometry; no display-only snap entries are used. OSNAP is a split
+button whose main area disables/restores the selected object snap set.
+
+This decision supersedes D-016's deliberately limited list. Autodesk artwork
+is not copied.

@@ -907,6 +907,16 @@ void QG_GraphicView::wheelEvent(QWheelEvent *e) {
             return;
         }
 
+        // AutoCAD-familiar global cancel: give the current action one chance
+        // to finalize already committed native geometry, then guarantee that
+        // no command remains active.
+        if (e->key() == Qt::Key_Escape) {
+            eventHandler->keyPressEvent(e);
+            killAllActions();
+            e->accept();
+            return;
+        }
+
         bool scroll = false;
         RS2::Direction direction = RS2::Up;
 

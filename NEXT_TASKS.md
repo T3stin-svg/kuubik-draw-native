@@ -4,6 +4,19 @@ The first owner-reported reproducible problem always outranks this list.
 
 ## P0 — next executable workflow wave
 
+- [x] Make canvas and blank-command-line `Enter` finish native LINE and PLINE;
+  keep committed segments, discard only the pending preview and finalize PLINE
+  as one native Undo/Redo unit. Local Qt 5 GUI smoke passed on 2026-09-03.
+- [ ] Replay LINE/PLINE Enter completion in the packaged Windows qwindows
+  workflow before calling the behavior Windows-verified.
+- [x] Make canvas `Esc` globally clear active commands and add cursor-adjacent
+  LINE/PLINE length-angle dynamic input with numeric entry and `Tab` switching.
+  Local Qt 5 GUI smoke passed on 2026-09-03.
+- [x] Replace separate END/MID/CEN/INT status buttons with an AutoCAD-familiar
+  OSNAP popup backed by the seven available native snap modes; add distinct
+  endpoint, midpoint, center, intersection and nearest overlay markers.
+- [ ] Implement and certify missing higher-order snaps/tracking (perpendicular,
+  tangent, quadrant, extension and acquisition tracking) before exposing them.
 - [ ] Test `0.2.0-preview.2` with Reio and record exact failures for LINE,
   PLINE, MOVE, COPY, OFFSET, TRIM, layers, DXF save/reopen and PDF export.
 - [ ] Convert each confirmed failure into a synthetic native regression fixture.
@@ -48,9 +61,11 @@ or selection → native document → undo/file output, with no silent failure.
   active widget sets at 1280×600 (`f1c6733e`, runs `33654660495` and
   `33660926998`);
 - [ ] real Windows Settings display-scale checks at 100%, 125%, and 150%;
-- [ ] Reio accept/deny: keep Draw/Modify in `More` at the automated 1200/1280
-  logical widths—and Draw through `More` in the 1920 offscreen workflow—or
-  request a separate hybrid direct-button layout;
+- [x] Reio decision: reject the generic `More`-first Home presentation and keep
+  direct `Line`, `Polyline`, `Circle` and `Arc` buttons visible; implemented
+  and locally rendered at 1280x600 on 2026-09-03.
+- [ ] Run the Windows qwindows/native workflow for the direct Home Draw layout
+  and confirm 100%, 125% and 150% rendering before treating it as verified.
 - [ ] Reio accept/deny: keep the now-validated native Tool Options toolbar
   inline or move it to a separate row;
 - [ ] command line history clarity and error states.

@@ -35,6 +35,7 @@ namespace mu {
 }
 
 class QStringList;
+class KuubikDynamicInput;
 class RS_EntityContainer;
 class RS_GraphicView;
 class RS_Polyline;
@@ -79,6 +80,7 @@ public:
 
     void mouseMoveEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e) override;
+    void keyPressEvent(QKeyEvent *e) override;
 
     void coordinateEvent(RS_CoordinateEvent *e) override;
     void commandEvent(RS_CommandEvent *e) override;
@@ -128,6 +130,9 @@ protected:
     bool m_calculatedSegment = false;
 
 private:
+    void finishFromEnter();
+    std::unique_ptr<KuubikDynamicInput> dynamicInput;
+
     struct Points;
     std::unique_ptr<Points> pPoints;
 

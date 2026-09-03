@@ -316,5 +316,24 @@
         <file>kuubik/view/zoom-previous.svg</file>
         <file>kuubik/view/zoom-window.svg</file>
         <file>kuubik/view/view-grid.svg</file>
+        <file>kuubik/view/status-grid.svg</file>
+        <file>kuubik/view/status-snap.svg</file>
+        <file>kuubik/view/status-ortho.svg</file>
+        <file>kuubik/view/status-polar.svg</file>
+        <file>kuubik/view/status-osnap.svg</file>
+        <file>kuubik/view/status-otrack.svg</file>
+        <file>kuubik/view/status-dynamic.svg</file>
+        <file>kuubik/view/status-lineweight.svg</file>
+        <file>kuubik/view/status-selection.svg</file>
+        <file>kuubik/view/status-clean.svg</file>
+        <file>kuubik/view/snap-geometric-center.svg</file>
+        <file>kuubik/view/snap-node.svg</file>
+        <file>kuubik/view/snap-quadrant.svg</file>
+        <file>kuubik/view/snap-extension.svg</file>
+        <file>kuubik/view/snap-insertion.svg</file>
+        <file>kuubik/view/snap-perpendicular.svg</file>
+        <file>kuubik/view/snap-tangent.svg</file>
+        <file>kuubik/view/snap-apparent.svg</file>
+        <file>kuubik/view/snap-parallel.svg</file>
     </qresource>
 </RCC>

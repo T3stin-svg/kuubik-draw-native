@@ -30,6 +30,8 @@
 
 #include "rs_previewactioninterface.h"
 
+class KuubikDynamicInput;
+
 /**
  * This action class can handle user events to draw
  * simple lines with the start- and endpoint given.
@@ -67,6 +69,7 @@ public:
 
     void mouseMoveEvent(QMouseEvent* e) override;
     void mouseReleaseEvent(QMouseEvent* e) override;
+    void keyPressEvent(QKeyEvent* e) override;
 
     void coordinateEvent(RS_CoordinateEvent* e) override;
     void commandEvent(RS_CommandEvent* e) override;
@@ -88,6 +91,10 @@ protected:
     struct History;
     struct Points;
     std::unique_ptr<Points> pPoints;
+
+private:
+    void finishFromEnter();
+    std::unique_ptr<KuubikDynamicInput> dynamicInput;
 };
 
 #endif
