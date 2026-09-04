@@ -404,6 +404,80 @@ if ((Require-JsonNumber $referenceSixToEleven 'snapModeChoiceCount' 'uiContract.
     (Require-JsonNumber $referenceSixToEleven 'isoplaneCount' 'uiContract.statusBar.referencePdfPagesSixToEleven') -ne 3) {
     throw 'Pages 6-11 menus are missing Snap, Polar, or isoplane choices.'
 }
+$referenceTwelveToThirteen = Require-JsonProperty $statusBarContract 'referencePdfPagesTwelveToThirteen' 'uiContract.statusBar'
+if ((Require-JsonNumber $referenceTwelveToThirteen 'referenceStartPage' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen') -ne 12 -or
+    (Require-JsonNumber $referenceTwelveToThirteen 'referenceEndPage' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen') -ne 13 -or
+    (Require-JsonNumber $referenceTwelveToThirteen 'referencePageCount' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen') -ne 2) {
+    throw 'The M1 precision reference batch must cover exactly PDF pages 12-13.'
+}
+foreach ($referenceFlag in @(
+    'osnapControlVisible', 'trackingControlVisible', 'osnapStateRoundTrip',
+    'osnapMouseKeyboardSynchronized', 'osnapPriorSetPersisted',
+    'trackingStateRoundTrip', 'trackingMouseKeyboardSynchronized',
+    'trackingSerializationRoundTrip', 'passed'
+)) {
+    if (-not (Require-JsonBoolean $referenceTwelveToThirteen $referenceFlag 'uiContract.statusBar.referencePdfPagesTwelveToThirteen')) {
+        throw "Pages 12-13 status-bar contract failed: $referenceFlag"
+    }
+}
+$snapFamilies = Require-JsonProperty $referenceTwelveToThirteen 'snapFamilies' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen'
+if (-not (Require-JsonBoolean $snapFamilies 'passed' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.snapFamilies')) {
+    throw 'The native OSNAP geometry family matrix did not pass.'
+}
+foreach ($snapFamily in @(
+    'endpoint', 'midpoint', 'center', 'quadrant', 'intersection',
+    'perpendicular', 'tangent', 'nearest', 'extension', 'parallel'
+)) {
+    $familyResult = Require-JsonProperty $snapFamilies $snapFamily 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.snapFamilies'
+    $familyContext = "uiContract.statusBar.referencePdfPagesTwelveToThirteen.snapFamilies.$snapFamily"
+    foreach ($coordinateField in @('actualX', 'actualY', 'expectedX', 'expectedY', 'error')) {
+        [void](Require-JsonNumber $familyResult $coordinateField $familyContext)
+    }
+    if (-not (Require-JsonBoolean $familyResult 'passed' $familyContext) -or
+        (Require-JsonNumber $familyResult 'error' $familyContext) -gt 0.000001) {
+        throw "Native OSNAP geometry result is incorrect: $snapFamily"
+    }
+}
+$trackingGeometry = Require-JsonProperty $referenceTwelveToThirteen 'trackingGeometry' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen'
+foreach ($trackingFlag in @(
+    'candidateAcquired', 'orthogonalGuideVisible', 'polarGuideVisible',
+    'objectSnapPrecedence', 'gridSnapPrecedence',
+    'orthoRestrictionPrecedence', 'disabledClearsAcquisition',
+    'documentEntitiesUnchanged', 'undoStateUnchanged', 'overlayOnly', 'passed'
+)) {
+    if (-not (Require-JsonBoolean $trackingGeometry $trackingFlag 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.trackingGeometry')) {
+        throw "Native object-snap tracking contract failed: $trackingFlag"
+    }
+}
+foreach ($projectionName in @('orthogonalProjection', 'polarProjection')) {
+    $projection = Require-JsonProperty $trackingGeometry $projectionName 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.trackingGeometry'
+    $projectionContext = "uiContract.statusBar.referencePdfPagesTwelveToThirteen.trackingGeometry.$projectionName"
+    foreach ($coordinateField in @('actualX', 'actualY', 'expectedX', 'expectedY', 'error')) {
+        [void](Require-JsonNumber $projection $coordinateField $projectionContext)
+    }
+    if (-not (Require-JsonBoolean $projection 'passed' $projectionContext)) {
+        throw "Native object-snap tracking projection is incorrect: $projectionName"
+    }
+}
+$trackingEntitiesBefore = Require-JsonNumber $trackingGeometry 'documentEntityCountBefore' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.trackingGeometry'
+$trackingEntitiesAfter = Require-JsonNumber $trackingGeometry 'documentEntityCountAfter' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.trackingGeometry'
+if ($trackingEntitiesBefore -ne $trackingEntitiesAfter) {
+    throw 'Object-snap tracking inserted transient geometry into the native document.'
+}
+$trackingUndoBefore = Require-JsonNumber $trackingGeometry 'undoCycleCountBefore' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.trackingGeometry'
+$trackingUndoAfter = Require-JsonNumber $trackingGeometry 'undoCycleCountAfter' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.trackingGeometry'
+if ($trackingUndoBefore -ne $trackingUndoAfter) {
+    throw 'Object-snap tracking inserted transient state into the native undo history.'
+}
+$pageThirtyThreeShortcuts = Require-JsonProperty $statusBarContract 'referencePdfPageThirtyThreeShortcuts' 'uiContract.statusBar'
+foreach ($shortcutFlag in @(
+    'f3Registered', 'f11Registered', 'fullscreenF11Removed',
+    'f3UsesOsnapMainToggle', 'f11UsesTrackingToggle', 'passed'
+)) {
+    if (-not (Require-JsonBoolean $pageThirtyThreeShortcuts $shortcutFlag 'uiContract.statusBar.referencePdfPageThirtyThreeShortcuts')) {
+        throw "Page 33 F3/F11 shortcut contract failed: $shortcutFlag"
+    }
+}
 if (-not (Require-JsonBoolean $statusBarContract 'menuScreenshotSaved' 'uiContract.statusBar') -or
     (Require-JsonNumber $statusBarContract 'menuScreenshotWidth' 'uiContract.statusBar') -lt 180 -or
     (Require-JsonNumber $statusBarContract 'menuScreenshotHeight' 'uiContract.statusBar') -lt 250) {

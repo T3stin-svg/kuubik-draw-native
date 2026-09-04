@@ -192,6 +192,10 @@ public:
     RS_Vector snapApparentIntersection(const RS_Vector& coord);
     RS_Vector snapExtension(const RS_Vector& coord);
     RS_Vector snapParallel(const RS_Vector& coord);
+    bool hasTrackingAcquisition() const;
+    bool hasTrackingGuide() const;
+    RS_Vector trackingAcquisition() const;
+    RS_Vector trackingGuideEnd() const;
     //RS_Vector snapDirect(RS_Vector coord, bool abs);
     RS_Vector snapToAngle(const RS_Vector &coord, const RS_Vector &ref_coord, const double ang_res = 15.);
     RS_Vector snapToRelativeAngle(double baseAngle, const RS_Vector &currentCoord, const RS_Vector &referenceCoord, const double angularResolution  = 15.);
@@ -257,6 +261,9 @@ protected:
     bool finished{false};
 
 private:
+	void clearTrackingAcquisition();
+	RS_Vector projectToTrackingGuide(const RS_Vector& coord) const;
+
 	struct ImpData;
 	std::unique_ptr<ImpData> pImpData;
 

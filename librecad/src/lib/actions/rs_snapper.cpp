@@ -236,7 +236,10 @@ RS_Vector snapCoord;
 RS_Vector snapSpot;
 enum Kind { None, Endpoint, Center, Middle, Distance, Intersection, Nearest, Grid,
             Quadrant, Node, Insertion, Perpendicular, Tangent, GeometricCenter,
-            ApparentIntersection, Extension, Parallel } kind {None};
+            ApparentIntersection, Extension, Parallel, Tracking } kind {None};
+RS_Vector trackingAcquired;
+RS_Vector trackingGuideEnd;
+bool trackingGuideActive {false};
 };
 
 /**
@@ -260,6 +263,8 @@ void RS_Snapper::init()
 	keyEntity = nullptr;
 	pImpData->snapSpot = RS_Vector{false};
 	pImpData->snapCoord = RS_Vector{false};
+	clearTrackingAcquisition();
+	finished = false;
 	m_SnapDistance = 1.0;
 
     RS_SETTINGS->beginGroup("/Appearance");
@@ -283,12 +288,24 @@ void RS_Snapper::init()
 
 void RS_Snapper::finish() {
     finished = true;
+    clearTrackingAcquisition();
     deleteSnapper();
 }
 
 
 void RS_Snapper::setSnapMode(const RS_SnapMode& snapMode) {
+    const bool clearTracking = !snapMode.snapTracking
+        && (this->snapMode.snapTracking
+            || pImpData->trackingAcquired.valid
+            || pImpData->trackingGuideActive);
     this->snapMode = snapMode;
+	if (clearTracking) {
+		clearTrackingAcquisition();
+		pImpData->snapSpot = RS_Vector{false};
+		pImpData->snapCoord = RS_Vector{false};
+		pImpData->kind = ImpData::None;
+		deleteSnapper();
+	}
 	RS_DIALOGFACTORY->requestSnapDistOptions(m_SnapDistance, snapMode.snapDistance);
     RS_DIALOGFACTORY->requestSnapMiddleOptions(middlePoints, snapMode.snapMiddle);
 //std::cout<<"RS_Snapper::setSnapMode(): middlePoints="<<middlePoints<<std::endl;
@@ -312,6 +329,8 @@ RS_Vector RS_Snapper::snapFree(QMouseEvent* e) {
     }
 	pImpData->snapSpot=graphicView->toGraph(e->x(), e->y());
 	pImpData->snapCoord=pImpData->snapSpot;
+    pImpData->trackingGuideActive = false;
+    pImpData->trackingGuideEnd = RS_Vector(false);
     snap_indicator->lines_state=true;
 	return pImpData->snapCoord;
 }
@@ -326,6 +345,8 @@ RS_Vector RS_Snapper::snapPoint(QMouseEvent* e)
 {
 	pImpData->snapSpot = RS_Vector(false);
     pImpData->kind = ImpData::None;
+    pImpData->trackingGuideActive = false;
+    pImpData->trackingGuideEnd = RS_Vector(false);
     RS_Vector t(false);
 
 	if (!e) {
@@ -442,6 +463,30 @@ RS_Vector RS_Snapper::snapPoint(QMouseEvent* e)
                 pImpData->snapSpot = mouseCoord;
                 pImpData->kind = ImpData::None;
             }
+        }
+    }
+
+    const bool objectCandidate = pImpData->kind != ImpData::None
+        && pImpData->kind != ImpData::Grid
+        && pImpData->kind != ImpData::Tracking
+        && pImpData->snapSpot.valid
+        && mouseCoord.distanceTo(pImpData->snapSpot) <= getSnapRange();
+    if (snapMode.snapTracking && objectCandidate) {
+        // Acquisition is deliberately overlay-only state. Merely hovering a
+        // working object-snap candidate must never modify the document.
+        pImpData->trackingAcquired = pImpData->snapSpot;
+    } else if (snapMode.snapTracking
+               && pImpData->kind == ImpData::None
+               && snapMode.restriction == RS2::RestrictNothing
+               && !snapMode.snapGrid
+               && pImpData->trackingAcquired.valid) {
+        const RS_Vector tracked = projectToTrackingGuide(mouseCoord);
+        if (tracked.valid) {
+            pImpData->snapSpot = tracked;
+            pImpData->kind = ImpData::Tracking;
+            pImpData->trackingGuideEnd = tracked;
+            pImpData->trackingGuideActive = true;
+            keyEntity = nullptr;
         }
     }
     //if (snapSpot.distanceTo(mouseCoord) > snapMode.distance) {
@@ -1009,6 +1054,7 @@ void RS_Snapper::suspend() {
 			// RVT Don't delete the snapper here!
 	// RVT_PORT (can be deleted)();
 	pImpData->snapSpot = pImpData->snapCoord = RS_Vector{false};
+	clearTrackingAcquisition();
 }
 
 /**
@@ -1049,6 +1095,17 @@ void RS_Snapper::drawSnapper()
 	if (!finished && pImpData->snapSpot.valid)
     {
         RS_EntityContainer *container=graphicView->getOverlayContainer(RS2::Snapper);
+
+        if (pImpData->trackingGuideActive
+            && pImpData->trackingAcquired.valid
+            && pImpData->trackingGuideEnd.valid) {
+            auto* guide = new RS_OverlayLine(
+                nullptr,
+                {graphicView->toGui(pImpData->trackingAcquired),
+                 graphicView->toGui(pImpData->trackingGuideEnd)});
+            guide->setPen(snap_indicator->lines_pen);
+            container->addEntity(guide);
+        }
 
         if (snap_indicator->lines_state)
         {
@@ -1204,6 +1261,7 @@ void RS_Snapper::drawSnapper()
             case ImpData::ApparentIntersection: type = "Intersection"; break;
             case ImpData::Extension: type = "Square"; break;
             case ImpData::Parallel: type = "Diamond"; break;
+            case ImpData::Tracking: type = "Point"; break;
             default: break;
             }
 
@@ -1284,6 +1342,68 @@ void RS_Snapper::drawSnapper()
         }
         graphicView->redraw(RS2::RedrawOverlay); // redraw will happen in the mouse movement event
     }
+}
+
+void RS_Snapper::clearTrackingAcquisition()
+{
+    pImpData->trackingAcquired = RS_Vector(false);
+    pImpData->trackingGuideEnd = RS_Vector(false);
+    pImpData->trackingGuideActive = false;
+}
+
+RS_Vector RS_Snapper::projectToTrackingGuide(const RS_Vector& coord) const
+{
+    if (!coord.valid || !pImpData->trackingAcquired.valid) {
+        return RS_Vector(false);
+    }
+
+    double increment = 90.0;
+    if (snapMode.snapAngle) {
+        auto settingsGuard = RS_SETTINGS->beginGroupGuard("/Snap");
+        increment = RS_SETTINGS->readEntry(
+            "/AngleIncrement", "15").toDouble();
+        if (!(increment > RS_TOLERANCE && increment <= 180.0)) {
+            increment = 15.0;
+        }
+    }
+
+    const RS_Vector delta = coord - pImpData->trackingAcquired;
+    if (delta.magnitude() <= RS_TOLERANCE) {
+        return RS_Vector(false);
+    }
+    const double rawDegrees = std::atan2(delta.y, delta.x) * 180.0 / M_PI;
+    const double guideRadians = std::round(rawDegrees / increment)
+        * increment * M_PI / 180.0;
+    const RS_Vector direction(std::cos(guideRadians),
+                              std::sin(guideRadians));
+    const double along = delta.x * direction.x + delta.y * direction.y;
+    const RS_Vector projected = pImpData->trackingAcquired
+        + direction * along;
+    if (pImpData->trackingAcquired.distanceTo(projected) <= RS_TOLERANCE
+        || coord.distanceTo(projected) > getSnapRange()) {
+        return RS_Vector(false);
+    }
+    return projected;
+}
+
+bool RS_Snapper::hasTrackingAcquisition() const
+{
+    return pImpData->trackingAcquired.valid;
+}
+
+bool RS_Snapper::hasTrackingGuide() const
+{
+    return pImpData->trackingGuideActive;
+}
+
+RS_Vector RS_Snapper::trackingAcquisition() const
+{
+    return pImpData->trackingAcquired;
+}
+
+RS_Vector RS_Snapper::trackingGuideEnd() const
+{
+    return pImpData->trackingGuideEnd;
 }
 
 RS_Vector RS_Snapper::snapToRelativeAngle(double baseAngle, const RS_Vector &currentCoord, const RS_Vector &referenceCoord, const double angularResolution)
