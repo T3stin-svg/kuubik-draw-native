@@ -38,11 +38,17 @@ LibreCAD's settings or the old React Kuubik Draw data.
   `Reset Kuubik Workspace` to restore the default, or `Classic workspace` to
   show the familiar LibreCAD toolbars and menus.
 - The command line is full-width at the bottom. The compact status bar starts
-  with live `X, Y, Z` coordinates, MODEL and GRID, followed by SNAP, ORTHO,
-  POLAR, OSNAP, OTRACK, dynamic input, lineweight, Quick Properties and clean
-  screen. Blue means enabled. OSNAP's arrow opens the native snap-mode list;
-  right-click GRID or SNAP for settings. Clicked controls retain their Kuubik
-  symbol while the native action state changes.
+  with live `X, Y, Z` coordinates, MODEL and GRID, followed by SNAP, Infer,
+  dynamic input, ORTHO, POLAR, isometric drafting, OSNAP, OTRACK, lineweight,
+  Quick Properties and clean screen. Blue means enabled. SNAP's arrow selects
+  Grid or Polar snap; POLAR offers standard tracking-angle presets; isometric
+  drafting offers Left, Top and Right isoplanes. OSNAP's arrow opens the native
+  snap-mode list. Right-click GRID or SNAP for settings. Clicked controls retain
+  their Kuubik symbol while the native action state changes.
+- Precision shortcuts follow the reference: F9 SNAP, F12 dynamic input, F8
+  ORTHO, F10 POLAR, and F5 or Ctrl+E to cycle isoplanes. Infer enables a useful
+  native endpoint/coincident, perpendicular, tangent and parallel snap bundle;
+  these are drawing-time inferences, not persistent parametric constraints.
 - Click the three horizontal lines at the far right to show or hide status
   controls. Choices persist, and `Reset Status Bar` restores the default row.
   Coordinates are visible by default; right-click the readout to select

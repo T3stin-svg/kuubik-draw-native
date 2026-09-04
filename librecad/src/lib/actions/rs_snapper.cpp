@@ -465,7 +465,18 @@ RS_Vector RS_Snapper::snapPoint(QMouseEvent* e)
 
     //case RS2::RestrictNothing:
     default:
-		pImpData->snapCoord = pImpData->snapSpot;
+        if (snapMode.snapAngle && pImpData->kind == ImpData::None) {
+            auto settingsGuard = RS_SETTINGS->beginGroupGuard("/Snap");
+            double increment = RS_SETTINGS->readEntry(
+                "/AngleIncrement", "15").toDouble();
+            if (!(increment > RS_TOLERANCE && increment <= 180.0)) {
+                increment = 15.0;
+            }
+            pImpData->snapCoord = snapToAngle(
+                pImpData->snapSpot, rz, increment);
+        } else {
+            pImpData->snapCoord = pImpData->snapSpot;
+        }
         break;
     }
     //}

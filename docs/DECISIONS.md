@@ -191,3 +191,25 @@ workspace moves the coordinate widget back to LibreCAD's original status slot.
 
 Autodesk screenshots remain reference material in the PDF only. No Autodesk
 image, icon or path data is embedded in the application.
+
+## D-021 — Pages 6–11 use real native precision behavior
+
+The second status-bar phase implements pages 6–11 of the approved reference:
+Snap Mode, Infer Constraints, Dynamic Input, Orthomode, Polar Tracking and
+Isometric Drafting. SNAP selects mutually exclusive Grid or Polar snap and
+retains native settings access. F9, F12, F8, F10, F5 and Ctrl+E follow the
+reference shortcuts. POLAR offers eight standard increments plus a custom
+value, and the selected increment quantizes otherwise-free points in
+`RS_Snapper` without overriding higher-priority object or orthogonal snaps.
+
+Isometric Drafting uses LibreCAD's real isometric grid and Left/Top/Right
+crosshair support. Dynamic Input's distance and angle fields can be configured,
+but at least one remains visible. LibreCAD has no AutoCAD-equivalent persistent
+parametric constraint solver, so Infer Constraints is explicitly a reversible
+native endpoint/coincident, perpendicular, tangent and parallel snap bundle.
+Its tooltip and UI contract identify that limitation instead of presenting a
+display-only or misleading constraint toggle.
+
+The new status icons are original Kuubik technical-line SVGs. Autodesk
+screenshots remain confined to the reference PDF and are not packaged into the
+application.

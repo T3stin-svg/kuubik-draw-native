@@ -113,12 +113,13 @@ Tab to this dynamic input instead of stealing canvas focus.
 Kuubik workspace now uses one compact AutoCAD-familiar bottom status row. The
 legacy LibreCAD snap toolbar and diagnostic selection/layer/grid labels are
 hidden in Kuubik mode, while Classic mode restores them. The visible Kuubik row
-starts with live X/Y/Z coordinates, MODEL and GRID, followed by SNAP, ORTHO,
-POLAR, OSNAP, OTRACK, dynamic input, lineweight, Quick Properties and
-clean-screen controls. Coordinates are visible by default and support four
-display formats. This ordering, palette and interaction model implement only
-pages 1–5 of the approved status-bar visual reference; Classic mode restores
-the coordinate widget to its original LibreCAD position.
+starts with live X/Y/Z coordinates, MODEL and GRID, followed by SNAP, native
+inference, dynamic input, ORTHO, POLAR, isometric drafting, OSNAP, OTRACK,
+lineweight, Quick Properties and clean-screen controls. Coordinates are visible
+by default and support four display formats. This ordering, palette and
+interaction model implement pages 1–11 of the approved status-bar visual
+reference; Classic mode restores the coordinate widget to its original
+LibreCAD position.
 
 A three-line button at the far right opens a persistent customization menu.
 Every row immediately shows or hides its corresponding control, and Reset
@@ -133,6 +134,14 @@ state change cannot restore a LibreCAD toolbar symbol after a click.
 The OSNAP split menu groups fourteen native snap modes and keeps its blue state
 synchronized with whether an object-snap set is active. Distinct temporary
 symbols remain available for the supported snap candidates.
+
+SNAP selects Grid or Polar mode and opens native settings on right-click.
+Dynamic Input exposes distance/angle visibility settings. POLAR supplies eight
+angle presets plus a custom increment and now quantizes otherwise-free snap
+points in the native snapping engine. Isometric Drafting switches the real
+isometric grid and cycles Left, Top and Right crosshairs. The inference control
+enables the native endpoint/coincident, perpendicular, tangent and parallel
+snap bundle, but deliberately makes no persistent parametric-constraint claim.
 
 ## Verified behaviors
 
@@ -204,10 +213,11 @@ For development commit `d17e8b23b`, run `33665520217` additionally verified:
   expanded native OSNAP menu. Linux build/smoke is green; dedicated numeric
   fixtures for every newly added snap mode and Windows qwindows verification
   remain pending.
-- The drafting row is icon-first rather than text-first. GRID, SNAP, ORTHO,
-  POLAR, OSNAP, OTRACK, dynamic input, lineweight, Quick Properties, clean
-  screen and customization use original Kuubik technical-line SVG symbols;
-  extended OSNAP menu entries also have matching symbols.
+- The drafting row is icon-first rather than text-first. GRID, SNAP, native
+  inference, dynamic input, ORTHO, POLAR, isometric drafting, OSNAP, OTRACK,
+  lineweight, Quick Properties, clean screen and customization use original
+  Kuubik technical-line SVG symbols; extended OSNAP menu entries also have
+  matching symbols.
 - No `.kdraw` import from the web experiment exists; use DXF exchange.
 
 ## Build authority

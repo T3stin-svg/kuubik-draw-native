@@ -33,4 +33,6 @@ contract and mapping coverage.
 The compact drafting-status symbols added after the original 66-action set,
 including the generic three-line customization symbol, follow the same
 from-scratch GPL-2.0-only provenance. They are status UI assets rather than
-additional `KuubikIconRegistry` action mappings.
+additional `KuubikIconRegistry` action mappings. The geometric-inference and
+isometric-grid symbols added for reference pages 7 and 11 are also original
+Kuubik linework and do not trace Autodesk's published status icons.

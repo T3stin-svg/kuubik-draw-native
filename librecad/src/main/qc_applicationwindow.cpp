@@ -32,6 +32,7 @@
 #include "qc_applicationwindow.h"
 
 #include <algorithm>
+#include <cmath>
 
 #include <QActionGroup>
 #include <QApplication>
@@ -45,6 +46,7 @@
 #include <QFrame>
 #include <QHash>
 #include <QImageWriter>
+#include <QInputDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -108,6 +110,7 @@
 #include "rs_layerlist.h"
 #include "rs_line.h"
 #include "rs_painterqt.h"
+#include "rs_snapper.h"
 #include "rs_pen.h"
 #include "rs_polyline.h"
 #include "rs_settings.h"
@@ -1119,10 +1122,10 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     bar->setSizeGripEnabled(false);
 
     QSettings statusSettings;
-    constexpr int referencePhaseVersion = 1;
-    if (statusSettings.value(
-            QStringLiteral("KuubikStatus/ReferencePhaseVersion"), 0).toInt()
-        < referencePhaseVersion) {
+    constexpr int referencePhaseVersion = 2;
+    const int installedReferencePhase = statusSettings.value(
+        QStringLiteral("KuubikStatus/ReferencePhaseVersion"), 0).toInt();
+    if (installedReferencePhase < 1) {
         // The first five pages of the approved visual reference establish the
         // default coordinate/model/grid cluster. Apply this once so later
         // user customization remains authoritative.
@@ -1132,10 +1135,27 @@ void QC_ApplicationWindow::createKuubikStatusControls()
             QStringLiteral("KuubikStatus/Visible/ModelSpace"), true);
         statusSettings.setValue(
             QStringLiteral("KuubikStatus/Visible/Grid"), true);
-        statusSettings.setValue(
-            QStringLiteral("KuubikStatus/ReferencePhaseVersion"),
-            referencePhaseVersion);
     }
+    if (installedReferencePhase < 2) {
+        // Pages 6-11 add the precision-drafting controls. Do not revisit the
+        // page 1-5 choices when migrating an existing profile.
+        for (const QString& key : {
+                 QStringLiteral("SnapMode"),
+                 QStringLiteral("InferConstraints"),
+                 QStringLiteral("DynamicInput"),
+                 QStringLiteral("OrthoMode"),
+                 QStringLiteral("SnapAngle"),
+                 QStringLiteral("IsometricDrafting")}) {
+            statusSettings.setValue(
+                QStringLiteral("KuubikStatus/Visible/") + key, true);
+        }
+        statusSettings.setValue(
+            QStringLiteral("KuubikStatus/DynamicShowDistance"), true);
+        statusSettings.setValue(
+            QStringLiteral("KuubikStatus/DynamicShowAngle"), true);
+    }
+    statusSettings.setValue(QStringLiteral("KuubikStatus/ReferencePhaseVersion"),
+                            referencePhaseVersion);
 
     QList<StatusItem> statusItems;
     const auto registerStatusItem = [bar, &statusItems](QWidget* widget,
@@ -1225,6 +1245,15 @@ void QC_ApplicationWindow::createKuubikStatusControls()
                 });
     };
 
+    const auto appendNativeShortcut = [this](const QString& actionKey,
+                                              const QKeySequence& shortcut) {
+        QAction* action = a_map.value(actionKey, nullptr);
+        if (action == nullptr) return;
+        QList<QKeySequence> shortcuts = action->shortcuts();
+        if (!shortcuts.contains(shortcut)) shortcuts.append(shortcut);
+        action->setShortcuts(shortcuts);
+    };
+
     const auto addNativeToggle = [this, &registerStatusItem](
                                      const QString& actionKey,
                                      const QString& visibilityKey,
@@ -1286,13 +1315,48 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     }
     addSettingsContextMenu(gridButton, QStringLiteral("OptionsDrawing"),
                            tr("Grid Settings..."));
+    appendNativeShortcut(QStringLiteral("ViewGrid"),
+                         QKeySequence(Qt::Key_F7));
 
     QToolButton* snapButton = addNativeToggle(
         QStringLiteral("SnapGrid"), QStringLiteral("SnapMode"),
         QStringLiteral("SNAP"), QStringLiteral(":/icons/kuubik/view/status-snap.svg"),
-        tr("Snap mode"));
+        tr("Snap mode - Grid Snap (F9)"));
+    QAction* snapGridModeAction = nullptr;
+    QAction* polarSnapModeAction = nullptr;
+    QMenu* snapModeMenu = nullptr;
+    if (snapButton != nullptr) {
+        snapButton->setObjectName(QStringLiteral("kuubikStatusSplitToggle"));
+        snapButton->setProperty("kuubikReferencePage", 6);
+        snapButton->setPopupMode(QToolButton::MenuButtonPopup);
+        snapModeMenu = new QMenu(snapButton);
+        snapModeMenu->setObjectName(QStringLiteral("kuubikSnapModeMenu"));
+        auto* snapModeGroup = new QActionGroup(snapModeMenu);
+        snapModeGroup->setExclusive(true);
+        snapGridModeAction = snapModeMenu->addAction(tr("Grid Snap"));
+        snapGridModeAction->setObjectName(
+            QStringLiteral("kuubikSnapModeGrid"));
+        snapGridModeAction->setCheckable(true);
+        snapModeGroup->addAction(snapGridModeAction);
+        polarSnapModeAction = snapModeMenu->addAction(tr("Polar Snap"));
+        polarSnapModeAction->setObjectName(
+            QStringLiteral("kuubikSnapModePolar"));
+        polarSnapModeAction->setCheckable(true);
+        snapModeGroup->addAction(polarSnapModeAction);
+        snapModeMenu->addSeparator();
+        if (QAction* settingsAction = a_map.value(
+                QStringLiteral("OptionsGeneral"), nullptr)) {
+            QAction* openSettings = snapModeMenu->addAction(
+                tr("Snap Settings..."));
+            connect(openSettings, &QAction::triggered, settingsAction,
+                    [settingsAction]() { settingsAction->trigger(); });
+        }
+        snapButton->setMenu(snapModeMenu);
+    }
     addSettingsContextMenu(snapButton, QStringLiteral("OptionsGeneral"),
                            tr("Snap Settings..."));
+    appendNativeShortcut(QStringLiteral("SnapGrid"),
+                         QKeySequence(Qt::Key_F9));
 
     const auto addSnapToggle = [this, &registerStatusItem](
                                    const QString& text, const QString& iconPath,
@@ -1323,14 +1387,292 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         return button;
     };
 
-    addNativeToggle(QStringLiteral("RestrictOrthogonal"), QStringLiteral("OrthoMode"),
-                    QStringLiteral("ORTHO"),
-                    QStringLiteral(":/icons/kuubik/view/status-ortho.svg"),
-                    tr("Ortho mode"));
-    addSnapToggle(QStringLiteral("POLAR"),
-                  QStringLiteral(":/icons/kuubik/view/status-polar.svg"),
-                  QStringLiteral("SnapAngle"), RS_SnapMode::SnapAngle,
-                  &RS_SnapMode::snapAngle, tr("Polar tracking"));
+    QToolButton* orthoButton = addNativeToggle(
+        QStringLiteral("RestrictOrthogonal"), QStringLiteral("OrthoMode"),
+        QStringLiteral("ORTHO"),
+        QStringLiteral(":/icons/kuubik/view/status-ortho.svg"),
+        tr("Ortho mode"));
+    if (orthoButton != nullptr) {
+        orthoButton->setProperty("kuubikReferencePage", 9);
+        const auto updateOrthoTooltip = [orthoButton]() {
+            orthoButton->setToolTip(
+                orthoButton->isChecked()
+                    ? tr("Ortho mode - On (F8)")
+                    : tr("Ortho mode - Off (F8)"));
+        };
+        updateOrthoTooltip();
+        connect(orthoButton, &QToolButton::toggled, orthoButton,
+                [updateOrthoTooltip](bool) { updateOrthoTooltip(); });
+    }
+    appendNativeShortcut(QStringLiteral("RestrictOrthogonal"),
+                         QKeySequence(Qt::Key_F8));
+
+    QToolButton* polarButton = addSnapToggle(
+        QStringLiteral("POLAR"),
+        QStringLiteral(":/icons/kuubik/view/status-polar.svg"),
+        QStringLiteral("SnapAngle"), RS_SnapMode::SnapAngle,
+        &RS_SnapMode::snapAngle, tr("Polar tracking"));
+    const auto readPolarIncrement = []() {
+        auto settingsGuard = RS_SETTINGS->beginGroupGuard("/Snap");
+        bool ok = false;
+        const double value = RS_SETTINGS->readEntry(
+            "/AngleIncrement", "15").toDouble(&ok);
+        return ok && value > 0.0 && value <= 180.0 ? value : 15.0;
+    };
+    const auto writePolarIncrement = [](double increment) {
+        auto settingsGuard = RS_SETTINGS->beginGroupGuard("/Snap");
+        RS_SETTINGS->writeEntry("/AngleIncrement",
+                                QString::number(increment, 'g', 8));
+    };
+    QMenu* polarMenu = nullptr;
+    if (polarButton != nullptr) {
+        polarButton->setObjectName(QStringLiteral("kuubikStatusSplitToggle"));
+        polarButton->setProperty("kuubikReferencePage", 10);
+        polarButton->setPopupMode(QToolButton::MenuButtonPopup);
+        polarMenu = new QMenu(polarButton);
+        polarMenu->setObjectName(QStringLiteral("kuubikPolarMenu"));
+        auto* polarGroup = new QActionGroup(polarMenu);
+        polarGroup->setExclusive(true);
+        for (double increment : {90.0, 45.0, 30.0, 22.5,
+                                 18.0, 15.0, 10.0, 5.0}) {
+            QAction* preset = polarMenu->addAction(
+                tr("%1 degree increment").arg(increment, 0, 'g', 4));
+            preset->setProperty("kuubikPolarAngle", increment);
+            preset->setCheckable(true);
+            polarGroup->addAction(preset);
+            connect(preset, &QAction::triggered, polarButton,
+                    [writePolarIncrement, increment]() {
+                        writePolarIncrement(increment);
+                    });
+        }
+        polarMenu->addSeparator();
+        QAction* customAngle = polarMenu->addAction(
+            tr("Tracking Settings..."));
+        customAngle->setObjectName(
+            QStringLiteral("kuubikPolarTrackingSettings"));
+        connect(customAngle, &QAction::triggered, this,
+                [this, readPolarIncrement, writePolarIncrement]() {
+            bool accepted = false;
+            const double increment = QInputDialog::getDouble(
+                this, tr("Polar Tracking Settings"),
+                tr("Increment angle (degrees):"), readPolarIncrement(),
+                0.1, 180.0, 2, &accepted);
+            if (accepted) writePolarIncrement(increment);
+        });
+        const auto updatePolarTooltip = [polarButton, readPolarIncrement]() {
+            polarButton->setToolTip(
+                tr("Polar tracking - %1 (F10)\nIncrement: %2 degrees")
+                    .arg(polarButton->isChecked() ? tr("On") : tr("Off"))
+                    .arg(readPolarIncrement(), 0, 'g', 4));
+        };
+        updatePolarTooltip();
+        connect(polarButton, &QToolButton::toggled, polarButton,
+                [updatePolarTooltip](bool) { updatePolarTooltip(); });
+        connect(polarMenu, &QMenu::aboutToShow, polarButton,
+                [polarMenu, readPolarIncrement, updatePolarTooltip]() {
+            const double current = readPolarIncrement();
+            for (QAction* action : polarMenu->actions()) {
+                if (!action->property("kuubikPolarAngle").isValid()) continue;
+                const QSignalBlocker blocker(action);
+                action->setChecked(qAbs(
+                    action->property("kuubikPolarAngle").toDouble()
+                    - current) < 0.0001);
+            }
+            updatePolarTooltip();
+        });
+        polarButton->setMenu(polarMenu);
+
+        auto* polarShortcut = new QShortcut(QKeySequence(Qt::Key_F10), this);
+        polarShortcut->setObjectName(QStringLiteral("kuubikShortcutF10"));
+        polarShortcut->setContext(Qt::ApplicationShortcut);
+        connect(polarShortcut, &QShortcut::activated, polarButton,
+                [polarButton]() { polarButton->click(); });
+    }
+
+    if (snapButton != nullptr && polarButton != nullptr) {
+        QAction* nativeGridSnap = a_map.value(QStringLiteral("SnapGrid"),
+                                              nullptr);
+        connect(snapButton, &QToolButton::toggled, this,
+                [polarButton](bool checked) {
+            if (checked && polarButton->isChecked()) {
+                polarButton->setChecked(false);
+            }
+        });
+        connect(polarButton, &QToolButton::toggled, this,
+                [nativeGridSnap](bool checked) {
+            if (checked && nativeGridSnap != nullptr
+                && nativeGridSnap->isChecked()) {
+                nativeGridSnap->trigger();
+            }
+        });
+        if (nativeGridSnap != nullptr) {
+            connect(nativeGridSnap, &QAction::toggled, polarButton,
+                    [polarButton](bool checked) {
+                if (checked && polarButton->isChecked()) {
+                    polarButton->setChecked(false);
+                }
+            });
+        }
+        if (snapGridModeAction != nullptr) {
+            connect(snapGridModeAction, &QAction::triggered, snapButton,
+                    [nativeGridSnap, polarButton]() {
+                if (polarButton->isChecked()) polarButton->setChecked(false);
+                if (nativeGridSnap != nullptr
+                    && !nativeGridSnap->isChecked()) {
+                    nativeGridSnap->trigger();
+                }
+            });
+        }
+        if (polarSnapModeAction != nullptr) {
+            connect(polarSnapModeAction, &QAction::triggered, polarButton,
+                    [nativeGridSnap, polarButton]() {
+                if (nativeGridSnap != nullptr
+                    && nativeGridSnap->isChecked()) {
+                    nativeGridSnap->trigger();
+                }
+                if (!polarButton->isChecked()) polarButton->setChecked(true);
+            });
+        }
+        if (snapModeMenu != nullptr) {
+            connect(snapModeMenu, &QMenu::aboutToShow, snapButton,
+                    [this, snapGridModeAction, polarSnapModeAction]() {
+                if (actionHandler == nullptr) return;
+                const RS_SnapMode mode = actionHandler->getSnaps();
+                const QSignalBlocker gridBlocker(snapGridModeAction);
+                const QSignalBlocker polarBlocker(polarSnapModeAction);
+                snapGridModeAction->setChecked(mode.snapGrid);
+                polarSnapModeAction->setChecked(mode.snapAngle);
+            });
+        }
+    }
+
+    auto* isometricButton = new QToolButton(statusBar());
+    isometricButton->setObjectName(QStringLiteral("kuubikIsometricButton"));
+    isometricButton->setProperty("kuubikActionKey",
+                                 QStringLiteral("IsometricDrafting"));
+    isometricButton->setProperty("kuubikBindingType",
+                                 QStringLiteral("document-setting"));
+    isometricButton->setProperty("kuubikReferencePage", 11);
+    isometricButton->setText(QStringLiteral("ISO"));
+    isometricButton->setIcon(QIcon(
+        QStringLiteral(":/icons/kuubik/view/status-isometric.svg")));
+    isometricButton->setIconSize(QSize(18, 18));
+    isometricButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    isometricButton->setPopupMode(QToolButton::MenuButtonPopup);
+    isometricButton->setCheckable(true);
+    isometricButton->setAutoRaise(false);
+    isometricButton->setAccessibleName(tr("Isometric drafting"));
+    auto* isometricMenu = new QMenu(isometricButton);
+    isometricMenu->setObjectName(QStringLiteral("kuubikIsometricMenu"));
+    auto* isometricGroup = new QActionGroup(isometricMenu);
+    isometricGroup->setExclusive(true);
+    for (const auto& plane : {
+             qMakePair(RS2::LeftCrosshair, tr("Isoplane Left")),
+             qMakePair(RS2::TopCrosshair, tr("Isoplane Top")),
+             qMakePair(RS2::RightCrosshair, tr("Isoplane Right"))}) {
+        QAction* planeAction = isometricMenu->addAction(plane.second);
+        planeAction->setProperty("kuubikIsoplane",
+                                 static_cast<int>(plane.first));
+        planeAction->setCheckable(true);
+        isometricGroup->addAction(planeAction);
+    }
+    isometricButton->setMenu(isometricMenu);
+    const auto applyIsometricMode = [this](bool enabled,
+                                            RS2::CrosshairType plane) {
+        QC_MDIWindow* mdi = getMDIWindow();
+        RS_Graphic* graphic = mdi == nullptr ? nullptr : mdi->getGraphic();
+        QG_GraphicView* view = mdi == nullptr ? nullptr
+                                              : mdi->getGraphicView();
+        if (graphic == nullptr || view == nullptr) return;
+        graphic->setIsometricGrid(enabled);
+        const RS2::CrosshairType appliedPlane = enabled
+            ? plane : RS2::OrthogonalCrosshair;
+        graphic->setCrosshairType(appliedPlane);
+        view->setCrosshairType(appliedPlane);
+        view->redraw(RS2::RedrawAll);
+    };
+    const auto syncIsometricUi = [this, isometricButton, isometricMenu]() {
+        QC_MDIWindow* mdi = getMDIWindow();
+        RS_Graphic* graphic = mdi == nullptr ? nullptr : mdi->getGraphic();
+        const bool enabled = graphic != nullptr
+                             && graphic->isIsometricGrid();
+        const RS2::CrosshairType plane = graphic == nullptr
+            ? RS2::OrthogonalCrosshair : graphic->getCrosshairType();
+        {
+            const QSignalBlocker blocker(isometricButton);
+            isometricButton->setEnabled(graphic != nullptr);
+            isometricButton->setChecked(enabled);
+        }
+        QString planeName = tr("Off");
+        for (QAction* action : isometricMenu->actions()) {
+            const bool matches = enabled
+                && action->property("kuubikIsoplane").toInt()
+                       == static_cast<int>(plane);
+            const QSignalBlocker blocker(action);
+            action->setChecked(matches);
+            if (matches) planeName = action->text();
+        }
+        isometricButton->setToolTip(
+            tr("Isometric drafting - %1\nF5 or Ctrl+E cycles isoplanes")
+                .arg(planeName));
+    };
+    connect(isometricButton, &QToolButton::toggled, this,
+            [this, applyIsometricMode, syncIsometricUi](bool checked) {
+        QC_MDIWindow* mdi = getMDIWindow();
+        RS_Graphic* graphic = mdi == nullptr ? nullptr : mdi->getGraphic();
+        RS2::CrosshairType plane = graphic == nullptr
+            ? RS2::LeftCrosshair : graphic->getCrosshairType();
+        if (plane == RS2::OrthogonalCrosshair) plane = RS2::LeftCrosshair;
+        applyIsometricMode(checked, plane);
+        syncIsometricUi();
+    });
+    for (QAction* action : isometricMenu->actions()) {
+        connect(action, &QAction::triggered, this,
+                [action, isometricButton, applyIsometricMode,
+                 syncIsometricUi]() {
+            const auto plane = static_cast<RS2::CrosshairType>(
+                action->property("kuubikIsoplane").toInt());
+            {
+                const QSignalBlocker blocker(isometricButton);
+                isometricButton->setChecked(true);
+            }
+            applyIsometricMode(true, plane);
+            syncIsometricUi();
+        });
+    }
+    connect(isometricMenu, &QMenu::aboutToShow, isometricButton,
+            syncIsometricUi);
+    connect(this, &QC_ApplicationWindow::windowsChanged, isometricButton,
+            [syncIsometricUi](bool) { syncIsometricUi(); });
+    const auto cycleIsoplane = [this, applyIsometricMode, syncIsometricUi]() {
+        QC_MDIWindow* mdi = getMDIWindow();
+        RS_Graphic* graphic = mdi == nullptr ? nullptr : mdi->getGraphic();
+        if (graphic == nullptr) return;
+        RS2::CrosshairType next = RS2::LeftCrosshair;
+        if (graphic->isIsometricGrid()) {
+            switch (graphic->getCrosshairType()) {
+            case RS2::LeftCrosshair: next = RS2::TopCrosshair; break;
+            case RS2::TopCrosshair: next = RS2::RightCrosshair; break;
+            default: next = RS2::LeftCrosshair; break;
+            }
+        }
+        applyIsometricMode(true, next);
+        syncIsometricUi();
+    };
+    auto* isometricF5 = new QShortcut(QKeySequence(Qt::Key_F5), this);
+    isometricF5->setObjectName(QStringLiteral("kuubikShortcutF5"));
+    isometricF5->setContext(Qt::ApplicationShortcut);
+    connect(isometricF5, &QShortcut::activated, isometricButton,
+            cycleIsoplane);
+    auto* isometricCtrlE = new QShortcut(
+        QKeySequence(Qt::CTRL | Qt::Key_E), this);
+    isometricCtrlE->setObjectName(QStringLiteral("kuubikShortcutCtrlE"));
+    isometricCtrlE->setContext(Qt::ApplicationShortcut);
+    connect(isometricCtrlE, &QShortcut::activated, isometricButton,
+            cycleIsoplane);
+    registerStatusItem(isometricButton, QStringLiteral("IsometricDrafting"),
+                       tr("Isometric Drafting"), true);
+    syncIsometricUi();
 
     auto* osnapButton = new QToolButton(statusBar());
     osnapButton->setObjectName(QStringLiteral("kuubikOsnapButton"));
@@ -1472,6 +1814,80 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     registerStatusItem(osnapButton, QStringLiteral("ObjectSnap"),
                        tr("Object Snap"), true);
 
+    auto* inferButton = new QToolButton(statusBar());
+    inferButton->setObjectName(QStringLiteral("kuubikStatusToggle"));
+    inferButton->setProperty("kuubikActionKey",
+                             QStringLiteral("InferConstraints"));
+    inferButton->setProperty("kuubikBindingType",
+                             QStringLiteral("inference-bundle"));
+    inferButton->setProperty("kuubikReferencePage", 7);
+    inferButton->setProperty("kuubikNonParametric", true);
+    inferButton->setText(QStringLiteral("INFER"));
+    inferButton->setIcon(QIcon(
+        QStringLiteral(":/icons/kuubik/view/status-infer.svg")));
+    inferButton->setIconSize(QSize(18, 18));
+    inferButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    inferButton->setCheckable(true);
+    inferButton->setAutoRaise(false);
+    inferButton->setAccessibleName(tr("Geometric inference"));
+    const auto inferBundleEnabled = [this]() {
+        if (actionHandler == nullptr) return false;
+        const RS_SnapMode mode = actionHandler->getSnaps();
+        return mode.snapEndpoint && mode.snapPerpendicular
+            && mode.snapTangent && mode.snapParallel;
+    };
+    const auto updateInferTooltip = [inferButton]() {
+        inferButton->setToolTip(
+            inferButton->isChecked()
+                ? tr("Geometric inference - On\nUses native coincident, perpendicular, tangent, and parallel snaps; constraints are not persistent")
+                : tr("Geometric inference - Off\nUses native drafting snaps; constraints are not persistent"));
+    };
+    inferButton->setChecked(inferBundleEnabled());
+    updateInferTooltip();
+    connect(inferButton, &QToolButton::toggled, this,
+            [this, inferButton, syncOsnapUi,
+             updateInferTooltip](bool checked) {
+        if (actionHandler == nullptr) return;
+        RS_SnapMode mode = actionHandler->getSnaps();
+        if (checked) {
+            QSettings().setValue(
+                QStringLiteral("KuubikStatus/InferSavedSnapMode"),
+                RS_SnapMode::toInt(mode));
+            mode.snapEndpoint = true;
+            mode.snapPerpendicular = true;
+            mode.snapTangent = true;
+            mode.snapParallel = true;
+        } else {
+            const RS_SnapMode saved = RS_SnapMode::fromInt(
+                QSettings().value(
+                    QStringLiteral("KuubikStatus/InferSavedSnapMode"),
+                    0).toUInt());
+            mode.snapEndpoint = saved.snapEndpoint;
+            mode.snapPerpendicular = saved.snapPerpendicular;
+            mode.snapTangent = saved.snapTangent;
+            mode.snapParallel = saved.snapParallel;
+        }
+        actionHandler->slotSetSnaps(mode);
+        {
+            const QSignalBlocker blocker(inferButton);
+            inferButton->setChecked(checked);
+        }
+        updateInferTooltip();
+        syncOsnapUi();
+    });
+    connect(osnapMenu, &QMenu::triggered, inferButton,
+            [inferButton, inferBundleEnabled, updateInferTooltip](QAction*) {
+        QTimer::singleShot(0, inferButton,
+                          [inferButton, inferBundleEnabled,
+                           updateInferTooltip]() {
+            const QSignalBlocker blocker(inferButton);
+            inferButton->setChecked(inferBundleEnabled());
+            updateInferTooltip();
+        });
+    });
+    registerStatusItem(inferButton, QStringLiteral("InferConstraints"),
+                       tr("Infer Constraints (native inference)"), true);
+
     addSnapToggle(QStringLiteral("OTRACK"),
                   QStringLiteral(":/icons/kuubik/view/status-otrack.svg"),
                   QStringLiteral("SnapTracking"), RS_SnapMode::SnapTracking,
@@ -1504,9 +1920,72 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         registerStatusItem(button, key, tooltip, true);
         return button;
     };
-    addLocalToggle(QStringLiteral("DYN"), QStringLiteral(":/icons/kuubik/view/status-dynamic.svg"), QStringLiteral("DynamicInput"),
-                   statusSettings.value(QStringLiteral("KuubikStatus/DynamicInput"), true).toBool(),
-                   tr("Dynamic input"));
+    QToolButton* dynamicButton = addLocalToggle(
+        QStringLiteral("DYN"),
+        QStringLiteral(":/icons/kuubik/view/status-dynamic.svg"),
+        QStringLiteral("DynamicInput"),
+        statusSettings.value(QStringLiteral("KuubikStatus/DynamicInput"),
+                             true).toBool(),
+        tr("Dynamic input"));
+    if (dynamicButton != nullptr) {
+        dynamicButton->setProperty("kuubikReferencePage", 8);
+        const auto updateDynamicTooltip = [dynamicButton]() {
+            dynamicButton->setToolTip(
+                dynamicButton->isChecked()
+                    ? tr("Dynamic input - On (F12)\nRight-click for settings")
+                    : tr("Dynamic input - Off (F12)\nRight-click for settings"));
+        };
+        updateDynamicTooltip();
+        connect(dynamicButton, &QToolButton::toggled, dynamicButton,
+                [updateDynamicTooltip](bool) { updateDynamicTooltip(); });
+
+        auto* dynamicMenu = new QMenu(dynamicButton);
+        dynamicMenu->setObjectName(QStringLiteral("kuubikDynamicInputMenu"));
+        QAction* showDistance = dynamicMenu->addAction(
+            tr("Show Distance Field"));
+        QAction* showAngle = dynamicMenu->addAction(
+            tr("Show Angle Field"));
+        showDistance->setObjectName(
+            QStringLiteral("kuubikDynamicShowDistance"));
+        showAngle->setObjectName(QStringLiteral("kuubikDynamicShowAngle"));
+        showDistance->setCheckable(true);
+        showAngle->setCheckable(true);
+        showDistance->setChecked(statusSettings.value(
+            QStringLiteral("KuubikStatus/DynamicShowDistance"), true).toBool());
+        showAngle->setChecked(statusSettings.value(
+            QStringLiteral("KuubikStatus/DynamicShowAngle"), true).toBool());
+        connect(showDistance, &QAction::toggled, dynamicButton,
+                [showDistance, showAngle](bool checked) {
+            if (!checked && !showAngle->isChecked()) {
+                const QSignalBlocker blocker(showDistance);
+                showDistance->setChecked(true);
+                return;
+            }
+            QSettings().setValue(
+                QStringLiteral("KuubikStatus/DynamicShowDistance"), checked);
+        });
+        connect(showAngle, &QAction::toggled, dynamicButton,
+                [showDistance, showAngle](bool checked) {
+            if (!checked && !showDistance->isChecked()) {
+                const QSignalBlocker blocker(showAngle);
+                showAngle->setChecked(true);
+                return;
+            }
+            QSettings().setValue(
+                QStringLiteral("KuubikStatus/DynamicShowAngle"), checked);
+        });
+        dynamicButton->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(dynamicButton, &QWidget::customContextMenuRequested,
+                dynamicMenu, [dynamicButton, dynamicMenu](const QPoint& pos) {
+            dynamicMenu->popup(dynamicButton->mapToGlobal(pos));
+        });
+        auto* dynamicShortcut = new QShortcut(
+            QKeySequence(Qt::Key_F12), this);
+        dynamicShortcut->setObjectName(QStringLiteral("kuubikShortcutF12"));
+        dynamicShortcut->setContext(Qt::ApplicationShortcut);
+        connect(dynamicShortcut, &QShortcut::activated, dynamicButton,
+                [dynamicButton]() { dynamicButton->click(); });
+    }
 
     if (QAction* draftAction = a_map.value(QStringLiteral("ViewDraft"), nullptr)) {
         auto* lineweightButton = new QToolButton(statusBar());
@@ -1601,6 +2080,22 @@ void QC_ApplicationWindow::createKuubikStatusControls()
                 });
         registerStatusItem(cleanScreen, QStringLiteral("CleanScreen"),
                            tr("Clean Screen"), true);
+    }
+
+    // Match the control progression shown across reference pages 1-11 even
+    // though several widgets are constructed later to reuse native helpers.
+    const QStringList referenceStatusOrder {
+        QStringLiteral("Coordinates"), QStringLiteral("ModelSpace"),
+        QStringLiteral("Grid"), QStringLiteral("SnapMode"),
+        QStringLiteral("InferConstraints"), QStringLiteral("DynamicInput"),
+        QStringLiteral("OrthoMode"), QStringLiteral("SnapAngle"),
+        QStringLiteral("IsometricDrafting"), QStringLiteral("ObjectSnap"),
+        QStringLiteral("SnapTracking"), QStringLiteral("Lineweight"),
+        QStringLiteral("QuickProperties"), QStringLiteral("CleanScreen")
+    };
+    for (const StatusItem& item : statusItems) {
+        const int order = referenceStatusOrder.indexOf(item.key);
+        if (order >= 0) item.widget->setProperty("kuubikStatusOrder", order);
     }
 
     auto* customizeButton = new QToolButton(statusBar());
@@ -2275,6 +2770,15 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
             functionalBinding = actionHandler != nullptr
                                 && statusButton->menu() != nullptr
                                 && statusButton->menu()->actions().size() >= 10;
+        } else if (bindingType == QStringLiteral("inference-bundle")) {
+            functionalBinding = actionHandler != nullptr
+                                && statusButton->property(
+                                       "kuubikNonParametric").toBool();
+        } else if (bindingType == QStringLiteral("document-setting")) {
+            QC_MDIWindow* mdi = getMDIWindow();
+            functionalBinding = mdi != nullptr && mdi->getGraphic() != nullptr
+                                && mdi->getGraphicView() != nullptr
+                                && statusButton->menu() != nullptr;
         }
         QJsonObject statusObject;
         statusObject.insert("objectName", statusButton->objectName());
@@ -2488,6 +2992,239 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
                                   QStringLiteral("Grid Settings")));
     referenceFirstFive.insert("statusBarHeight", statusBar()->height());
     statusBarObject.insert("referencePdfFirstFive", referenceFirstFive);
+
+    const auto statusButtonForKey = [&statusButtons](const QString& key) {
+        for (QToolButton* button : statusButtons) {
+            if (button->property("kuubikActionKey").toString() == key) {
+                return button;
+            }
+        }
+        return static_cast<QToolButton*>(nullptr);
+    };
+    const auto actionHasShortcut = [this](const QString& key,
+                                           const QKeySequence& shortcut) {
+        QAction* action = a_map.value(key, nullptr);
+        return action != nullptr && action->shortcuts().contains(shortcut);
+    };
+    QToolButton* snapStatusButton = statusButtonForKey(
+        QStringLiteral("SnapGrid"));
+    QToolButton* inferStatusButton = statusButtonForKey(
+        QStringLiteral("InferConstraints"));
+    QToolButton* dynamicStatusButton = statusButtonForKey(
+        QStringLiteral("DynamicInput"));
+    QToolButton* orthoStatusButton = statusButtonForKey(
+        QStringLiteral("RestrictOrthogonal"));
+    QToolButton* polarStatusButton = statusButtonForKey(
+        QStringLiteral("SnapAngle"));
+    QToolButton* isometricStatusButton = statusButtonForKey(
+        QStringLiteral("IsometricDrafting"));
+    QMenu* snapStatusMenu = snapStatusButton == nullptr
+        ? nullptr : snapStatusButton->findChild<QMenu*>(
+              QStringLiteral("kuubikSnapModeMenu"));
+    QMenu* dynamicSettingsMenu = dynamicStatusButton == nullptr
+        ? nullptr : dynamicStatusButton->findChild<QMenu*>(
+              QStringLiteral("kuubikDynamicInputMenu"));
+    QMenu* polarStatusMenu = polarStatusButton == nullptr
+        ? nullptr : polarStatusButton->findChild<QMenu*>(
+              QStringLiteral("kuubikPolarMenu"));
+    QMenu* isometricStatusMenu = isometricStatusButton == nullptr
+        ? nullptr : isometricStatusButton->findChild<QMenu*>(
+              QStringLiteral("kuubikIsometricMenu"));
+
+    int snapModeChoiceCount = 0;
+    if (snapStatusMenu != nullptr) {
+        for (QAction* action : snapStatusMenu->actions()) {
+            if (action->objectName() == QStringLiteral("kuubikSnapModeGrid")
+                || action->objectName()
+                       == QStringLiteral("kuubikSnapModePolar")) {
+                ++snapModeChoiceCount;
+            }
+        }
+    }
+    int polarPresetCount = 0;
+    if (polarStatusMenu != nullptr) {
+        for (QAction* action : polarStatusMenu->actions()) {
+            if (action->property("kuubikPolarAngle").isValid()) {
+                ++polarPresetCount;
+            }
+        }
+    }
+    int isoplaneCount = 0;
+    if (isometricStatusMenu != nullptr) {
+        for (QAction* action : isometricStatusMenu->actions()) {
+            if (action->property("kuubikIsoplane").isValid()) {
+                ++isoplaneCount;
+            }
+        }
+    }
+
+    bool inferenceBundleRoundTrip = false;
+    if (inferStatusButton != nullptr && actionHandler != nullptr) {
+        const RS_SnapMode original = actionHandler->getSnaps();
+        {
+            const QSignalBlocker blocker(inferStatusButton);
+            inferStatusButton->setChecked(false);
+        }
+        inferStatusButton->click();
+        QApplication::processEvents();
+        const RS_SnapMode inferred = actionHandler->getSnaps();
+        const bool enabledNativeBundle = inferred.snapEndpoint
+            && inferred.snapPerpendicular && inferred.snapTangent
+            && inferred.snapParallel;
+        inferStatusButton->click();
+        QApplication::processEvents();
+        inferenceBundleRoundTrip = enabledNativeBundle
+            && RS_SnapMode::toInt(actionHandler->getSnaps())
+                   == RS_SnapMode::toInt(original);
+        actionHandler->slotSetSnaps(original);
+        {
+            const QSignalBlocker blocker(inferStatusButton);
+            inferStatusButton->setChecked(original.snapEndpoint
+                && original.snapPerpendicular && original.snapTangent
+                && original.snapParallel);
+        }
+    }
+
+    bool polarSnapEngineQuantizes = false;
+    QC_MDIWindow* referenceMdi = getMDIWindow();
+    RS_Graphic* referenceGraphic = referenceMdi == nullptr
+        ? nullptr : referenceMdi->getGraphic();
+    QG_GraphicView* referenceView = referenceMdi == nullptr
+        ? nullptr : referenceMdi->getGraphicView();
+    QString originalPolarIncrement;
+    {
+        auto settingsGuard = RS_SETTINGS->beginGroupGuard("/Snap");
+        originalPolarIncrement = RS_SETTINGS->readEntry(
+            "/AngleIncrement", "15");
+        RS_SETTINGS->writeEntry("/AngleIncrement", QStringLiteral("15"));
+    }
+    if (referenceGraphic != nullptr && referenceView != nullptr
+        && referenceView->width() > 100 && referenceView->height() > 100) {
+        RS_Snapper verifier(*referenceGraphic, *referenceView);
+        verifier.init();
+        RS_SnapMode polarOnly;
+        polarOnly.snapAngle = true;
+        verifier.setSnapMode(polarOnly);
+        const QPoint testPoint(referenceView->width() * 7 / 10,
+                               referenceView->height() * 2 / 5);
+        const RS_Vector raw = referenceView->toGraph(testPoint.x(),
+                                                      testPoint.y());
+        QMouseEvent polarEvent(QEvent::MouseMove, QPointF(testPoint),
+                               Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+        const RS_Vector snapped = verifier.snapPoint(&polarEvent);
+        const RS_Vector relativeZero = referenceView->getRelativeZero();
+        const double degrees = relativeZero.angleTo(snapped)
+                               * 180.0 / M_PI;
+        polarSnapEngineQuantizes = snapped.valid
+            && raw.distanceTo(snapped) > RS_TOLERANCE
+            && std::abs(std::remainder(degrees, 15.0)) < 0.001;
+        verifier.finish();
+    }
+    {
+        auto settingsGuard = RS_SETTINGS->beginGroupGuard("/Snap");
+        RS_SETTINGS->writeEntry("/AngleIncrement", originalPolarIncrement);
+    }
+
+    bool isometricPlanesRoundTrip = false;
+    if (referenceGraphic != nullptr && referenceView != nullptr
+        && isometricStatusMenu != nullptr) {
+        const bool originalIsometric = referenceGraphic->isIsometricGrid();
+        const RS2::CrosshairType originalPlane =
+            referenceGraphic->getCrosshairType();
+        bool leftApplied = false;
+        bool topApplied = false;
+        bool rightApplied = false;
+        for (QAction* action : isometricStatusMenu->actions()) {
+            if (!action->property("kuubikIsoplane").isValid()) continue;
+            const auto plane = static_cast<RS2::CrosshairType>(
+                action->property("kuubikIsoplane").toInt());
+            action->trigger();
+            QApplication::processEvents();
+            const bool applied = referenceGraphic->isIsometricGrid()
+                && referenceGraphic->getCrosshairType() == plane
+                && referenceView->getCrosshairType() == plane;
+            if (plane == RS2::LeftCrosshair) leftApplied = applied;
+            if (plane == RS2::TopCrosshair) topApplied = applied;
+            if (plane == RS2::RightCrosshair) rightApplied = applied;
+        }
+        referenceGraphic->setIsometricGrid(originalIsometric);
+        referenceGraphic->setCrosshairType(originalPlane);
+        referenceView->setCrosshairType(originalPlane);
+        referenceView->redraw(RS2::RedrawAll);
+        {
+            const QSignalBlocker blocker(isometricStatusButton);
+            isometricStatusButton->setChecked(originalIsometric);
+        }
+        isometricPlanesRoundTrip = leftApplied && topApplied && rightApplied;
+    }
+
+    const QList<QToolButton*> pageSixToElevenButtons {
+        snapStatusButton, inferStatusButton, dynamicStatusButton,
+        orthoStatusButton, polarStatusButton, isometricStatusButton
+    };
+    bool pageControlsVisible = true;
+    bool pageControlsOrdered = true;
+    int priorLeft = -1;
+    for (QToolButton* button : pageSixToElevenButtons) {
+        const bool visible = button != nullptr && !button->isHidden();
+        pageControlsVisible = pageControlsVisible && visible;
+        if (visible) {
+            pageControlsOrdered = pageControlsOrdered
+                && button->geometry().left() > priorLeft;
+            priorLeft = button->geometry().left();
+        } else {
+            pageControlsOrdered = false;
+        }
+    }
+
+    QJsonObject referenceSixToEleven;
+    referenceSixToEleven.insert("referenceStartPage", 6);
+    referenceSixToEleven.insert("referenceEndPage", 11);
+    referenceSixToEleven.insert("referencePageCount", 6);
+    referenceSixToEleven.insert("pageControlsVisible", pageControlsVisible);
+    referenceSixToEleven.insert("pageControlsOrdered", pageControlsOrdered);
+    referenceSixToEleven.insert("snapModeChoiceCount", snapModeChoiceCount);
+    referenceSixToEleven.insert("snapSettingsOnRightClick",
+        snapStatusButton != nullptr
+        && snapStatusButton->contextMenuPolicy() == Qt::CustomContextMenu);
+    referenceSixToEleven.insert("snapF9Shortcut",
+        actionHasShortcut(QStringLiteral("SnapGrid"),
+                          QKeySequence(Qt::Key_F9)));
+    referenceSixToEleven.insert("inferenceUsesNativeSnapBundle",
+                                inferenceBundleRoundTrip);
+    referenceSixToEleven.insert("inferenceIsHonestlyNonPersistent",
+        inferStatusButton != nullptr
+        && inferStatusButton->property("kuubikNonParametric").toBool()
+        && inferStatusButton->toolTip().contains(
+            QStringLiteral("not persistent")));
+    referenceSixToEleven.insert("dynamicF12Shortcut",
+        findChild<QShortcut*>(QStringLiteral("kuubikShortcutF12")) != nullptr);
+    referenceSixToEleven.insert("dynamicSettingsPresent",
+        dynamicSettingsMenu != nullptr
+        && dynamicSettingsMenu->findChild<QAction*>(
+            QStringLiteral("kuubikDynamicShowDistance")) != nullptr
+        && dynamicSettingsMenu->findChild<QAction*>(
+            QStringLiteral("kuubikDynamicShowAngle")) != nullptr);
+    referenceSixToEleven.insert("orthoNativeBinding",
+        orthoStatusButton != nullptr
+        && orthoStatusButton->property("kuubikNativeActionBound").toBool());
+    referenceSixToEleven.insert("orthoF8Shortcut",
+        actionHasShortcut(QStringLiteral("RestrictOrthogonal"),
+                          QKeySequence(Qt::Key_F8)));
+    referenceSixToEleven.insert("polarPresetCount", polarPresetCount);
+    referenceSixToEleven.insert("polarF10Shortcut",
+        findChild<QShortcut*>(QStringLiteral("kuubikShortcutF10")) != nullptr);
+    referenceSixToEleven.insert("polarSnapEngineQuantizes",
+                                polarSnapEngineQuantizes);
+    referenceSixToEleven.insert("isoplaneCount", isoplaneCount);
+    referenceSixToEleven.insert("isometricPlanesRoundTrip",
+                                isometricPlanesRoundTrip);
+    referenceSixToEleven.insert("isometricF5Shortcut",
+        findChild<QShortcut*>(QStringLiteral("kuubikShortcutF5")) != nullptr);
+    referenceSixToEleven.insert("isometricCtrlEShortcut",
+        findChild<QShortcut*>(QStringLiteral("kuubikShortcutCtrlE")) != nullptr);
+    statusBarObject.insert("referencePdfPagesSixToEleven",
+                           referenceSixToEleven);
     contract.insert("statusBar", statusBarObject);
 
     QJsonObject dpiObject;

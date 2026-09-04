@@ -163,14 +163,16 @@ The goal remains active. Before completion it still requires:
 
 The local 2026-09-04 status-bar refinement now provides the AutoCAD-familiar
 blue-grey row, an OSNAP split menu and a persistent three-line customization
-menu for the twelve supported controls. The first approved reference phase is
-limited to pages 1–5: visual language, interaction states, Coordinates, Model
-Space and Grid. Live X/Y/Z coordinates are visible before MODEL and the native
-GRID toggle. Its UI contract proves the ordered single-row cluster, ten
-functional button bindings, fourteen OSNAP modes, four coordinate formats and
-a real hide/restore round trip. The Qt 5 build and full native GUI smoke pass
-locally; the packaged Windows qwindows/DPI workflow remains required before
-this result is Windows-verified.
+menu for the fourteen supported controls. Approved reference pages 1–11 are
+implemented: visual language, interaction states, Coordinates, Model Space,
+Grid, Snap Mode, native inference, Dynamic Input, Ortho, Polar Tracking and
+Isometric Drafting. Live X/Y/Z coordinates are visible before MODEL and the
+native GRID toggle. The second batch adds F9/F12/F8/F10/F5/Ctrl+E shortcuts,
+real polar-angle quantization, angle presets and three native isoplanes. Page
+7 is represented honestly by native drawing-time snap inference; Kuubik Draw
+does not persist AutoCAD-style parametric constraints. The Qt 5 build, UI
+contract and full native GUI smoke pass locally; the packaged Windows
+qwindows/DPI workflow remains required before this result is Windows-verified.
 
 ## Out of scope
 

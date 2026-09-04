@@ -327,6 +327,8 @@
         <file>kuubik/view/status-selection.svg</file>
         <file>kuubik/view/status-clean.svg</file>
         <file>kuubik/view/status-customize.svg</file>
+        <file>kuubik/view/status-infer.svg</file>
+        <file>kuubik/view/status-isometric.svg</file>
         <file>kuubik/view/snap-geometric-center.svg</file>
         <file>kuubik/view/snap-node.svg</file>
         <file>kuubik/view/snap-quadrant.svg</file>

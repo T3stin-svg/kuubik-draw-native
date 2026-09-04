@@ -317,8 +317,9 @@ foreach ($control in $statusControls) {
     }
 }
 $expectedStatusActions = @(
-    'ViewGrid', 'SnapGrid', 'RestrictOrthogonal', 'SnapAngle', 'ObjectSnapMenu',
-    'SnapTracking', 'DynamicInput', 'ViewDraft', 'QuickProperties', 'Fullscreen'
+    'ViewGrid', 'SnapGrid', 'InferConstraints', 'DynamicInput',
+    'RestrictOrthogonal', 'SnapAngle', 'IsometricDrafting', 'ObjectSnapMenu',
+    'SnapTracking', 'ViewDraft', 'QuickProperties', 'Fullscreen'
 )
 $actualStatusActions = @($statusControls | ForEach-Object actionKey | Sort-Object -Unique)
 if ($actualStatusActions.Count -ne $expectedStatusActions.Count) {
@@ -379,6 +380,30 @@ if ($referenceCoordinateWidth -lt 176 -or $referenceCoordinateWidth -gt 190) {
 if ((Require-JsonNumber $referenceFirstFive 'statusBarHeight' 'uiContract.statusBar.referencePdfFirstFive') -gt 29) {
     throw 'Status bar exceeds the compact single-row reference height.'
 }
+$referenceSixToEleven = Require-JsonProperty $statusBarContract 'referencePdfPagesSixToEleven' 'uiContract.statusBar'
+if ((Require-JsonNumber $referenceSixToEleven 'referenceStartPage' 'uiContract.statusBar.referencePdfPagesSixToEleven') -ne 6 -or
+    (Require-JsonNumber $referenceSixToEleven 'referenceEndPage' 'uiContract.statusBar.referencePdfPagesSixToEleven') -ne 11 -or
+    (Require-JsonNumber $referenceSixToEleven 'referencePageCount' 'uiContract.statusBar.referencePdfPagesSixToEleven') -ne 6) {
+    throw 'The second reference implementation batch must cover exactly PDF pages 6-11.'
+}
+foreach ($referenceFlag in @(
+    'pageControlsVisible', 'pageControlsOrdered', 'snapSettingsOnRightClick',
+    'snapF9Shortcut', 'inferenceUsesNativeSnapBundle',
+    'inferenceIsHonestlyNonPersistent', 'dynamicF12Shortcut',
+    'dynamicSettingsPresent', 'orthoNativeBinding', 'orthoF8Shortcut',
+    'polarF10Shortcut', 'polarSnapEngineQuantizes',
+    'isometricPlanesRoundTrip', 'isometricF5Shortcut',
+    'isometricCtrlEShortcut'
+)) {
+    if (-not (Require-JsonBoolean $referenceSixToEleven $referenceFlag 'uiContract.statusBar.referencePdfPagesSixToEleven')) {
+        throw "Pages 6-11 status-bar contract failed: $referenceFlag"
+    }
+}
+if ((Require-JsonNumber $referenceSixToEleven 'snapModeChoiceCount' 'uiContract.statusBar.referencePdfPagesSixToEleven') -ne 2 -or
+    (Require-JsonNumber $referenceSixToEleven 'polarPresetCount' 'uiContract.statusBar.referencePdfPagesSixToEleven') -lt 8 -or
+    (Require-JsonNumber $referenceSixToEleven 'isoplaneCount' 'uiContract.statusBar.referencePdfPagesSixToEleven') -ne 3) {
+    throw 'Pages 6-11 menus are missing Snap, Polar, or isoplane choices.'
+}
 if (-not (Require-JsonBoolean $statusBarContract 'menuScreenshotSaved' 'uiContract.statusBar') -or
     (Require-JsonNumber $statusBarContract 'menuScreenshotWidth' 'uiContract.statusBar') -lt 180 -or
     (Require-JsonNumber $statusBarContract 'menuScreenshotHeight' 'uiContract.statusBar') -lt 250) {
@@ -386,9 +411,9 @@ if (-not (Require-JsonBoolean $statusBarContract 'menuScreenshotSaved' 'uiContra
 }
 $customizationEntries = @(Require-JsonProperty $statusBarContract 'customizationEntries' 'uiContract.statusBar')
 $expectedCustomizationKeys = @(
-    'Coordinates', 'ModelSpace', 'Grid', 'SnapMode', 'OrthoMode', 'SnapAngle',
-    'ObjectSnap', 'SnapTracking', 'DynamicInput', 'Lineweight', 'QuickProperties',
-    'CleanScreen'
+    'Coordinates', 'ModelSpace', 'Grid', 'SnapMode', 'InferConstraints',
+    'DynamicInput', 'OrthoMode', 'SnapAngle', 'IsometricDrafting',
+    'ObjectSnap', 'SnapTracking', 'Lineweight', 'QuickProperties', 'CleanScreen'
 )
 $actualCustomizationKeys = @($customizationEntries | ForEach-Object key | Sort-Object -Unique)
 if ($actualCustomizationKeys.Count -ne $expectedCustomizationKeys.Count) {

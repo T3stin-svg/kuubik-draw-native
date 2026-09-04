@@ -297,3 +297,22 @@ state and matching Grid tooltip. The status bar measured 27 logical pixels.
 The full offscreen native GUI smoke also exited 0 with `status: PASS`, including
 LINE, PLINE, COPY, MOVE, Undo/Redo, Properties and document lifecycle. Autodesk
 screenshots were not added to application resources.
+
+## Reference pages 6–11 implementation check — 2026-09-04
+
+The Qt 5 release build completed after adding the six precision-drafting
+controls. The offscreen UI contract exited 0 and reported every page 6–11 gate
+true: the controls were visible and ordered; SNAP exposed Grid/Polar choices,
+right-click settings and F9; Dynamic Input exposed distance/angle settings and
+F12; native ORTHO retained F8; POLAR exposed eight presets, F10 and a verified
+15-degree snapping-engine quantization; and Isometric Drafting round-tripped
+Left, Top and Right planes with F5/Ctrl+E registered.
+
+The Infer control successfully enabled and restored the native endpoint,
+perpendicular, tangent and parallel snap bundle. The contract also confirmed
+that its presentation states the non-persistent limitation. The full native
+GUI smoke exited 0 with `status: PASS`, retained visible dynamic input, global
+Escape cancellation, exact LINE creation, PLINE/COPY/MOVE Undo/Redo and native
+DXF save. Icon validation passed with 66 action mappings and 88 referenced
+Kuubik SVGs, and `git diff --check` passed. This remains local Linux evidence;
+Windows MSVC/qwindows packaging and real display-scale checks are pending.

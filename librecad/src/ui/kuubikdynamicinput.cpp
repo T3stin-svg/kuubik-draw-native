@@ -5,6 +5,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QSettings>
+#include <QStringList>
 #include <QWidget>
 
 #include "rs_math.h"
@@ -58,12 +59,22 @@ bool KuubikDynamicInput::handleKey(QKeyEvent* event)
 {
     if (!QSettings().value(QStringLiteral("KuubikStatus/DynamicInput"), true).toBool()) return false;
     if (event == nullptr || !startPoint.valid) return false;
+    const bool showDistance = QSettings().value(
+        QStringLiteral("KuubikStatus/DynamicShowDistance"), true).toBool();
+    const bool showAngle = QSettings().value(
+        QStringLiteral("KuubikStatus/DynamicShowAngle"), true).toBool();
     if (event->key() == Qt::Key_Tab || event->key() == Qt::Key_Backtab) {
-        editingAngle = !editingAngle;
+        if (showDistance && showAngle) {
+            editingAngle = !editingAngle;
+        } else {
+            editingAngle = showAngle;
+        }
         refresh();
         event->accept();
         return true;
     }
+    if (!showDistance && showAngle) editingAngle = true;
+    if (showDistance && !showAngle) editingAngle = false;
     QString* target = editingAngle ? &angleText : &lengthText;
     if (event->key() == Qt::Key_Backspace) {
         target->chop(1);
@@ -95,8 +106,12 @@ RS_Vector KuubikDynamicInput::endpoint() const
     double length = delta.magnitude();
     double angle = delta.angle();
     double value = 0.0;
-    if (parse(lengthText, value)) length = value;
-    if (parse(angleText, value)) angle = RS_Math::deg2rad(value);
+    const bool showDistance = QSettings().value(
+        QStringLiteral("KuubikStatus/DynamicShowDistance"), true).toBool();
+    const bool showAngle = QSettings().value(
+        QStringLiteral("KuubikStatus/DynamicShowAngle"), true).toBool();
+    if (showDistance && parse(lengthText, value)) length = value;
+    if (showAngle && parse(angleText, value)) angle = RS_Math::deg2rad(value);
     return startPoint + RS_Vector::polar(length, angle);
 }
 
@@ -127,10 +142,20 @@ void KuubikDynamicInput::refresh()
                                               : QStringLiteral("#63b9ff");
     const QString angleColor = editingAngle ? QStringLiteral("#63b9ff")
                                              : QStringLiteral("#e8edf5");
-    label->setText(QStringLiteral(
-        "<span style='color:%1'>L %2</span>&nbsp;&nbsp;"
-        "<span style='color:%3'>A %4&deg;</span>")
-                       .arg(lengthColor, length, angleColor, angle));
+    const bool showDistance = QSettings().value(
+        QStringLiteral("KuubikStatus/DynamicShowDistance"), true).toBool();
+    const bool showAngle = QSettings().value(
+        QStringLiteral("KuubikStatus/DynamicShowAngle"), true).toBool();
+    QStringList fields;
+    if (showDistance) {
+        fields.append(QStringLiteral("<span style='color:%1'>L %2</span>")
+                          .arg(lengthColor, length));
+    }
+    if (showAngle) {
+        fields.append(QStringLiteral("<span style='color:%1'>A %2&deg;</span>")
+                          .arg(angleColor, angle));
+    }
+    label->setText(fields.join(QStringLiteral("&nbsp;&nbsp;")));
 }
 
 bool KuubikDynamicInput::parse(const QString& text, double& value)
