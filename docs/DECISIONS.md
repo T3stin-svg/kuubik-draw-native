@@ -213,3 +213,24 @@ display-only or misleading constraint toggle.
 The new status icons are original Kuubik technical-line SVGs. Autodesk
 screenshots remain confined to the reference PDF and are not packaged into the
 application.
+
+## D-022 — Herdr workers use isolated task worktrees
+
+D-012 remains the historical record of the original single-window workflow.
+This decision supersedes only its restriction that parallel subtasks may use
+only internal `gpt-5.6-terra` agents. Its single integration-owner principle
+remains governing: one lead owns the integration checkout and branch, Git
+state, review, local integration, final testing and user report.
+
+Genuinely independent work may use named Codex workers managed through Herdr.
+Read-only workers may share a checkout. Every editing worker must use a
+dedicated task branch and separate Git worktree created from the intended
+baseline commit. No two editing workers may own or modify overlapping files,
+and task worktrees are not competing integration checkouts. Each worker reports
+its changed files, tests, result and commit hash before lead review.
+
+Approval of a bounded implementation milestone authorizes local commits on its
+worker task branches and lead-owned local integration for that milestone. It
+does not authorize pushing, publishing, remote merging, releases, deletion,
+discarding existing changes or destructive operations; those actions still
+require explicit Reio approval.

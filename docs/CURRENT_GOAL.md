@@ -59,22 +59,31 @@ model, polling-based selection model or preview-only geometry path.
 ## Coordination
 
 This Codex conversation is the single primary work window. The primary agent is
-the only integrator, documentation owner and Git-state controller.
+the only integrator, documentation owner and Git-state controller, and keeps
+one lead-owned integration checkout and integration branch.
 
-Parallel analysis or implementation may use only internal gpt-5.6-terra agents
-at High reasoning inside this conversation. Do not create sidebar tasks,
-separate Codex sessions or parallel integration worktrees for this goal.
+Genuinely independent analysis or implementation may use named Codex workers
+managed through Herdr. Read-only workers may share a checkout. Every editing
+worker must use a dedicated task branch and separate worktree created from the
+intended baseline, and no two editing workers may own or modify overlapping
+files. These bounded task worktrees do not replace or compete with the single
+lead-owned integration checkout.
+
+Approval of a bounded implementation milestone authorizes local worker commits
+and lead-owned local integration for that milestone. Pushing, publishing,
+remote merging, releases, deletion and destructive operations still require
+explicit Reio approval.
 
 The primary agent must:
 
 - inspect the real branch, commit and dirty state before each integration;
 - preserve all pre-existing user changes;
-- give each internal agent a bounded task and review its evidence;
+- give each worker one bounded task and review its evidence;
 - integrate and commit through explicit file allowlists;
 - check agent and branch progress at least once per hour;
 - keep the hourly heartbeat attached to this conversation and branch;
-- never merge to master, replace a release, publish production or force-push
-  without explicit Reio approval.
+- never push, remotely merge, replace a release, publish production, delete
+  data or perform destructive operations without explicit Reio approval.
 
 ## Active deliverables
 

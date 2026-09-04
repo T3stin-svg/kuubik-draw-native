@@ -86,3 +86,34 @@ When a material wave finishes, update `docs/PROJECT_STATE.md`,
 `NEXT_TASKS.md`, `docs/TEST_REPORT.md`, and `docs/DECISIONS.md` if a decision
 changed. Rebuild the AI handoff archive with
 `scripts/build-ai-handoff.ps1` for the next public preview.
+
+## Herdr orchestration
+
+You are the lead agent for this repository.
+
+When a task has genuinely independent workstreams, use the installed Herdr
+skill and Herdr CLI to create named Codex worker agents in sibling panes. Give
+each worker one bounded task, monitor its state, wait for completion, read its
+result, and review the work before integration.
+
+Read-only workers may share the current checkout. Every worker that edits code
+must use its own git worktree and dedicated branch created from the intended
+baseline commit. Never allow two workers to edit the same files. A worker must
+report its changed files, tests, result, and commit hash.
+
+The lead owns task decomposition, worker coordination, review, integration into
+the lead branch, final testing, and the report to the user.
+
+Approval of a bounded implementation milestone authorizes local worker commits
+on its dedicated task branches and lead-owned local integration for that
+milestone. Do not create workers for small sequential tasks. Pushing,
+publishing, remote merging, releases, deletion, discarding existing changes,
+and destructive actions still require explicit authorization.
+
+Before starting workers, confirm HERDR_ENV=1, inspect current agent and Git
+state, preserve all existing commits and user changes, and read the Herdr skill
+instructions.
+
+Preserve all existing commits and user changes. Treat running previews and
+background processes as user-owned; do not close or interrupt them unless
+explicitly requested.

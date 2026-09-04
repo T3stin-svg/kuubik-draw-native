@@ -100,16 +100,22 @@ selection → document → atomic Undo/Redo workflow. Real Windows Settings
 3. Otherwise take the first unchecked phase item shared by
    `docs/CURRENT_GOAL.md` and `NEXT_TASKS.md`.
 4. For the active AutoCAD-familiar integration wave, continue the existing
-   `codex/autocad-visual-integration-root` branch in the primary Codex
-   conversation. Do not create sidebar tasks or another integration worktree.
-   Parallel work may use only internal `gpt-5.6-terra` High agents in that
-   conversation, and the primary agent reviews and integrates their work.
+   `codex/autocad-visual-integration-root` branch in one lead-owned integration
+   checkout. The lead is the only integrator. Genuinely independent work may
+   use named Codex workers managed through Herdr: read-only workers may share a
+   checkout, while every editing worker uses a dedicated task branch and
+   separate worktree from the intended baseline. Task worktrees are not
+   competing integration checkouts, and editing workers must never own
+   overlapping files. The lead reviews and integrates their work.
 5. Reuse LibreCAD's real `QAction` and native entity/document model; do not
    duplicate CAD behavior in a second UI engine.
 6. Add a targeted native test and independent DXF/PDF read-back where the
    change affects a file workflow.
-7. Push only the work branch. Do not merge, change the default branch, publish
-   a production release, or alter certification claims without Reio's approval.
+7. Do not push without Reio's explicit approval. If a push is authorized, push
+   only the work branch. Do not remotely merge, change the default branch,
+   publish a release, or alter certification claims without Reio's explicit
+   approval. Approval of a bounded milestone authorizes its local worker
+   commits and lead-owned local integration only.
 
 If any file conflicts with a live repository check, the live repository wins;
 update the handoff documentation in the same change.
