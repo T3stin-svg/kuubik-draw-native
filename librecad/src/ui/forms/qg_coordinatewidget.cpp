@@ -107,8 +107,17 @@ void QG_CoordinateWidget::setCoordinates(double x, double y,
                                                graphic->getUnit(),
                                                format, prec);
 
-        lCoord1->setText(absX + " , " + absY);
-        lCoord2->setText("@  " + relX + " , " + relY);
+        const bool kuubikCompact = property(
+            "kuubikCompactCoordinates").toBool();
+        const QString zero = RS_Units::formatLinear(0.0,
+                                                     graphic->getUnit(),
+                                                     format, prec);
+        lCoord1->setText(kuubikCompact
+            ? absX + ", " + absY + ", " + zero
+            : absX + " , " + absY);
+        lCoord2->setText(kuubikCompact
+            ? "@ " + relX + ", " + relY + ", " + zero
+            : "@  " + relX + " , " + relY);
 
         // polar coordinates:
         RS_Vector v;

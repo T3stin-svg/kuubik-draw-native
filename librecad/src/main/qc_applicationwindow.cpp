@@ -31,6 +31,8 @@
 
 #include "qc_applicationwindow.h"
 
+#include <algorithm>
+
 #include <QActionGroup>
 #include <QApplication>
 #include <QByteArray>
@@ -1116,6 +1118,25 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     bar->setObjectName(QStringLiteral("kuubikStatusBar"));
     bar->setSizeGripEnabled(false);
 
+    QSettings statusSettings;
+    constexpr int referencePhaseVersion = 1;
+    if (statusSettings.value(
+            QStringLiteral("KuubikStatus/ReferencePhaseVersion"), 0).toInt()
+        < referencePhaseVersion) {
+        // The first five pages of the approved visual reference establish the
+        // default coordinate/model/grid cluster. Apply this once so later
+        // user customization remains authoritative.
+        statusSettings.setValue(
+            QStringLiteral("KuubikStatus/Visible/Coordinates"), true);
+        statusSettings.setValue(
+            QStringLiteral("KuubikStatus/Visible/ModelSpace"), true);
+        statusSettings.setValue(
+            QStringLiteral("KuubikStatus/Visible/Grid"), true);
+        statusSettings.setValue(
+            QStringLiteral("KuubikStatus/ReferencePhaseVersion"),
+            referencePhaseVersion);
+    }
+
     QList<StatusItem> statusItems;
     const auto registerStatusItem = [bar, &statusItems](QWidget* widget,
                                                         const QString& key,
@@ -1125,6 +1146,7 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         widget->setProperty("kuubikStatusItem", true);
         widget->setProperty("kuubikStatusKey", key);
         widget->setProperty("kuubikStatusDefaultVisible", defaultVisible);
+        widget->setProperty("kuubikStatusOrder", statusItems.size());
         statusItems.append({key, label, widget, defaultVisible});
         if (addToBar) {
             bar->addPermanentWidget(widget);
@@ -1132,10 +1154,16 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     };
 
     if (coordinateWidget != nullptr) {
-        coordinateWidget->setToolTip(tr("Cursor coordinates. Right-click to change the coordinate format."));
+        // Keep the coordinate readout in the same right-aligned drafting
+        // cluster as MODEL and GRID, matching the approved reference pages.
+        bar->removeWidget(coordinateWidget);
+        bar->addPermanentWidget(coordinateWidget);
+        coordinateWidget->setProperty("kuubikReferencePage", 3);
+        coordinateWidget->setToolTip(
+            tr("Coordinates\nRight-click to change the coordinate format."));
         coordinateWidget->setAccessibleName(tr("Cursor coordinates"));
         registerStatusItem(coordinateWidget, QStringLiteral("Coordinates"),
-                           tr("Coordinates"), false, false);
+                           tr("Coordinates"), true, false);
 
         auto* coordinateMenu = new QMenu(coordinateWidget);
         coordinateMenu->setObjectName(QStringLiteral("kuubikCoordinateMenu"));
@@ -1172,8 +1200,10 @@ void QC_ApplicationWindow::createKuubikStatusControls()
 
     auto* modelLabel = new QLabel(QStringLiteral("MODEL"), statusBar());
     modelLabel->setObjectName(QStringLiteral("kuubikModelStatus"));
+    modelLabel->setProperty("kuubikReferencePage", 4);
     modelLabel->setAlignment(Qt::AlignCenter);
-    modelLabel->setToolTip(tr("Model space"));
+    modelLabel->setToolTip(
+        tr("Model space\nLibreCAD drawings use model space."));
     modelLabel->setAccessibleName(tr("Model space"));
     registerStatusItem(modelLabel, QStringLiteral("ModelSpace"),
                        tr("Model Space"), true);
@@ -1242,6 +1272,18 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         QStringLiteral("ViewGrid"), QStringLiteral("Grid"),
         QStringLiteral("GRID"), QStringLiteral(":/icons/kuubik/view/status-grid.svg"),
         tr("Grid display"));
+    if (gridButton != nullptr) {
+        gridButton->setProperty("kuubikReferencePage", 5);
+        const auto updateGridTooltip = [gridButton]() {
+            gridButton->setToolTip(
+                gridButton->isChecked()
+                    ? tr("Grid display - On (F7)\nRight-click for Grid Settings")
+                    : tr("Grid display - Off (F7)\nRight-click for Grid Settings"));
+        };
+        updateGridTooltip();
+        connect(gridButton, &QToolButton::toggled, gridButton,
+                [updateGridTooltip](bool) { updateGridTooltip(); });
+    }
     addSettingsContextMenu(gridButton, QStringLiteral("OptionsDrawing"),
                            tr("Grid Settings..."));
 
@@ -1462,7 +1504,6 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         registerStatusItem(button, key, tooltip, true);
         return button;
     };
-    QSettings statusSettings;
     addLocalToggle(QStringLiteral("DYN"), QStringLiteral(":/icons/kuubik/view/status-dynamic.svg"), QStringLiteral("DynamicInput"),
                    statusSettings.value(QStringLiteral("KuubikStatus/DynamicInput"), true).toBool(),
                    tr("Dynamic input"));
@@ -1624,6 +1665,9 @@ void QC_ApplicationWindow::configureKuubikCoordinateWidget(bool kuubikMode)
     if (coordinateWidget == nullptr) return;
 
     if (!kuubikMode) {
+        statusBar()->removeWidget(coordinateWidget);
+        statusBar()->insertWidget(0, coordinateWidget);
+        coordinateWidget->setProperty("kuubikCompactCoordinates", false);
         coordinateWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
         coordinateWidget->setMinimumSize(380, 27);
         coordinateWidget->setMaximumSize(1500, 160);
@@ -1635,10 +1679,20 @@ void QC_ApplicationWindow::configureKuubikCoordinateWidget(bool kuubikMode)
         return;
     }
 
+    applyKuubikStatusOrder();
+    coordinateWidget->setProperty("kuubikCompactCoordinates", true);
     coordinateWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
-    coordinateWidget->setMinimumSize(185, 24);
-    coordinateWidget->setMaximumSize(185, 24);
+    coordinateWidget->setMinimumSize(184, 24);
+    coordinateWidget->setMaximumSize(184, 24);
     coordinateWidget->line1->hide();
+    if (coordinateWidget->lCoord1->text().count(QLatin1Char(',')) < 2) {
+        coordinateWidget->lCoord1->setText(
+            QStringLiteral("0.0000, 0.0000, 0.0000"));
+    }
+    if (coordinateWidget->lCoord2->text().count(QLatin1Char(',')) < 2) {
+        coordinateWidget->lCoord2->setText(
+            QStringLiteral("@ 0.0000, 0.0000, 0.0000"));
+    }
     const QString mode = QSettings().value(
         QStringLiteral("KuubikStatus/CoordinateMode"),
         QStringLiteral("absolute-cartesian")).toString();
@@ -1646,6 +1700,40 @@ void QC_ApplicationWindow::configureKuubikCoordinateWidget(bool kuubikMode)
     coordinateWidget->lCoord2->setVisible(mode == QStringLiteral("relative-cartesian"));
     coordinateWidget->lCoord1b->setVisible(mode == QStringLiteral("absolute-polar"));
     coordinateWidget->lCoord2b->setVisible(mode == QStringLiteral("relative-polar"));
+}
+
+void QC_ApplicationWindow::applyKuubikStatusOrder()
+{
+    QStatusBar* bar = statusBar();
+    QList<QWidget*> items;
+    QHash<QWidget*, bool> visibility;
+    const auto statusWidgets = bar->findChildren<QWidget*>();
+    for (QWidget* widget : statusWidgets) {
+        if (widget->property("kuubikStatusItem").toBool()) {
+            items.append(widget);
+            visibility.insert(widget, widget->isVisible());
+        }
+    }
+    std::sort(items.begin(), items.end(), [](QWidget* left, QWidget* right) {
+        return left->property("kuubikStatusOrder").toInt()
+            < right->property("kuubikStatusOrder").toInt();
+    });
+
+    QToolButton* customize = bar->findChild<QToolButton*>(
+        QStringLiteral("kuubikStatusCustomize"));
+    for (QWidget* widget : items) {
+        bar->removeWidget(widget);
+    }
+    if (customize != nullptr) {
+        bar->removeWidget(customize);
+    }
+    for (QWidget* widget : items) {
+        bar->addPermanentWidget(widget);
+        widget->setVisible(visibility.value(widget));
+    }
+    if (customize != nullptr) {
+        bar->addPermanentWidget(customize);
+    }
 }
 
 void QC_ApplicationWindow::applyKuubikStatusVisibility()
@@ -1921,6 +2009,10 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     applyClassicWorkspace();
     QApplication::processEvents();
     const bool classicMenuBarVisible = menuBar()->isVisible();
+    const bool classicCoordinateSlotRestored = coordinateWidget != nullptr
+        && mouseWidget != nullptr
+        && coordinateWidget->geometry().left()
+            < mouseWidget->geometry().left();
     if (previousWorkspaceMode == QStringLiteral("classic")) {
         applyClassicWorkspace();
     } else {
@@ -2333,6 +2425,69 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     statusBarObject.insert("menuScreenshotSaved", statusMenuScreenshotSaved);
     statusBarObject.insert("menuScreenshotWidth", statusMenuScreenshotWidth);
     statusBarObject.insert("menuScreenshotHeight", statusMenuScreenshotHeight);
+
+    QJsonObject referenceFirstFive;
+    auto* modelStatus = statusBar()->findChild<QLabel*>(
+        QStringLiteral("kuubikModelStatus"));
+    QToolButton* gridStatusButton = nullptr;
+    for (QToolButton* statusButton : statusButtons) {
+        if (statusButton->property("kuubikActionKey").toString()
+            == QStringLiteral("ViewGrid")) {
+            gridStatusButton = statusButton;
+            break;
+        }
+    }
+    const bool coordinateVisible = coordinateWidget != nullptr
+        && !coordinateWidget->isHidden();
+    const bool modelVisible = modelStatus != nullptr && !modelStatus->isHidden();
+    const bool gridVisible = gridStatusButton != nullptr
+        && !gridStatusButton->isHidden();
+    const bool orderedCluster = coordinateVisible && modelVisible && gridVisible
+        && coordinateWidget->geometry().left() < modelStatus->geometry().left()
+        && modelStatus->geometry().left()
+            < gridStatusButton->geometry().left();
+    const bool sameRow = coordinateVisible && modelVisible && gridVisible
+        && qAbs(coordinateWidget->geometry().center().y()
+                - modelStatus->geometry().center().y()) <= 2
+        && qAbs(modelStatus->geometry().center().y()
+                - gridStatusButton->geometry().center().y()) <= 2;
+    QAction* gridAction = a_map.value(QStringLiteral("ViewGrid"), nullptr);
+    QMenu* gridSettingsMenu = gridStatusButton == nullptr
+        ? nullptr
+        : gridStatusButton->findChild<QMenu*>(
+              QStringLiteral("kuubikStatusSettingsMenu"));
+    referenceFirstFive.insert("referencePageCount", 5);
+    referenceFirstFive.insert("coordinatesVisibleByDefault", coordinateVisible);
+    referenceFirstFive.insert("coordinateCompactWidth",
+                              coordinateWidget == nullptr
+                                  ? 0 : coordinateWidget->width());
+    referenceFirstFive.insert("coordinateDisplaysZ",
+                              coordinateWidget != nullptr
+                              && coordinateWidget->lCoord1->text().count(
+                                     QLatin1Char(',')) >= 2);
+    referenceFirstFive.insert("coordinateModelGridOrdered", orderedCluster);
+    referenceFirstFive.insert("coordinateModelGridSingleRow", sameRow);
+    referenceFirstFive.insert("classicCoordinateSlotRestored",
+                              classicCoordinateSlotRestored);
+    referenceFirstFive.insert("modelIndicatorText",
+                              modelStatus == nullptr
+                                  ? QString() : modelStatus->text());
+    referenceFirstFive.insert("gridSettingsMenuPresent",
+                              gridSettingsMenu != nullptr
+                              && !gridSettingsMenu->actions().isEmpty());
+    referenceFirstFive.insert("gridStateSynchronized",
+                              gridStatusButton != nullptr
+                              && gridAction != nullptr
+                              && gridStatusButton->isChecked()
+                                  == gridAction->isChecked());
+    referenceFirstFive.insert("gridTooltipMatchesReference",
+                              gridStatusButton != nullptr
+                              && gridStatusButton->toolTip().contains(
+                                  QStringLiteral("F7"))
+                              && gridStatusButton->toolTip().contains(
+                                  QStringLiteral("Grid Settings")));
+    referenceFirstFive.insert("statusBarHeight", statusBar()->height());
+    statusBarObject.insert("referencePdfFirstFive", referenceFirstFive);
     contract.insert("statusBar", statusBarObject);
 
     QJsonObject dpiObject;

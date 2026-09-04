@@ -320,34 +320,41 @@ QPushButton:disabled { color: #7D858C; background: #34393E; border-color: #464C5
 QStatusBar {
     min-height: 27px;
     max-height: 27px;
-    color: #D2D7DA;
-    background-color: #3A4146;
-    border-top: 1px solid #596067;
-    border-bottom: 1px solid #20262B;
+    color: #E1E7EB;
+    background-color: #435166;
+    border-top: 1px solid #617086;
+    border-bottom: 1px solid #263241;
 }
 QStatusBar::item { border: 0; }
-QStatusBar QLabel { color: #D2D7DA; background: transparent; }
+QStatusBar QLabel { color: #E1E7EB; background: transparent; }
 #coordinates {
-    min-width: 185px;
-    max-width: 185px;
+    min-width: 184px;
+    max-width: 184px;
     min-height: 24px;
     max-height: 24px;
-    color: #DCE1E4;
-    background: #343A3F;
-    border-right: 1px solid #596067;
+    color: #F1F4F6;
+    background: #354255;
+    border-left: 1px solid #53637A;
+    border-right: 1px solid #263241;
 }
-#coordinates QLabel { padding-left: 7px; color: #DCE1E4; }
+#coordinates:hover { background: #4D5D72; }
+#coordinates QLabel {
+    padding-left: 7px;
+    color: #F1F4F6;
+    font-size: 11px;
+}
 #kuubikModelStatus {
-    min-width: 50px;
-    max-width: 50px;
+    min-width: 51px;
+    max-width: 51px;
     min-height: 24px;
     max-height: 24px;
     padding: 0;
-    color: #F1F3F4;
-    background: #484F54;
-    border-left: 1px solid #62696E;
-    border-right: 1px solid #2C3236;
+    color: #FFFFFF;
+    background: #39475A;
+    border-left: 1px solid #607087;
+    border-right: 1px solid #263241;
     font-weight: 600;
+    font-size: 11px;
 }
 #kuubikStatusToggle {
     min-width: 29px;
@@ -356,15 +363,15 @@ QStatusBar QLabel { color: #D2D7DA; background: transparent; }
     max-height: 24px;
     padding: 0;
     margin: 0;
-    color: #C6CDD1;
+    color: #D7DEE4;
     background: transparent;
     border: 0;
 }
-#kuubikStatusToggle:hover { color: #FFFFFF; background: #51595E; }
-#kuubikStatusToggle:pressed { background: #293238; }
-#kuubikStatusToggle:checked { color: #FFFFFF; background: #147EAC; }
-#kuubikStatusToggle:checked:hover { background: #1A8DBE; }
-#kuubikStatusToggle:disabled { color: #78828B; background: transparent; }
+#kuubikStatusToggle:hover { color: #FFFFFF; background: #5A6980; }
+#kuubikStatusToggle:pressed { background: #2D5F87; }
+#kuubikStatusToggle:checked { color: #FFFFFF; background: #3A87C1; }
+#kuubikStatusToggle:checked:hover { background: #4697D2; }
+#kuubikStatusToggle:disabled { color: #8793A0; background: transparent; }
 
 #kuubikOsnapButton {
     min-width: 42px;
@@ -373,13 +380,13 @@ QStatusBar QLabel { color: #D2D7DA; background: transparent; }
     max-height: 24px;
     padding: 0 12px 0 1px;
     margin: 0;
-    color: #C6CDD1;
+    color: #D7DEE4;
     background: transparent;
     border: 0;
 }
-#kuubikOsnapButton:hover { color: #FFFFFF; background: #51595E; }
-#kuubikOsnapButton:checked { color: #FFFFFF; background: #147EAC; }
-#kuubikOsnapButton:checked:hover { background: #1A8DBE; }
+#kuubikOsnapButton:hover { color: #FFFFFF; background: #5A6980; }
+#kuubikOsnapButton:checked { color: #FFFFFF; background: #3A87C1; }
+#kuubikOsnapButton:checked:hover { background: #4697D2; }
 #kuubikOsnapButton::menu-indicator {
     subcontrol-origin: padding;
     subcontrol-position: right center;
@@ -393,11 +400,11 @@ QStatusBar QLabel { color: #D2D7DA; background: transparent; }
     max-height: 24px;
     padding: 0;
     margin: 0;
-    background: #343A3F;
+    background: #39475A;
     border: 0;
     border-left: 1px solid #61686D;
 }
-#kuubikStatusCustomize:hover { background: #51595E; }
+#kuubikStatusCustomize:hover { background: #5A6980; }
 #kuubikStatusCustomize::menu-indicator { image: none; width: 0; }
 
 #kuubikOsnapMenu,
@@ -407,8 +414,8 @@ QStatusBar QLabel { color: #D2D7DA; background: transparent; }
     min-width: 220px;
     padding: 5px 0;
     color: #E6EBEF;
-    background: #3B3F43;
-    border: 1px solid #6A7075;
+    background: #3F4C5F;
+    border: 1px solid #718097;
 }
 #kuubikOsnapMenu::item,
 #kuubikStatusCustomizationMenu::item,
@@ -417,7 +424,7 @@ QStatusBar QLabel { color: #D2D7DA; background: transparent; }
 #kuubikOsnapMenu::item:selected,
 #kuubikStatusCustomizationMenu::item:selected,
 #kuubikStatusSettingsMenu::item:selected,
-#kuubikCoordinateMenu::item:selected { background: #147EAC; color: white; }
+#kuubikCoordinateMenu::item:selected { background: #3A87C1; color: white; }
 #kuubikOsnapMenu::indicator,
 #kuubikStatusCustomizationMenu::indicator,
 #kuubikCoordinateMenu::indicator { width: 14px; height: 14px; left: 7px; }

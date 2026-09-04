@@ -162,12 +162,15 @@ The goal remains active. Before completion it still requires:
 - a final exact-source artifact and handoff after those decisions are closed.
 
 The local 2026-09-04 status-bar refinement now provides the AutoCAD-familiar
-grey/blue row, an OSNAP split menu and a persistent three-line customization
-menu for the twelve supported controls. Its UI contract proves ten functional
-button bindings, fourteen OSNAP modes, four coordinate formats and a real
-hide/restore round trip. The Qt 5 build and full native GUI smoke pass locally;
-the packaged Windows qwindows/DPI workflow remains required before this result
-is Windows-verified.
+blue-grey row, an OSNAP split menu and a persistent three-line customization
+menu for the twelve supported controls. The first approved reference phase is
+limited to pages 1–5: visual language, interaction states, Coordinates, Model
+Space and Grid. Live X/Y/Z coordinates are visible before MODEL and the native
+GRID toggle. Its UI contract proves the ordered single-row cluster, ten
+functional button bindings, fourteen OSNAP modes, four coordinate formats and
+a real hide/restore round trip. The Qt 5 build and full native GUI smoke pass
+locally; the packaged Windows qwindows/DPI workflow remains required before
+this result is Windows-verified.
 
 ## Out of scope
 

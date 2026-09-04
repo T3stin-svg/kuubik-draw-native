@@ -352,6 +352,7 @@ private:
     void initializeKuubikVisuals();
     void createKuubikWorkspaceMenu();
     void createKuubikStatusControls();
+    void applyKuubikStatusOrder();
     void applyKuubikStatusVisibility();
     void configureKuubikCoordinateWidget(bool kuubikMode);
     void applyKuubikTheme();

@@ -354,6 +354,31 @@ if ((Require-JsonNumber $statusBarContract 'osnapModeCount' 'uiContract.statusBa
 if (-not (Require-JsonBoolean $statusBarContract 'sizeGripDisabled' 'uiContract.statusBar')) {
     throw 'Status bar retained a non-AutoCAD resize grip.'
 }
+$referenceFirstFive = Require-JsonProperty $statusBarContract 'referencePdfFirstFive' 'uiContract.statusBar'
+if ((Require-JsonNumber $referenceFirstFive 'referencePageCount' 'uiContract.statusBar.referencePdfFirstFive') -ne 5) {
+    throw 'The implemented reference batch is not limited to the approved first five PDF pages.'
+}
+foreach ($referenceFlag in @(
+    'coordinatesVisibleByDefault', 'coordinateDisplaysZ',
+    'coordinateModelGridOrdered', 'coordinateModelGridSingleRow',
+    'classicCoordinateSlotRestored',
+    'gridSettingsMenuPresent', 'gridStateSynchronized',
+    'gridTooltipMatchesReference'
+)) {
+    if (-not (Require-JsonBoolean $referenceFirstFive $referenceFlag 'uiContract.statusBar.referencePdfFirstFive')) {
+        throw "First-five-page status-bar contract failed: $referenceFlag"
+    }
+}
+if ((Require-JsonString $referenceFirstFive 'modelIndicatorText' 'uiContract.statusBar.referencePdfFirstFive') -ne 'MODEL') {
+    throw 'The first-five-page status cluster does not expose the MODEL indicator.'
+}
+$referenceCoordinateWidth = Require-JsonNumber $referenceFirstFive 'coordinateCompactWidth' 'uiContract.statusBar.referencePdfFirstFive'
+if ($referenceCoordinateWidth -lt 176 -or $referenceCoordinateWidth -gt 190) {
+    throw "Coordinate readout width diverges from the approved compact reference: $referenceCoordinateWidth"
+}
+if ((Require-JsonNumber $referenceFirstFive 'statusBarHeight' 'uiContract.statusBar.referencePdfFirstFive') -gt 29) {
+    throw 'Status bar exceeds the compact single-row reference height.'
+}
 if (-not (Require-JsonBoolean $statusBarContract 'menuScreenshotSaved' 'uiContract.statusBar') -or
     (Require-JsonNumber $statusBarContract 'menuScreenshotWidth' 'uiContract.statusBar') -lt 180 -or
     (Require-JsonNumber $statusBarContract 'menuScreenshotHeight' 'uiContract.statusBar') -lt 250) {

@@ -283,3 +283,17 @@ each native checked state, and recorded `customIconsStableAfterClick: true`.
 All four direct-action controls recorded `customIconOwned: true`. The complete
 native GUI smoke remained `PASS` for drawing, dynamic input, document lifecycle,
 COPY and MOVE Undo/Redo.
+
+The first-five-reference-pages pass on 2026-09-04 rebuilt the row with the
+approved blue-grey palette and placed live coordinates, MODEL and GRID in one
+ordered cluster. The coordinate readout is 184 logical pixels wide and displays
+three Cartesian fields. A Kuubik/Classic/Kuubik workspace round trip restores
+the original Classic coordinate slot and then reconstructs the Kuubik cluster.
+
+The rebuilt UI contract exited 0 and recorded all first-phase checks as true:
+coordinates visible by default, X/Y/Z output, coordinate/MODEL/GRID ordering,
+single-row alignment, MODEL text, native Grid settings menu, synchronized Grid
+state and matching Grid tooltip. The status bar measured 27 logical pixels.
+The full offscreen native GUI smoke also exited 0 with `status: PASS`, including
+LINE, PLINE, COPY, MOVE, Undo/Redo, Properties and document lifecycle. Autodesk
+screenshots were not added to application resources.

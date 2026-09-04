@@ -173,3 +173,21 @@ control. This prevents QAction state notifications from copying inherited
 LibreCAD toolbar artwork onto a clicked status button. The UI contract changes
 and restores GRID, SNAP and ORTHO, and pixel-compares their icons to the owned
 Kuubik resources after each click.
+
+## D-020 — The first five reference pages define the initial status-bar phase
+
+The first implementation phase is deliberately limited to pages 1–5 of
+`AutoCAD_Status_Bar_Visual_Reference.pdf`: overall visual language, interaction
+states, Coordinates, Model/Paper Space and Grid. The Kuubik row therefore uses
+the reference's compact blue-grey surface and blue enabled state, with live
+`X, Y, Z` coordinates immediately before MODEL and GRID.
+
+Coordinates, MODEL and GRID are enabled once for existing profiles when this
+phase is first installed; later customization remains authoritative. MODEL is
+an honest model-space indicator because Kuubik Draw has no AutoCAD paper-space
+implementation. GRID invokes and mirrors LibreCAD's native `ViewGrid` QAction,
+retains F7 behavior and opens the native grid settings on right-click. Classic
+workspace moves the coordinate widget back to LibreCAD's original status slot.
+
+Autodesk screenshots remain reference material in the PDF only. No Autodesk
+image, icon or path data is embedded in the application.

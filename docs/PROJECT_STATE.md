@@ -113,9 +113,12 @@ Tab to this dynamic input instead of stealing canvas focus.
 Kuubik workspace now uses one compact AutoCAD-familiar bottom status row. The
 legacy LibreCAD snap toolbar and diagnostic selection/layer/grid labels are
 hidden in Kuubik mode, while Classic mode restores them. The visible Kuubik row
-contains MODEL, GRID, SNAP, ORTHO, POLAR, OSNAP, OTRACK, dynamic input,
-lineweight, Quick Properties and clean-screen controls. Optional live
-coordinates support four display formats.
+starts with live X/Y/Z coordinates, MODEL and GRID, followed by SNAP, ORTHO,
+POLAR, OSNAP, OTRACK, dynamic input, lineweight, Quick Properties and
+clean-screen controls. Coordinates are visible by default and support four
+display formats. This ordering, palette and interaction model implement only
+pages 1–5 of the approved status-bar visual reference; Classic mode restores
+the coordinate widget to its original LibreCAD position.
 
 A three-line button at the far right opens a persistent customization menu.
 Every row immediately shows or hides its corresponding control, and Reset
