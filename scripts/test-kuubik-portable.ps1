@@ -307,8 +307,13 @@ foreach ($control in $statusControls) {
     $controlContext = 'uiContract.statusControls'
     [void](Require-JsonString $control 'objectName' $controlContext)
     [void](Require-JsonString $control 'actionKey' $controlContext)
+    $bindingType = Require-JsonString $control 'bindingType' $controlContext
     if (-not (Require-JsonBoolean $control 'nativeBinding' $controlContext)) {
         throw "Status control is not bound to its native QAction: $($control.objectName)"
+    }
+    if ($bindingType -eq 'direct-action' -and
+        -not (Require-JsonBoolean $control 'customIconOwned' $controlContext)) {
+        throw "Native LibreCAD icon can replace the Kuubik status icon: $($control.actionKey)"
     }
 }
 $expectedStatusActions = @(
@@ -332,6 +337,10 @@ if (-not (Require-JsonBoolean $statusBarContract 'customizationButtonPresent' 'u
 }
 if (-not (Require-JsonBoolean $statusBarContract 'customizationToggleRoundTrip' 'uiContract.statusBar')) {
     throw 'Status-bar customization did not hide and restore its native control.'
+}
+if ((Require-JsonNumber $statusBarContract 'customIconClickTests' 'uiContract.statusBar') -lt 3 -or
+    -not (Require-JsonBoolean $statusBarContract 'customIconsStableAfterClick' 'uiContract.statusBar')) {
+    throw 'A native LibreCAD icon replaced a Kuubik status icon after clicking it.'
 }
 if (-not (Require-JsonBoolean $statusBarContract 'coordinateDisplayPresent' 'uiContract.statusBar')) {
     throw 'Status bar has no native live coordinate display.'

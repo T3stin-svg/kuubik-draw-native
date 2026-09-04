@@ -40,7 +40,8 @@ LibreCAD's settings or the old React Kuubik Draw data.
 - The command line is full-width at the bottom. The compact status bar exposes
   MODEL, GRID, SNAP, ORTHO, POLAR, OSNAP, OTRACK, dynamic input, lineweight,
   Quick Properties and clean screen. Blue means enabled. OSNAP's arrow opens
-  the native snap-mode list; right-click GRID or SNAP for settings.
+  the native snap-mode list; right-click GRID or SNAP for settings. Clicked
+  controls retain their Kuubik symbol while the native action state changes.
 - Click the three horizontal lines at the far right to show or hide status
   controls. Choices persist, and `Reset Status Bar` restores the default row.
   Coordinates are hidden by default; enable them in this menu, then right-click

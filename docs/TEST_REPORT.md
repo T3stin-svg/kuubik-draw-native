@@ -275,3 +275,11 @@ PLINE Enter behavior, visible dynamic input, global Escape cancellation, native
 document lifecycle, and COPY and MOVE atomic Undo/Redo. `git diff --check`
 passed. This is local Linux evidence only; the packaged Windows MSVC/qwindows
 workflow and real Windows display-scale checks remain pending.
+
+After live review found inherited LibreCAD symbols replacing Kuubik status
+icons on click, the direct status bindings were separated from their visual
+buttons. The rebuilt UI contract click-tested GRID, SNAP and ORTHO, restored
+each native checked state, and recorded `customIconsStableAfterClick: true`.
+All four direct-action controls recorded `customIconOwned: true`. The complete
+native GUI smoke remained `PASS` for drawing, dynamic input, document lifecycle,
+COPY and MOVE Undo/Redo.

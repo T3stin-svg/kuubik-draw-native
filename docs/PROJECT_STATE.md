@@ -123,7 +123,9 @@ Status Bar restores the defaults. Applicable controls open native settings on
 right-click. Active drafting states use compact blue tiles. Lineweight controls
 LibreCAD's real Draft state inversely, and Quick Properties controls the
 existing native Properties dock; the prior display-only selection-cycling and
-lineweight flags are no longer exposed.
+lineweight flags are no longer exposed. Direct-action status buttons keep their
+Kuubik icon ownership separate from the underlying QAction, so a native checked
+state change cannot restore a LibreCAD toolbar symbol after a click.
 
 The OSNAP split menu groups fourteen native snap modes and keeps its blue state
 synchronized with whether an object-snap set is active. Distinct temporary

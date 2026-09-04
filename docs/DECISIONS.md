@@ -163,3 +163,13 @@ Quick Properties controls the existing native Properties dock. Unsupported
 AutoCAD-only status features are omitted instead of appearing as display-only
 buttons. All symbols are original Kuubik assets; no Autodesk artwork or path
 data is copied.
+
+## D-019 — Status actions own behavior; Kuubik buttons own presentation
+
+Status buttons do not use `QToolButton::setDefaultAction()` in the Kuubik
+workspace. They trigger and mirror the native QAction explicitly while keeping
+the button text, tooltip, checked state and original Kuubik icon under Kuubik
+control. This prevents QAction state notifications from copying inherited
+LibreCAD toolbar artwork onto a clicked status button. The UI contract changes
+and restores GRID, SNAP and ORTHO, and pixel-compares their icons to the owned
+Kuubik resources after each click.

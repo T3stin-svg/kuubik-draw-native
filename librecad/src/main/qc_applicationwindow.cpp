@@ -1207,14 +1207,33 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         button->setObjectName(QStringLiteral("kuubikStatusToggle"));
         button->setProperty("kuubikActionKey", actionKey);
         button->setProperty("kuubikBindingType", QStringLiteral("direct-action"));
-        button->setDefaultAction(action);
+        button->setProperty("kuubikIconPath", iconPath);
         button->setText(label);
         button->setIcon(QIcon(iconPath));
         button->setIconSize(QSize(18, 18));
         button->setToolButtonStyle(Qt::ToolButtonIconOnly);
         button->setAutoRaise(false);
+        button->setCheckable(action->isCheckable());
+        button->setChecked(action->isChecked());
+        button->setEnabled(action->isEnabled());
         button->setToolTip(tooltip);
         button->setAccessibleName(tooltip);
+        // Do not use setDefaultAction() here. QAction::changed would then copy
+        // LibreCAD's action icon back onto the button whenever its checked
+        // state changes. Keep the native behavior, but own the Kuubik visual.
+        const QMetaObject::Connection nativeConnection = connect(
+            button, &QToolButton::clicked, action,
+            [action](bool) { action->trigger(); });
+        button->setProperty("kuubikNativeActionBound",
+                            static_cast<bool>(nativeConnection));
+        connect(action, &QAction::changed, button,
+                [action, button, iconPath]() {
+                    const QSignalBlocker blocker(button);
+                    button->setCheckable(action->isCheckable());
+                    button->setChecked(action->isChecked());
+                    button->setEnabled(action->isEnabled());
+                    button->setIcon(QIcon(iconPath));
+                });
         registerStatusItem(button, visibilityKey, tooltip, true);
         return button;
     };
@@ -1514,13 +1533,31 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         cleanScreen->setObjectName(QStringLiteral("kuubikStatusToggle"));
         cleanScreen->setProperty("kuubikActionKey", QStringLiteral("Fullscreen"));
         cleanScreen->setProperty("kuubikBindingType", QStringLiteral("direct-action"));
-        cleanScreen->setDefaultAction(fullScreen);
+        const QString cleanIconPath = QStringLiteral(
+            ":/icons/kuubik/view/status-clean.svg");
+        cleanScreen->setProperty("kuubikIconPath", cleanIconPath);
         cleanScreen->setText(QStringLiteral("CLEAN"));
-        cleanScreen->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-clean.svg")));
+        cleanScreen->setIcon(QIcon(cleanIconPath));
         cleanScreen->setIconSize(QSize(18, 18));
         cleanScreen->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        cleanScreen->setCheckable(fullScreen->isCheckable());
+        cleanScreen->setChecked(fullScreen->isChecked());
+        cleanScreen->setEnabled(fullScreen->isEnabled());
         cleanScreen->setToolTip(tr("Clean screen"));
         cleanScreen->setAccessibleName(tr("Clean screen"));
+        const QMetaObject::Connection nativeConnection = connect(
+            cleanScreen, &QToolButton::clicked, fullScreen,
+            [fullScreen](bool) { fullScreen->trigger(); });
+        cleanScreen->setProperty("kuubikNativeActionBound",
+                                 static_cast<bool>(nativeConnection));
+        connect(fullScreen, &QAction::changed, cleanScreen,
+                [fullScreen, cleanScreen, cleanIconPath]() {
+                    const QSignalBlocker blocker(cleanScreen);
+                    cleanScreen->setCheckable(fullScreen->isCheckable());
+                    cleanScreen->setChecked(fullScreen->isChecked());
+                    cleanScreen->setEnabled(fullScreen->isEnabled());
+                    cleanScreen->setIcon(QIcon(cleanIconPath));
+                });
         registerStatusItem(cleanScreen, QStringLiteral("CleanScreen"),
                            tr("Clean Screen"), true);
     }
@@ -2115,6 +2152,8 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     contract.insert("commandLine", commandLineObject);
 
     QJsonArray statusControls;
+    bool customStatusIconsStableAfterClick = true;
+    int customStatusIconClickTests = 0;
     const auto statusButtons = statusBar()->findChildren<QToolButton*>();
     for (QToolButton* statusButton : statusButtons) {
         if (!statusButton->property("kuubikStatusItem").toBool()) continue;
@@ -2123,8 +2162,12 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
             "kuubikBindingType").toString();
         bool functionalBinding = false;
         if (bindingType == QStringLiteral("direct-action")) {
-            functionalBinding = statusButton->defaultAction()
-                                == a_map.value(key, nullptr);
+            functionalBinding = a_map.value(key, nullptr) != nullptr
+                                && statusButton->property(
+                                       "kuubikNativeActionBound").toBool()
+                                && statusButton->defaultAction() == nullptr
+                                && !statusButton->property(
+                                        "kuubikIconPath").toString().isEmpty();
         } else if (bindingType == QStringLiteral("inverse-action")) {
             functionalBinding = a_map.value(key, nullptr) != nullptr;
         } else if (bindingType == QStringLiteral("snap-mode")) {
@@ -2148,11 +2191,50 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         statusObject.insert("visibilityKey", statusButton->property(
             "kuubikStatusKey").toString());
         statusObject.insert("nativeBinding", !key.isEmpty() && functionalBinding);
+        if (bindingType == QStringLiteral("direct-action")) {
+            const QString iconPath = statusButton->property(
+                "kuubikIconPath").toString();
+            const QIcon ownedIcon(iconPath);
+            const QSize sampleSize = statusButton->iconSize();
+            const bool customIconOwned = statusButton->defaultAction() == nullptr
+                && !iconPath.isEmpty() && !ownedIcon.isNull()
+                && statusButton->icon().pixmap(sampleSize).toImage()
+                    == ownedIcon.pixmap(sampleSize).toImage();
+            statusObject.insert("customIconOwned", customIconOwned);
+
+            QAction* nativeAction = a_map.value(key, nullptr);
+            if (nativeAction != nullptr && nativeAction->isCheckable()
+                && key != QStringLiteral("Fullscreen")) {
+                const bool checkedBefore = nativeAction->isChecked();
+                statusButton->click();
+                QApplication::processEvents();
+                const bool stableAfterClick =
+                    statusButton->icon().pixmap(sampleSize).toImage()
+                    == ownedIcon.pixmap(sampleSize).toImage();
+                statusButton->click();
+                QApplication::processEvents();
+                const bool stateRestored =
+                    nativeAction->isChecked() == checkedBefore;
+                statusObject.insert("customIconStableAfterClick",
+                                    stableAfterClick);
+                statusObject.insert("nativeStateRestoredAfterClickTest",
+                                    stateRestored);
+                customStatusIconsStableAfterClick =
+                    customStatusIconsStableAfterClick && customIconOwned
+                    && stableAfterClick && stateRestored;
+                ++customStatusIconClickTests;
+            }
+        }
         statusControls.append(statusObject);
     }
     contract.insert("statusControls", statusControls);
 
     QJsonObject statusBarObject;
+    statusBarObject.insert("customIconClickTests",
+                           customStatusIconClickTests);
+    statusBarObject.insert("customIconsStableAfterClick",
+                           customStatusIconsStableAfterClick
+                           && customStatusIconClickTests >= 3);
     auto* customizeButton = statusBar()->findChild<QToolButton*>(
         QStringLiteral("kuubikStatusCustomize"));
     auto* customizeMenu = statusBar()->findChild<QMenu*>(
