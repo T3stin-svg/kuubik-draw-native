@@ -540,6 +540,7 @@ foreach ($flag in @(
     'overflowPriorityCorrect', 'nativeControlsPreservedWhenNarrow',
     'narrowItemsUnclipped', 'restoredAfterNarrow',
     'userHiddenPreferencePreserved', 'menuGlyphResourcesNonNull',
+    'customizationBoundaryPassed', 'resizeOverflowCoalescingPassed',
     'statusBarScreenshotSaved'
 )) {
     if (-not (Require-JsonBoolean $m2StatusVisual $flag 'uiContract.statusBar.m2StatusVisual')) {
@@ -553,6 +554,46 @@ if ((Require-JsonNumber $m2StatusVisual 'normalWidth' 'uiContract.statusBar.m2St
     (Require-JsonNumber $m2StatusVisual 'splitCellWidth' 'uiContract.statusBar.m2StatusVisual') -ne 38 -or
     (Require-JsonNumber $m2StatusVisual 'wideSplitCellWidth' 'uiContract.statusBar.m2StatusVisual') -ne 42) {
     throw 'M2 status row fixed geometry regressed.'
+}
+
+$customizationBoundary = Require-JsonProperty $m2StatusVisual 'customizationBoundary' 'uiContract.statusBar.m2StatusVisual'
+foreach ($boundaryFlag in @(
+    'cleanScreenPresent', 'customizePresent', 'adjacent', 'geometryExact',
+    'passed'
+)) {
+    if (-not (Require-JsonBoolean $customizationBoundary $boundaryFlag 'uiContract.statusBar.m2StatusVisual.customizationBoundary')) {
+        throw "Status customization boundary contract failed: $boundaryFlag"
+    }
+}
+if ((Require-JsonNumber $customizationBoundary 'cleanScreenWidth' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne 29 -or
+    (Require-JsonNumber $customizationBoundary 'cleanScreenHeight' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne 24 -or
+    (Require-JsonNumber $customizationBoundary 'customizeWidth' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne 30 -or
+    (Require-JsonNumber $customizationBoundary 'customizeHeight' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne 24 -or
+    (Require-JsonNumber $customizationBoundary 'customizeIconWidth' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne 18 -or
+    (Require-JsonNumber $customizationBoundary 'customizeIconHeight' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne 18 -or
+    (Require-JsonNumber $customizationBoundary 'customizeReferencePage' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne 32 -or
+    (Require-JsonNumber $customizationBoundary 'renderedDividerLogicalPixels' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne 1 -or
+    (Require-JsonString $customizationBoundary 'beforeColor' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne '#3B4453' -or
+    (Require-JsonString $customizationBoundary 'dividerColor' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne '#252D37' -or
+    (Require-JsonString $customizationBoundary 'afterColor' 'uiContract.statusBar.m2StatusVisual.customizationBoundary') -ne '#3B4453') {
+    throw 'Clean Screen/customization geometry or its single rendered divider regressed.'
+}
+$cleanScreenRight = Require-JsonNumber $customizationBoundary 'cleanScreenRight' 'uiContract.statusBar.m2StatusVisual.customizationBoundary'
+$customizeLeft = Require-JsonNumber $customizationBoundary 'customizeLeft' 'uiContract.statusBar.m2StatusVisual.customizationBoundary'
+if ($customizeLeft -ne ($cleanScreenRight + 1)) {
+    throw 'Clean Screen and customization cells are no longer gap-free.'
+}
+
+$resizeOverflowCoalescing = Require-JsonProperty $m2StatusVisual 'resizeOverflowCoalescing' 'uiContract.statusBar.m2StatusVisual'
+foreach ($resizeFlag in @('timerPresent', 'singleShot', 'pendingBeforeDispatch', 'passed')) {
+    if (-not (Require-JsonBoolean $resizeOverflowCoalescing $resizeFlag 'uiContract.statusBar.m2StatusVisual.resizeOverflowCoalescing')) {
+        throw "Status overflow resize coalescing contract failed: $resizeFlag"
+    }
+}
+if ((Require-JsonNumber $resizeOverflowCoalescing 'intervalMilliseconds' 'uiContract.statusBar.m2StatusVisual.resizeOverflowCoalescing') -ne 0 -or
+    (Require-JsonNumber $resizeOverflowCoalescing 'burstResizeEvents' 'uiContract.statusBar.m2StatusVisual.resizeOverflowCoalescing') -ne 65 -or
+    (Require-JsonNumber $resizeOverflowCoalescing 'dispatchedUpdates' 'uiContract.statusBar.m2StatusVisual.resizeOverflowCoalescing') -ne 1) {
+    throw 'Rapid live resizing can queue more than one pending status overflow update.'
 }
 
 $expectedPlaceholderPages = [ordered]@{

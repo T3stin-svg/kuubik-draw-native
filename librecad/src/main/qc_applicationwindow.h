@@ -68,6 +68,7 @@ class QDockWidget;
 class QMdiArea;
 class QMdiSubWindow;
 class QResizeEvent;
+class QTimer;
 class RS_Block;
 class RS_Document;
 class RS_GraphicView;
@@ -456,6 +457,8 @@ private:
     QAction* classicWorkspaceAction {nullptr};
     QAction* paletteLeftAction {nullptr};
     QAction* paletteRightAction {nullptr};
+    QTimer* kuubikStatusOverflowResizeTimer {nullptr};
+    int kuubikStatusOverflowResizeDispatchCount {0};
 
     // --- Actions ---
     QAction* previousZoom {nullptr};

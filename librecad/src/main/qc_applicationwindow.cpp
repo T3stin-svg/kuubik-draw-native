@@ -1224,6 +1224,25 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     bar->setMaximumHeight(KuubikTheme::statusBarHeight());
     compactKuubikStatusLayout(bar);
 
+    if (kuubikStatusOverflowResizeTimer == nullptr) {
+        kuubikStatusOverflowResizeTimer = new QTimer(this);
+        kuubikStatusOverflowResizeTimer->setObjectName(
+            QStringLiteral("kuubikStatusOverflowResizeTimer"));
+        kuubikStatusOverflowResizeTimer->setSingleShot(true);
+        kuubikStatusOverflowResizeTimer->setInterval(0);
+        connect(kuubikStatusOverflowResizeTimer, &QTimer::timeout, this,
+                [this]() {
+                    if (QSettings().value(
+                            QStringLiteral("Workspace/Mode"),
+                            QStringLiteral("kuubik")).toString()
+                        != QStringLiteral("kuubik")) {
+                        return;
+                    }
+                    ++kuubikStatusOverflowResizeDispatchCount;
+                    applyKuubikStatusVisibility();
+                });
+    }
+
     auto* statusRow = new QWidget(bar);
     statusRow->setObjectName(QStringLiteral("kuubikStatusRow"));
     statusRow->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -2558,9 +2577,11 @@ void QC_ApplicationWindow::resizeEvent(QResizeEvent* event)
         != QStringLiteral("kuubik")) {
         return;
     }
-    QTimer::singleShot(0, this, [this]() {
-        applyKuubikStatusVisibility();
-    });
+    if (kuubikStatusOverflowResizeTimer != nullptr) {
+        // Restarting one single-shot timer leaves at most one overflow update
+        // pending while the platform delivers a rapid live-resize burst.
+        kuubikStatusOverflowResizeTimer->start();
+    }
 }
 
 void QC_ApplicationWindow::initializeKuubikVisuals()
@@ -4356,9 +4377,13 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     bool zeroInterCellGaps = true;
     bool rowItemsUnclipped = true;
     bool standardGeometryExact = true;
+    QWidget* cleanScreenControl = nullptr;
     int previousRight = -1;
     for (QWidget* widget : orderedStatusItems) {
         const QString key = widget->property("kuubikStatusKey").toString();
+        if (key == QStringLiteral("CleanScreen")) {
+            cleanScreenControl = widget;
+        }
         actualRowKeys.append(key);
         const QRect geometry(widget->mapTo(statusBar(), QPoint()),
                              widget->size());
@@ -4572,6 +4597,34 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         }
     }
     resize(normalWindowSize);
+    QApplication::processEvents();
+    applyKuubikStatusVisibility();
+    QApplication::processEvents();
+
+    const int resizeDispatchCountBeforeBurst =
+        kuubikStatusOverflowResizeDispatchCount;
+    constexpr int resizeBurstEventCount = 65;
+    for (int index = 0; index < resizeBurstEventCount - 1; ++index) {
+        const int widthAdjustment = index % 2 == 0 ? 1 : 2;
+        resize(normalWindowSize.width() - widthAdjustment,
+               normalWindowSize.height());
+    }
+    resize(normalWindowSize);
+    const bool resizeTimerPendingBeforeDispatch =
+        kuubikStatusOverflowResizeTimer != nullptr
+        && kuubikStatusOverflowResizeTimer->isActive();
+    QApplication::processEvents();
+    const int resizeBurstDispatchCount =
+        kuubikStatusOverflowResizeDispatchCount
+        - resizeDispatchCountBeforeBurst;
+    const bool resizeOverflowCoalescingPassed =
+        kuubikStatusOverflowResizeTimer != nullptr
+        && kuubikStatusOverflowResizeTimer->isSingleShot()
+        && kuubikStatusOverflowResizeTimer->interval() == 0
+        && resizeTimerPendingBeforeDispatch
+        && resizeBurstDispatchCount == 1
+        && size() == normalWindowSize;
+
     setMinimumSize(previousMinimumSize);
     QApplication::processEvents();
     applyKuubikStatusVisibility();
@@ -4586,6 +4639,122 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
             .name(QColor::HexRgb).toUpper();
     };
     const QPixmap rowPixmap = statusBar()->grab();
+    const QRect cleanScreenGeometry = cleanScreenControl == nullptr
+        ? QRect()
+        : QRect(cleanScreenControl->mapTo(statusBar(), QPoint()),
+                cleanScreenControl->size());
+    const QRect customizeGeometry = customizeButton == nullptr
+        ? QRect()
+        : QRect(customizeButton->mapTo(statusBar(), QPoint()),
+                customizeButton->size());
+    const QString statusSurfaceColor = QStringLiteral("#3B4453");
+    const QString statusDividerColor = QStringLiteral("#252D37");
+    QString boundaryBeforeColor;
+    QString boundaryDividerColor;
+    QString boundaryAfterColor;
+    int renderedDividerLogicalPixels = 0;
+    if (cleanScreenGeometry.isValid() && customizeGeometry.isValid()) {
+        const int boundaryY = cleanScreenGeometry.center().y();
+        boundaryBeforeColor = samplePixmap(
+            rowPixmap, cleanScreenGeometry.right() - 1, boundaryY);
+        boundaryDividerColor = samplePixmap(
+            rowPixmap, cleanScreenGeometry.right(), boundaryY);
+        boundaryAfterColor = samplePixmap(
+            rowPixmap, customizeGeometry.left(), boundaryY);
+
+        int dividerRunLeft = cleanScreenGeometry.right();
+        while (dividerRunLeft >= cleanScreenGeometry.left()
+               && samplePixmap(rowPixmap, dividerRunLeft, boundaryY)
+                      == statusDividerColor) {
+            --dividerRunLeft;
+        }
+        int dividerRunRight = cleanScreenGeometry.right() + 1;
+        while (dividerRunRight <= customizeGeometry.right()
+               && samplePixmap(rowPixmap, dividerRunRight, boundaryY)
+                      == statusDividerColor) {
+            ++dividerRunRight;
+        }
+        renderedDividerLogicalPixels = dividerRunRight - dividerRunLeft - 1;
+    }
+    const bool customizationBoundaryGeometryExact =
+        cleanScreenControl != nullptr && customizeButton != nullptr
+        && cleanScreenGeometry.width() == 29
+        && cleanScreenGeometry.height() == 24
+        && customizeGeometry.width() == 30
+        && customizeGeometry.height() == 24
+        && cleanScreenGeometry.top() == customizeGeometry.top()
+        && cleanScreenGeometry.right() + 1 == customizeGeometry.left()
+        && customizeButton->iconSize() == QSize(18, 18)
+        && customizeButton->property("kuubikReferencePage").toInt() == 32
+        && statusBar()->rect().contains(cleanScreenGeometry)
+        && statusBar()->rect().contains(customizeGeometry);
+    const bool customizationBoundaryPassed =
+        customizationBoundaryGeometryExact
+        && renderedDividerLogicalPixels == 1
+        && boundaryBeforeColor == statusSurfaceColor
+        && boundaryDividerColor == statusDividerColor
+        && boundaryAfterColor == statusSurfaceColor;
+
+    QJsonObject customizationBoundary;
+    customizationBoundary.insert("cleanScreenPresent",
+                                 cleanScreenControl != nullptr);
+    customizationBoundary.insert("customizePresent",
+                                 customizeButton != nullptr);
+    customizationBoundary.insert("cleanScreenWidth",
+                                 cleanScreenGeometry.width());
+    customizationBoundary.insert("cleanScreenHeight",
+                                 cleanScreenGeometry.height());
+    customizationBoundary.insert("customizeWidth",
+                                 customizeGeometry.width());
+    customizationBoundary.insert("customizeHeight",
+                                 customizeGeometry.height());
+    customizationBoundary.insert("cleanScreenRight",
+                                 cleanScreenGeometry.right());
+    customizationBoundary.insert("customizeLeft",
+                                 customizeGeometry.left());
+    customizationBoundary.insert("adjacent",
+                                 cleanScreenGeometry.right() + 1
+                                     == customizeGeometry.left());
+    customizationBoundary.insert("customizeIconWidth",
+                                 customizeButton == nullptr
+                                     ? 0 : customizeButton->iconSize().width());
+    customizationBoundary.insert("customizeIconHeight",
+                                 customizeButton == nullptr
+                                     ? 0 : customizeButton->iconSize().height());
+    customizationBoundary.insert("customizeReferencePage",
+                                 customizeButton == nullptr ? 0
+                                     : customizeButton->property(
+                                           "kuubikReferencePage").toInt());
+    customizationBoundary.insert("beforeColor", boundaryBeforeColor);
+    customizationBoundary.insert("dividerColor", boundaryDividerColor);
+    customizationBoundary.insert("afterColor", boundaryAfterColor);
+    customizationBoundary.insert("renderedDividerLogicalPixels",
+                                 renderedDividerLogicalPixels);
+    customizationBoundary.insert("geometryExact",
+                                 customizationBoundaryGeometryExact);
+    customizationBoundary.insert("passed", customizationBoundaryPassed);
+
+    QJsonObject resizeOverflowCoalescing;
+    resizeOverflowCoalescing.insert("timerPresent",
+                                   kuubikStatusOverflowResizeTimer != nullptr);
+    resizeOverflowCoalescing.insert("singleShot",
+                                   kuubikStatusOverflowResizeTimer != nullptr
+                                       && kuubikStatusOverflowResizeTimer
+                                              ->isSingleShot());
+    resizeOverflowCoalescing.insert("intervalMilliseconds",
+                                   kuubikStatusOverflowResizeTimer == nullptr
+                                       ? -1
+                                       : kuubikStatusOverflowResizeTimer
+                                             ->interval());
+    resizeOverflowCoalescing.insert("burstResizeEvents",
+                                   resizeBurstEventCount);
+    resizeOverflowCoalescing.insert("pendingBeforeDispatch",
+                                   resizeTimerPendingBeforeDispatch);
+    resizeOverflowCoalescing.insert("dispatchedUpdates",
+                                   resizeBurstDispatchCount);
+    resizeOverflowCoalescing.insert("passed",
+                                   resizeOverflowCoalescingPassed);
+
     QJsonObject sampledColors;
     sampledColors.insert("base", samplePixmap(
         rowPixmap, 2, statusBar()->height() / 2));
@@ -4710,6 +4879,14 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     m2StatusVisual.insert("restoredAfterNarrow", restoredAfterNarrow);
     m2StatusVisual.insert("userHiddenPreferencePreserved",
                           userHiddenPreferencePreserved);
+    m2StatusVisual.insert("customizationBoundaryPassed",
+                          customizationBoundaryPassed);
+    m2StatusVisual.insert("customizationBoundary",
+                          customizationBoundary);
+    m2StatusVisual.insert("resizeOverflowCoalescingPassed",
+                          resizeOverflowCoalescingPassed);
+    m2StatusVisual.insert("resizeOverflowCoalescing",
+                          resizeOverflowCoalescing);
     m2StatusVisual.insert("sampledColors", sampledColors);
     m2StatusVisual.insert("menuGlyphResourcesNonNull",
                           !menuArrowDown.isNull()
