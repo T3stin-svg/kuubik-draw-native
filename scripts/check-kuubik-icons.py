@@ -26,6 +26,7 @@ REQUIRED_KEYS = {
     "ZoomAuto", "FileExport", "FilePrintPreview", "FilePrintPDF",
 }
 MAPPING_PATTERN = re.compile(r'\{"([A-Za-z0-9]+)", "(:/icons/kuubik/[^"]+\.svg)"\}')
+STATUS_RESOURCE_PATTERN = re.compile(r'":/icons/(kuubik/view/(?:snap|status)-[^"]+\.svg)"')
 FORBIDDEN_TAGS = {"image", "script", "text", "tspan", "textPath", "foreignObject", "metadata"}
 FORBIDDEN_CONTENT = re.compile(r"data:|<script\\b|<image\\b|<text\\b|<tspan\\b|<foreignObject\\b|<metadata\\b", re.I)
 
@@ -68,7 +69,9 @@ def validate(root: Path) -> tuple[list[str], list[tuple[str, str]]]:
         errors.append(f"invalid qrc XML: {exc}")
         qrc_files = set()
 
-    expected_files = {resource.removeprefix(":/icons/") for resource in resources}
+    main_window = (root / "librecad" / "src" / "main" / "qc_applicationwindow.cpp").read_text(encoding="utf-8")
+    supplemental_files = set(STATUS_RESOURCE_PATTERN.findall(main_window))
+    expected_files = {resource.removeprefix(":/icons/") for resource in resources} | supplemental_files
     missing_qrc = sorted(expected_files - qrc_files)
     if missing_qrc:
         errors.append("mapped resources missing from qrc: " + ", ".join(missing_qrc))
@@ -136,7 +139,14 @@ def main() -> int:
         for error in errors:
             print("- " + error, file=sys.stderr)
         return 1
-    print(f"Kuubik icon validation passed: {len(mappings)} mappings, {len(mappings)} SVGs.")
+    icon_count = len({resource for _, resource in mappings})
+    supplemental_count = len(STATUS_RESOURCE_PATTERN.findall(
+        (Path(__file__).resolve().parents[1] / "librecad" / "src" / "main" / "qc_applicationwindow.cpp").read_text(encoding="utf-8")
+    ))
+    print(
+        f"Kuubik icon validation passed: {len(mappings)} action mappings, "
+        f"{icon_count + supplemental_count} referenced SVGs."
+    )
     return 0
 
 

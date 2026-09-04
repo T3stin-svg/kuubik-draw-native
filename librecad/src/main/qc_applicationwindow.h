@@ -352,6 +352,8 @@ private:
     void initializeKuubikVisuals();
     void createKuubikWorkspaceMenu();
     void createKuubikStatusControls();
+    void applyKuubikStatusVisibility();
+    void configureKuubikCoordinateWidget(bool kuubikMode);
     void applyKuubikTheme();
     void applyKuubikWorkspace(bool resetLayout);
     void applyClassicWorkspace();
@@ -484,4 +486,3 @@ extern Q_CORE_EXPORT int qt_ntfs_permission_lookup;
 #endif
 
 #endif
-

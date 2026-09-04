@@ -50,6 +50,11 @@ or selection → native document → undo/file output, with no silent failure.
 
 ## P1 — Kuubik visual refinement
 
+- [x] Replace the compact drafting row with the AutoCAD-familiar grey/blue
+  status bar and persistent far-right customization menu; prove all ten status
+  buttons have functional native/settings/dock bindings, all twelve supported
+  controls have show/hide entries, four coordinate formats are available and
+  hide/restore works in the local UI contract (2026-09-04).
 - [ ] Reio accept/deny the current 66 mapped Kuubik technical-line SVGs and
   recorded provenance; keep inherited LibreCAD fallbacks where unmapped;
 - [ ] validate the existing native `ModifyEntity` edit dialog on Reio's real

@@ -1,6 +1,6 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-03**
+Status date: **2026-09-04**
 
 ## Product
 
@@ -94,7 +94,7 @@ The development checkpoint additionally provides:
   source click and quick-access Undo/Redo, with three independently read-back
   DXF states.
 
-The current uncommitted owner-review wave additionally keeps the Home `Draw`
+The latest local owner-review wave additionally keeps the Home `Draw`
 panel expanded at narrow widths and presents `Line`, `Polyline`, `Circle` and
 `Arc` as four direct large commands, with `Rectangle` and `Hatch` beside them.
 Collapsed secondary panels use their first Kuubik command icon instead of a
@@ -113,13 +113,21 @@ Tab to this dynamic input instead of stealing canvas focus.
 Kuubik workspace now uses one compact AutoCAD-familiar bottom status row. The
 legacy LibreCAD snap toolbar and diagnostic selection/layer/grid labels are
 hidden in Kuubik mode, while Classic mode restores them. The visible Kuubik row
-contains MODEL, GRID, ORTHO and the OSNAP popup.
+contains MODEL, GRID, SNAP, ORTHO, POLAR, OSNAP, OTRACK, dynamic input,
+lineweight, Quick Properties and clean-screen controls. Optional live
+coordinates support four display formats.
 
-The status bar now groups the seven supported native snap modes into one
-`OSNAP` popup and uses distinct temporary symbols for endpoint, midpoint,
-center, intersection and nearest snaps. Higher-order AutoCAD snaps and
-acquisition tracking remain explicitly unimplemented rather than appearing as
-non-functional menu entries.
+A three-line button at the far right opens a persistent customization menu.
+Every row immediately shows or hides its corresponding control, and Reset
+Status Bar restores the defaults. Applicable controls open native settings on
+right-click. Active drafting states use compact blue tiles. Lineweight controls
+LibreCAD's real Draft state inversely, and Quick Properties controls the
+existing native Properties dock; the prior display-only selection-cycling and
+lineweight flags are no longer exposed.
+
+The OSNAP split menu groups fourteen native snap modes and keeps its blue state
+synchronized with whether an object-snap set is active. Distinct temporary
+symbols remain available for the supported snap candidates.
 
 ## Verified behaviors
 
@@ -192,9 +200,9 @@ For development commit `d17e8b23b`, run `33665520217` additionally verified:
   fixtures for every newly added snap mode and Windows qwindows verification
   remain pending.
 - The drafting row is icon-first rather than text-first. GRID, SNAP, ORTHO,
-  POLAR, OSNAP, OTRACK, dynamic input, lineweight, selection cycling and clean
-  screen use original Kuubik technical-line SVG symbols; extended OSNAP menu
-  entries also have matching symbols.
+  POLAR, OSNAP, OTRACK, dynamic input, lineweight, Quick Properties, clean
+  screen and customization use original Kuubik technical-line SVG symbols;
+  extended OSNAP menu entries also have matching symbols.
 - No `.kdraw` import from the web experiment exists; use DXF exchange.
 
 ## Build authority

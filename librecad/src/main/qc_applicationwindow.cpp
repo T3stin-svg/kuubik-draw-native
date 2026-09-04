@@ -1105,41 +1105,148 @@ void QC_ApplicationWindow::createKuubikWorkspaceMenu()
 
 void QC_ApplicationWindow::createKuubikStatusControls()
 {
+    struct StatusItem {
+        QString key;
+        QString label;
+        QWidget* widget;
+        bool defaultVisible;
+    };
+
+    QStatusBar* bar = statusBar();
+    bar->setObjectName(QStringLiteral("kuubikStatusBar"));
+    bar->setSizeGripEnabled(false);
+
+    QList<StatusItem> statusItems;
+    const auto registerStatusItem = [bar, &statusItems](QWidget* widget,
+                                                        const QString& key,
+                                                        const QString& label,
+                                                        bool defaultVisible,
+                                                        bool addToBar = true) {
+        widget->setProperty("kuubikStatusItem", true);
+        widget->setProperty("kuubikStatusKey", key);
+        widget->setProperty("kuubikStatusDefaultVisible", defaultVisible);
+        statusItems.append({key, label, widget, defaultVisible});
+        if (addToBar) {
+            bar->addPermanentWidget(widget);
+        }
+    };
+
+    if (coordinateWidget != nullptr) {
+        coordinateWidget->setToolTip(tr("Cursor coordinates. Right-click to change the coordinate format."));
+        coordinateWidget->setAccessibleName(tr("Cursor coordinates"));
+        registerStatusItem(coordinateWidget, QStringLiteral("Coordinates"),
+                           tr("Coordinates"), false, false);
+
+        auto* coordinateMenu = new QMenu(coordinateWidget);
+        coordinateMenu->setObjectName(QStringLiteral("kuubikCoordinateMenu"));
+        auto* coordinateGroup = new QActionGroup(coordinateMenu);
+        coordinateGroup->setExclusive(true);
+        const QList<QPair<QString, QString>> coordinateModes {
+            {QStringLiteral("absolute-cartesian"), tr("Absolute Cartesian")},
+            {QStringLiteral("relative-cartesian"), tr("Relative Cartesian")},
+            {QStringLiteral("absolute-polar"), tr("Absolute Polar")},
+            {QStringLiteral("relative-polar"), tr("Relative Polar")}
+        };
+        const QString savedMode = QSettings().value(
+            QStringLiteral("KuubikStatus/CoordinateMode"),
+            QStringLiteral("absolute-cartesian")).toString();
+        for (const auto& mode : coordinateModes) {
+            QAction* modeAction = coordinateMenu->addAction(mode.second);
+            modeAction->setObjectName(QStringLiteral("kuubikCoordinateMode_%1").arg(mode.first));
+            modeAction->setData(mode.first);
+            modeAction->setCheckable(true);
+            modeAction->setChecked(mode.first == savedMode);
+            coordinateGroup->addAction(modeAction);
+            connect(modeAction, &QAction::triggered, this, [this, mode]() {
+                QSettings().setValue(QStringLiteral("KuubikStatus/CoordinateMode"),
+                                     mode.first);
+                configureKuubikCoordinateWidget(true);
+            });
+        }
+        coordinateWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(coordinateWidget, &QWidget::customContextMenuRequested,
+                coordinateMenu, [this, coordinateMenu](const QPoint& pos) {
+                    coordinateMenu->popup(coordinateWidget->mapToGlobal(pos));
+                });
+    }
+
     auto* modelLabel = new QLabel(QStringLiteral("MODEL"), statusBar());
     modelLabel->setObjectName(QStringLiteral("kuubikModelStatus"));
     modelLabel->setAlignment(Qt::AlignCenter);
-    statusBar()->addWidget(modelLabel);
+    modelLabel->setToolTip(tr("Model space"));
+    modelLabel->setAccessibleName(tr("Model space"));
+    registerStatusItem(modelLabel, QStringLiteral("ModelSpace"),
+                       tr("Model Space"), true);
 
-    const QList<QPair<QString, QString>> statusActions {
-        {"ViewGrid", "GRID"}
+    const auto addSettingsContextMenu = [this](QToolButton* button,
+                                                const QString& settingsKey,
+                                                const QString& label) {
+        QAction* settingsAction = a_map.value(settingsKey, nullptr);
+        if (button == nullptr || settingsAction == nullptr) return;
+        auto* menu = new QMenu(button);
+        menu->setObjectName(QStringLiteral("kuubikStatusSettingsMenu"));
+        QAction* openSettings = menu->addAction(label);
+        connect(openSettings, &QAction::triggered, settingsAction,
+                [settingsAction]() { settingsAction->trigger(); });
+        button->setContextMenuPolicy(Qt::CustomContextMenu);
+        connect(button, &QWidget::customContextMenuRequested, menu,
+                [button, menu](const QPoint& pos) {
+                    menu->popup(button->mapToGlobal(pos));
+                });
     };
 
-    for (const auto& item : statusActions) {
-        QAction* action = a_map.value(item.first, nullptr);
-        if (action == nullptr) {
-            continue;
-        }
-        auto* button = new QToolButton(statusBar());
-        button->setObjectName("kuubikStatusToggle");
-        button->setProperty("kuubikActionKey", item.first);
-        button->setDefaultAction(action);
-        button->setText(item.second);
-        button->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-grid.svg")));
-        button->setIconSize(QSize(20, 20));
-        button->setToolButtonStyle(Qt::ToolButtonIconOnly);
-        button->setAutoRaise(false);
-        button->setAccessibleName(action->text().remove('&'));
-        statusBar()->addWidget(button);
-    }
-
-    const auto addSnapToggle = [this](const QString& text, const QString& iconPath,
-                                      bool RS_SnapMode::*flag,
-                                      const QString& tooltip) {
+    const auto addNativeToggle = [this, &registerStatusItem](
+                                     const QString& actionKey,
+                                     const QString& visibilityKey,
+                                     const QString& label,
+                                     const QString& iconPath,
+                                     const QString& tooltip) {
+        QAction* action = a_map.value(actionKey, nullptr);
+        if (action == nullptr) return static_cast<QToolButton*>(nullptr);
         auto* button = new QToolButton(statusBar());
         button->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        button->setProperty("kuubikActionKey", actionKey);
+        button->setProperty("kuubikBindingType", QStringLiteral("direct-action"));
+        button->setDefaultAction(action);
+        button->setText(label);
+        button->setIcon(QIcon(iconPath));
+        button->setIconSize(QSize(18, 18));
+        button->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        button->setAutoRaise(false);
+        button->setToolTip(tooltip);
+        button->setAccessibleName(tooltip);
+        registerStatusItem(button, visibilityKey, tooltip, true);
+        return button;
+    };
+
+    QToolButton* gridButton = addNativeToggle(
+        QStringLiteral("ViewGrid"), QStringLiteral("Grid"),
+        QStringLiteral("GRID"), QStringLiteral(":/icons/kuubik/view/status-grid.svg"),
+        tr("Grid display"));
+    addSettingsContextMenu(gridButton, QStringLiteral("OptionsDrawing"),
+                           tr("Grid Settings..."));
+
+    QToolButton* snapButton = addNativeToggle(
+        QStringLiteral("SnapGrid"), QStringLiteral("SnapMode"),
+        QStringLiteral("SNAP"), QStringLiteral(":/icons/kuubik/view/status-snap.svg"),
+        tr("Snap mode"));
+    addSettingsContextMenu(snapButton, QStringLiteral("OptionsGeneral"),
+                           tr("Snap Settings..."));
+
+    const auto addSnapToggle = [this, &registerStatusItem](
+                                   const QString& text, const QString& iconPath,
+                                   const QString& visibilityKey,
+                                   unsigned snapMask,
+                                   bool RS_SnapMode::*flag,
+                                   const QString& tooltip) {
+        auto* button = new QToolButton(statusBar());
+        button->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        button->setProperty("kuubikActionKey", visibilityKey);
+        button->setProperty("kuubikBindingType", QStringLiteral("snap-mode"));
+        button->setProperty("kuubikSnapMask", snapMask);
         button->setText(text);
         button->setIcon(QIcon(iconPath));
-        button->setIconSize(QSize(20, 20));
+        button->setIconSize(QSize(18, 18));
         button->setToolButtonStyle(Qt::ToolButtonIconOnly);
         button->setCheckable(true);
         button->setChecked(actionHandler != nullptr && actionHandler->getSnaps().*flag);
@@ -1151,44 +1258,43 @@ void QC_ApplicationWindow::createKuubikStatusControls()
             mode.*flag = checked;
             actionHandler->slotSetSnaps(mode);
         });
-        statusBar()->addWidget(button);
+        registerStatusItem(button, visibilityKey, tooltip, true);
         return button;
     };
-    addSnapToggle(QStringLiteral("SNAP"), QStringLiteral(":/icons/kuubik/view/status-snap.svg"), &RS_SnapMode::snapGrid,
-                  tr("Snap mode"));
-    if (QAction* orthoAction = a_map.value(QStringLiteral("RestrictOrthogonal"), nullptr)) {
-        auto* orthoButton = new QToolButton(statusBar());
-        orthoButton->setObjectName(QStringLiteral("kuubikStatusToggle"));
-        orthoButton->setDefaultAction(orthoAction);
-        orthoButton->setText(QStringLiteral("ORTHO"));
-        orthoButton->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-ortho.svg")));
-        orthoButton->setIconSize(QSize(20, 20));
-        orthoButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
-        orthoButton->setAutoRaise(false);
-        statusBar()->addWidget(orthoButton);
-    }
-    addSnapToggle(QStringLiteral("POLAR"), QStringLiteral(":/icons/kuubik/view/status-polar.svg"), &RS_SnapMode::snapAngle,
-                  tr("Polar tracking"));
+
+    addNativeToggle(QStringLiteral("RestrictOrthogonal"), QStringLiteral("OrthoMode"),
+                    QStringLiteral("ORTHO"),
+                    QStringLiteral(":/icons/kuubik/view/status-ortho.svg"),
+                    tr("Ortho mode"));
+    addSnapToggle(QStringLiteral("POLAR"),
+                  QStringLiteral(":/icons/kuubik/view/status-polar.svg"),
+                  QStringLiteral("SnapAngle"), RS_SnapMode::SnapAngle,
+                  &RS_SnapMode::snapAngle, tr("Polar tracking"));
 
     auto* osnapButton = new QToolButton(statusBar());
     osnapButton->setObjectName(QStringLiteral("kuubikOsnapButton"));
     osnapButton->setProperty("kuubikActionKey", QStringLiteral("ObjectSnapMenu"));
+    osnapButton->setProperty("kuubikBindingType", QStringLiteral("object-snap-menu"));
     osnapButton->setText(QStringLiteral("OSNAP"));
     osnapButton->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-osnap.svg")));
-    osnapButton->setIconSize(QSize(20, 20));
+    osnapButton->setIconSize(QSize(18, 18));
     osnapButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
     osnapButton->setPopupMode(QToolButton::MenuButtonPopup);
     osnapButton->setAutoRaise(false);
+    osnapButton->setCheckable(true);
     osnapButton->setAccessibleName(tr("Object Snap modes"));
     osnapButton->setToolTip(tr("Object Snap modes"));
 
     auto* osnapMenu = new QMenu(osnapButton);
     osnapMenu->setObjectName(QStringLiteral("kuubikOsnapMenu"));
-    const auto addNativeSnap = [this, osnapMenu](const QString& key, const QString& label) {
+    const auto addNativeSnap = [this, osnapMenu](const QString& key,
+                                                 const QString& label,
+                                                 unsigned snapMask) {
         if (QAction* nativeAction = a_map.value(key, nullptr)) {
             QIcon icon = KuubikIconRegistry::iconForAction(key);
             if (icon.isNull()) icon = nativeAction->icon();
             auto* menuAction = osnapMenu->addAction(icon, label);
+            menuAction->setProperty("kuubikSnapMask", snapMask);
             menuAction->setCheckable(true);
             menuAction->setChecked(nativeAction->isChecked());
             connect(menuAction, &QAction::triggered, nativeAction,
@@ -1201,9 +1307,12 @@ void QC_ApplicationWindow::createKuubikStatusControls()
                     });
         }
     };
-    const auto addExtendedSnap = [this, osnapMenu](const QString& label, const QString& icon,
+    const auto addExtendedSnap = [this, osnapMenu](const QString& label,
+                                                   const QString& icon,
+                                                   unsigned snapMask,
                                                    bool RS_SnapMode::*flag) {
         auto* menuAction = osnapMenu->addAction(QIcon(icon), label);
+        menuAction->setProperty("kuubikSnapMask", snapMask);
         menuAction->setCheckable(true);
         menuAction->setChecked(actionHandler != nullptr
                                && actionHandler->getSnaps().*flag);
@@ -1215,20 +1324,20 @@ void QC_ApplicationWindow::createKuubikStatusControls()
                     actionHandler->slotSetSnaps(mode);
                 });
     };
-    addNativeSnap(QStringLiteral("SnapEnd"), tr("Endpoint"));
-    addNativeSnap(QStringLiteral("SnapMiddle"), tr("Midpoint"));
-    addNativeSnap(QStringLiteral("SnapCenter"), tr("Center"));
-    addExtendedSnap(tr("Geometric Center"), QStringLiteral(":/icons/kuubik/view/snap-geometric-center.svg"), &RS_SnapMode::snapGeometricCenter);
-    addExtendedSnap(tr("Node"), QStringLiteral(":/icons/kuubik/view/snap-node.svg"), &RS_SnapMode::snapNode);
-    addExtendedSnap(tr("Quadrant"), QStringLiteral(":/icons/kuubik/view/snap-quadrant.svg"), &RS_SnapMode::snapQuadrant);
-    addNativeSnap(QStringLiteral("SnapIntersection"), tr("Intersection"));
-    addExtendedSnap(tr("Extension"), QStringLiteral(":/icons/kuubik/view/snap-extension.svg"), &RS_SnapMode::snapExtension);
-    addExtendedSnap(tr("Insertion"), QStringLiteral(":/icons/kuubik/view/snap-insertion.svg"), &RS_SnapMode::snapInsertion);
-    addExtendedSnap(tr("Perpendicular"), QStringLiteral(":/icons/kuubik/view/snap-perpendicular.svg"), &RS_SnapMode::snapPerpendicular);
-    addExtendedSnap(tr("Tangent"), QStringLiteral(":/icons/kuubik/view/snap-tangent.svg"), &RS_SnapMode::snapTangent);
-    addNativeSnap(QStringLiteral("SnapEntity"), tr("Nearest"));
-    addExtendedSnap(tr("Apparent Intersection"), QStringLiteral(":/icons/kuubik/view/snap-apparent.svg"), &RS_SnapMode::snapApparentIntersection);
-    addExtendedSnap(tr("Parallel"), QStringLiteral(":/icons/kuubik/view/snap-parallel.svg"), &RS_SnapMode::snapParallel);
+    addNativeSnap(QStringLiteral("SnapEnd"), tr("Endpoint"), RS_SnapMode::SnapEndpoint);
+    addNativeSnap(QStringLiteral("SnapMiddle"), tr("Midpoint"), RS_SnapMode::SnapMiddle);
+    addNativeSnap(QStringLiteral("SnapCenter"), tr("Center"), RS_SnapMode::SnapCenter);
+    addExtendedSnap(tr("Geometric Center"), QStringLiteral(":/icons/kuubik/view/snap-geometric-center.svg"), RS_SnapMode::SnapGeometricCenter, &RS_SnapMode::snapGeometricCenter);
+    addExtendedSnap(tr("Node"), QStringLiteral(":/icons/kuubik/view/snap-node.svg"), RS_SnapMode::SnapNode, &RS_SnapMode::snapNode);
+    addExtendedSnap(tr("Quadrant"), QStringLiteral(":/icons/kuubik/view/snap-quadrant.svg"), RS_SnapMode::SnapQuadrant, &RS_SnapMode::snapQuadrant);
+    addNativeSnap(QStringLiteral("SnapIntersection"), tr("Intersection"), RS_SnapMode::SnapIntersection);
+    addExtendedSnap(tr("Extension"), QStringLiteral(":/icons/kuubik/view/snap-extension.svg"), RS_SnapMode::SnapExtension, &RS_SnapMode::snapExtension);
+    addExtendedSnap(tr("Insertion"), QStringLiteral(":/icons/kuubik/view/snap-insertion.svg"), RS_SnapMode::SnapInsertion, &RS_SnapMode::snapInsertion);
+    addExtendedSnap(tr("Perpendicular"), QStringLiteral(":/icons/kuubik/view/snap-perpendicular.svg"), RS_SnapMode::SnapPerpendicular, &RS_SnapMode::snapPerpendicular);
+    addExtendedSnap(tr("Tangent"), QStringLiteral(":/icons/kuubik/view/snap-tangent.svg"), RS_SnapMode::SnapTangent, &RS_SnapMode::snapTangent);
+    addNativeSnap(QStringLiteral("SnapEntity"), tr("Nearest"), RS_SnapMode::SnapOnEntity);
+    addExtendedSnap(tr("Apparent Intersection"), QStringLiteral(":/icons/kuubik/view/snap-apparent.svg"), RS_SnapMode::SnapApparentIntersection, &RS_SnapMode::snapApparentIntersection);
+    addExtendedSnap(tr("Parallel"), QStringLiteral(":/icons/kuubik/view/snap-parallel.svg"), RS_SnapMode::SnapParallel, &RS_SnapMode::snapParallel);
     osnapMenu->addSeparator();
     if (QAction* settings = a_map.value(QStringLiteral("OptionsGeneral"),
                                         nullptr)) {
@@ -1238,15 +1347,42 @@ void QC_ApplicationWindow::createKuubikStatusControls()
                 [settings] { settings->trigger(); });
     }
     osnapButton->setMenu(osnapMenu);
-    connect(osnapButton, &QToolButton::clicked, this, [this, osnapButton] {
+
+    const auto syncOsnapUi = [this, osnapButton, osnapMenu]() {
+        if (actionHandler == nullptr) return;
+        const unsigned snapBits = RS_SnapMode::toInt(actionHandler->getSnaps());
+        bool enabled = false;
+        for (QAction* action : osnapMenu->actions()) {
+            bool validMask = false;
+            const unsigned mask = action->property("kuubikSnapMask").toUInt(&validMask);
+            if (!validMask || mask == 0) continue;
+            const bool checked = (snapBits & mask) != 0;
+            const QSignalBlocker blocker(action);
+            action->setChecked(checked);
+            enabled = enabled || checked;
+        }
+        const QSignalBlocker blocker(osnapButton);
+        osnapButton->setChecked(enabled);
+    };
+    syncOsnapUi();
+    connect(osnapMenu, &QMenu::triggered, this,
+            [osnapButton, syncOsnapUi](QAction*) {
+                QTimer::singleShot(0, osnapButton, syncOsnapUi);
+            });
+    connect(osnapButton, &QToolButton::clicked, this,
+            [this, osnapButton, syncOsnapUi](bool) {
         if (actionHandler == nullptr) return;
         RS_SnapMode mode = actionHandler->getSnaps();
-        const bool enabled = mode.snapEndpoint || mode.snapMiddle || mode.snapCenter
-            || mode.snapIntersection || mode.snapOnEntity || mode.snapDistance
-            || mode.snapQuadrant || mode.snapNode || mode.snapInsertion
-            || mode.snapPerpendicular || mode.snapTangent
-            || mode.snapGeometricCenter || mode.snapApparentIntersection
-            || mode.snapExtension || mode.snapParallel;
+        const unsigned objectSnapMask = RS_SnapMode::SnapEndpoint
+            | RS_SnapMode::SnapMiddle | RS_SnapMode::SnapCenter
+            | RS_SnapMode::SnapIntersection | RS_SnapMode::SnapOnEntity
+            | RS_SnapMode::SnapDistance | RS_SnapMode::SnapQuadrant
+            | RS_SnapMode::SnapNode | RS_SnapMode::SnapInsertion
+            | RS_SnapMode::SnapPerpendicular | RS_SnapMode::SnapTangent
+            | RS_SnapMode::SnapGeometricCenter
+            | RS_SnapMode::SnapApparentIntersection
+            | RS_SnapMode::SnapExtension | RS_SnapMode::SnapParallel;
+        const bool enabled = (RS_SnapMode::toInt(mode) & objectSnapMask) != 0;
         if (enabled) {
             osnapButton->setProperty("kuubikSavedOsnap", RS_SnapMode::toInt(mode));
             mode.snapEndpoint = mode.snapMiddle = mode.snapCenter = false;
@@ -1270,52 +1406,227 @@ void QC_ApplicationWindow::createKuubikStatusControls()
             mode = restored;
         }
         actionHandler->slotSetSnaps(mode);
-        osnapButton->setProperty("osnapEnabled", !enabled);
-        osnapButton->style()->unpolish(osnapButton);
-        osnapButton->style()->polish(osnapButton);
+        syncOsnapUi();
     });
-    statusBar()->addWidget(osnapButton);
+    registerStatusItem(osnapButton, QStringLiteral("ObjectSnap"),
+                       tr("Object Snap"), true);
 
-    addSnapToggle(QStringLiteral("OTRACK"), QStringLiteral(":/icons/kuubik/view/status-otrack.svg"), &RS_SnapMode::snapTracking,
-                  tr("Object snap tracking"));
+    addSnapToggle(QStringLiteral("OTRACK"),
+                  QStringLiteral(":/icons/kuubik/view/status-otrack.svg"),
+                  QStringLiteral("SnapTracking"), RS_SnapMode::SnapTracking,
+                  &RS_SnapMode::snapTracking, tr("Object snap tracking"));
 
-    const auto addLocalToggle = [this](const QString& text, const QString& iconPath, const QString& key,
-                                       bool initial, const QString& tooltip) {
+    const auto addLocalToggle = [this, &registerStatusItem](
+                                    const QString& text, const QString& iconPath,
+                                    const QString& key, bool initial,
+                                    const QString& tooltip) {
         auto* button = new QToolButton(statusBar());
         button->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        button->setProperty("kuubikActionKey", key);
+        button->setProperty("kuubikBindingType", QStringLiteral("application-setting"));
         button->setText(text);
         button->setIcon(QIcon(iconPath));
-        button->setIconSize(QSize(20, 20));
+        button->setIconSize(QSize(18, 18));
         button->setToolButtonStyle(Qt::ToolButtonIconOnly);
         button->setCheckable(true);
         button->setChecked(initial);
         button->setToolTip(tooltip);
         button->setAccessibleName(tooltip);
-        connect(button, &QToolButton::toggled, this, [key](bool checked) {
+        connect(button, &QToolButton::toggled, this, [this, key](bool checked) {
             QSettings().setValue(QStringLiteral("KuubikStatus/") + key, checked);
+            if (key == QStringLiteral("DynamicInput") && !checked) {
+                const auto dynamicInputs = findChildren<QLabel*>(
+                    QStringLiteral("kuubikDynamicInput"));
+                for (QLabel* input : dynamicInputs) input->hide();
+            }
         });
-        statusBar()->addWidget(button);
+        registerStatusItem(button, key, tooltip, true);
+        return button;
     };
     QSettings statusSettings;
     addLocalToggle(QStringLiteral("DYN"), QStringLiteral(":/icons/kuubik/view/status-dynamic.svg"), QStringLiteral("DynamicInput"),
                    statusSettings.value(QStringLiteral("KuubikStatus/DynamicInput"), true).toBool(),
                    tr("Dynamic input"));
-    addLocalToggle(QStringLiteral("LWT"), QStringLiteral(":/icons/kuubik/view/status-lineweight.svg"), QStringLiteral("Lineweight"),
-                   statusSettings.value(QStringLiteral("KuubikStatus/Lineweight"), true).toBool(),
-                   tr("Show lineweight"));
-    addLocalToggle(QStringLiteral("SC"), QStringLiteral(":/icons/kuubik/view/status-selection.svg"), QStringLiteral("SelectionCycling"),
-                   statusSettings.value(QStringLiteral("KuubikStatus/SelectionCycling"), false).toBool(),
-                   tr("Selection cycling"));
+
+    if (QAction* draftAction = a_map.value(QStringLiteral("ViewDraft"), nullptr)) {
+        auto* lineweightButton = new QToolButton(statusBar());
+        lineweightButton->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        lineweightButton->setProperty("kuubikActionKey", QStringLiteral("ViewDraft"));
+        lineweightButton->setProperty("kuubikBindingType", QStringLiteral("inverse-action"));
+        lineweightButton->setText(QStringLiteral("LWT"));
+        lineweightButton->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-lineweight.svg")));
+        lineweightButton->setIconSize(QSize(18, 18));
+        lineweightButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        lineweightButton->setCheckable(true);
+        lineweightButton->setChecked(!draftAction->isChecked());
+        lineweightButton->setToolTip(tr("Show lineweight"));
+        lineweightButton->setAccessibleName(tr("Show lineweight"));
+        connect(lineweightButton, &QToolButton::toggled, draftAction,
+                [draftAction](bool showLineweight) {
+                    if (draftAction->isChecked() == showLineweight) {
+                        draftAction->setChecked(!showLineweight);
+                    }
+                });
+        connect(draftAction, &QAction::changed, lineweightButton,
+                [draftAction, lineweightButton]() {
+                    const QSignalBlocker blocker(lineweightButton);
+                    lineweightButton->setChecked(!draftAction->isChecked());
+                });
+        registerStatusItem(lineweightButton, QStringLiteral("Lineweight"),
+                           tr("LineWeight"), true);
+    }
+
+    if (kuubikPropertiesDock != nullptr) {
+        auto* quickPropertiesButton = new QToolButton(statusBar());
+        quickPropertiesButton->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        quickPropertiesButton->setProperty("kuubikActionKey", QStringLiteral("QuickProperties"));
+        quickPropertiesButton->setProperty("kuubikBindingType", QStringLiteral("dock-visibility"));
+        quickPropertiesButton->setText(QStringLiteral("QP"));
+        quickPropertiesButton->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-selection.svg")));
+        quickPropertiesButton->setIconSize(QSize(18, 18));
+        quickPropertiesButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        quickPropertiesButton->setCheckable(true);
+        quickPropertiesButton->setChecked(statusSettings.value(
+            QStringLiteral("KuubikStatus/QuickProperties"), true).toBool());
+        quickPropertiesButton->setToolTip(tr("Quick Properties"));
+        quickPropertiesButton->setAccessibleName(tr("Quick Properties"));
+        connect(quickPropertiesButton, &QToolButton::toggled,
+                kuubikPropertiesDock, [this](bool visible) {
+                    QSettings().setValue(QStringLiteral("KuubikStatus/QuickProperties"),
+                                         visible);
+                    if (kuubikPropertiesDock != nullptr) {
+                        kuubikPropertiesDock->setVisible(visible);
+                    }
+                });
+        connect(kuubikPropertiesDock, &QDockWidget::visibilityChanged,
+                quickPropertiesButton, [quickPropertiesButton](bool visible) {
+                    QSettings().setValue(QStringLiteral("KuubikStatus/QuickProperties"),
+                                         visible);
+                    const QSignalBlocker blocker(quickPropertiesButton);
+                    quickPropertiesButton->setChecked(visible);
+                });
+        registerStatusItem(quickPropertiesButton, QStringLiteral("QuickProperties"),
+                           tr("Quick Properties"), true);
+    }
+
     if (QAction* fullScreen = a_map.value(QStringLiteral("Fullscreen"), nullptr)) {
         auto* cleanScreen = new QToolButton(statusBar());
         cleanScreen->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        cleanScreen->setProperty("kuubikActionKey", QStringLiteral("Fullscreen"));
+        cleanScreen->setProperty("kuubikBindingType", QStringLiteral("direct-action"));
         cleanScreen->setDefaultAction(fullScreen);
         cleanScreen->setText(QStringLiteral("CLEAN"));
         cleanScreen->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-clean.svg")));
-        cleanScreen->setIconSize(QSize(20, 20));
+        cleanScreen->setIconSize(QSize(18, 18));
         cleanScreen->setToolButtonStyle(Qt::ToolButtonIconOnly);
         cleanScreen->setToolTip(tr("Clean screen"));
-        statusBar()->addWidget(cleanScreen);
+        cleanScreen->setAccessibleName(tr("Clean screen"));
+        registerStatusItem(cleanScreen, QStringLiteral("CleanScreen"),
+                           tr("Clean Screen"), true);
+    }
+
+    auto* customizeButton = new QToolButton(statusBar());
+    customizeButton->setObjectName(QStringLiteral("kuubikStatusCustomize"));
+    customizeButton->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-customize.svg")));
+    customizeButton->setIconSize(QSize(18, 18));
+    customizeButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    customizeButton->setPopupMode(QToolButton::InstantPopup);
+    customizeButton->setAutoRaise(false);
+    customizeButton->setToolTip(tr("Customization"));
+    customizeButton->setAccessibleName(tr("Customize status bar"));
+
+    auto* customizeMenu = new QMenu(customizeButton);
+    customizeMenu->setObjectName(QStringLiteral("kuubikStatusCustomizationMenu"));
+    for (const StatusItem& item : statusItems) {
+        QAction* visibilityAction = customizeMenu->addAction(item.label);
+        visibilityAction->setObjectName(
+            QStringLiteral("kuubikStatusVisibility_%1").arg(item.key));
+        visibilityAction->setProperty("kuubikStatusKey", item.key);
+        visibilityAction->setCheckable(true);
+        visibilityAction->setChecked(statusSettings.value(
+            QStringLiteral("KuubikStatus/Visible/") + item.key,
+            item.defaultVisible).toBool());
+        connect(visibilityAction, &QAction::toggled, item.widget,
+                [item](bool visible) {
+                    QSettings().setValue(
+                        QStringLiteral("KuubikStatus/Visible/") + item.key,
+                        visible);
+                    item.widget->setVisible(visible);
+                });
+    }
+    customizeMenu->addSeparator();
+    QAction* restoreDefaults = customizeMenu->addAction(tr("Reset Status Bar"));
+    restoreDefaults->setObjectName(QStringLiteral("kuubikStatusReset"));
+    connect(restoreDefaults, &QAction::triggered, this,
+            [this, statusItems, customizeMenu]() {
+                for (const StatusItem& item : statusItems) {
+                    QSettings().setValue(
+                        QStringLiteral("KuubikStatus/Visible/") + item.key,
+                        item.defaultVisible);
+                    if (QAction* action = customizeMenu->findChild<QAction*>(
+                            QStringLiteral("kuubikStatusVisibility_%1").arg(item.key))) {
+                        action->setChecked(item.defaultVisible);
+                    }
+                }
+                applyKuubikStatusVisibility();
+            });
+    customizeButton->setMenu(customizeMenu);
+    bar->addPermanentWidget(customizeButton);
+    bar->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(bar, &QWidget::customContextMenuRequested, customizeMenu,
+            [bar, customizeMenu](const QPoint& pos) {
+                customizeMenu->popup(bar->mapToGlobal(pos));
+            });
+
+    configureKuubikCoordinateWidget(true);
+    applyKuubikStatusVisibility();
+}
+
+void QC_ApplicationWindow::configureKuubikCoordinateWidget(bool kuubikMode)
+{
+    if (coordinateWidget == nullptr) return;
+
+    if (!kuubikMode) {
+        coordinateWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+        coordinateWidget->setMinimumSize(380, 27);
+        coordinateWidget->setMaximumSize(1500, 160);
+        coordinateWidget->lCoord1->show();
+        coordinateWidget->lCoord1b->show();
+        coordinateWidget->lCoord2->show();
+        coordinateWidget->lCoord2b->show();
+        coordinateWidget->line1->show();
+        return;
+    }
+
+    coordinateWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+    coordinateWidget->setMinimumSize(185, 24);
+    coordinateWidget->setMaximumSize(185, 24);
+    coordinateWidget->line1->hide();
+    const QString mode = QSettings().value(
+        QStringLiteral("KuubikStatus/CoordinateMode"),
+        QStringLiteral("absolute-cartesian")).toString();
+    coordinateWidget->lCoord1->setVisible(mode == QStringLiteral("absolute-cartesian"));
+    coordinateWidget->lCoord2->setVisible(mode == QStringLiteral("relative-cartesian"));
+    coordinateWidget->lCoord1b->setVisible(mode == QStringLiteral("absolute-polar"));
+    coordinateWidget->lCoord2b->setVisible(mode == QStringLiteral("relative-polar"));
+}
+
+void QC_ApplicationWindow::applyKuubikStatusVisibility()
+{
+    QSettings settings;
+    const auto widgets = statusBar()->findChildren<QWidget*>();
+    for (QWidget* widget : widgets) {
+        if (!widget->property("kuubikStatusItem").toBool()) continue;
+        const QString key = widget->property("kuubikStatusKey").toString();
+        const bool defaultVisible = widget->property(
+            "kuubikStatusDefaultVisible").toBool();
+        widget->setVisible(settings.value(
+            QStringLiteral("KuubikStatus/Visible/") + key,
+            defaultVisible).toBool());
+    }
+    if (auto* customize = statusBar()->findChild<QToolButton*>(
+            QStringLiteral("kuubikStatusCustomize"))) {
+        customize->show();
     }
 }
 
@@ -1393,21 +1704,12 @@ void QC_ApplicationWindow::applyKuubikWorkspace(bool resetLayout)
     for (QToolBar* toolbar : kuubikToolbars) {
         if (toolbar != kuubikRibbonToolbar) toolbar->hide();
     }
-    if (coordinateWidget != nullptr) coordinateWidget->hide();
+    configureKuubikCoordinateWidget(true);
     if (mouseWidget != nullptr) mouseWidget->hide();
     if (selectionWidget != nullptr) selectionWidget->hide();
     if (m_pActiveLayerName != nullptr) m_pActiveLayerName->hide();
     if (grid_status != nullptr) grid_status->hide();
-    if (auto* model = statusBar()->findChild<QLabel*>(
-            QStringLiteral("kuubikModelStatus"))) {
-        model->show();
-    }
-    for (QToolButton* button : statusBar()->findChildren<QToolButton*>()) {
-        if (button->objectName() == QStringLiteral("kuubikStatusToggle")
-            || button->objectName() == QStringLiteral("kuubikOsnapButton")) {
-            button->show();
-        }
-    }
+    applyKuubikStatusVisibility();
 
     auto* commandDock = findChild<QDockWidget*>("command_dockwidget");
     if (commandDock != nullptr) {
@@ -1438,6 +1740,11 @@ void QC_ApplicationWindow::applyKuubikWorkspace(bool resetLayout)
                                              : Qt::RightDockWidgetArea,
                              false);
     }
+    if (kuubikPropertiesDock != nullptr) {
+        const bool quickPropertiesVisible = settings.value(
+            QStringLiteral("KuubikStatus/QuickProperties"), true).toBool();
+        kuubikPropertiesDock->setVisible(quickPropertiesVisible);
+    }
 
     if (kuubikWorkspaceAction != nullptr) {
         kuubikWorkspaceAction->setChecked(true);
@@ -1462,20 +1769,22 @@ void QC_ApplicationWindow::applyClassicWorkspace()
         kuubikRibbonToolbar->hide();
     }
     menuBar()->show();
+    configureKuubikCoordinateWidget(false);
     if (coordinateWidget != nullptr) coordinateWidget->show();
     if (mouseWidget != nullptr) mouseWidget->show();
     if (selectionWidget != nullptr) selectionWidget->show();
     if (m_pActiveLayerName != nullptr) m_pActiveLayerName->show();
     if (grid_status != nullptr) grid_status->show();
-    if (auto* model = statusBar()->findChild<QLabel*>(
-            QStringLiteral("kuubikModelStatus"))) {
-        model->hide();
-    }
-    for (QToolButton* button : statusBar()->findChildren<QToolButton*>()) {
-        if (button->objectName() == QStringLiteral("kuubikStatusToggle")
-            || button->objectName() == QStringLiteral("kuubikOsnapButton")) {
-            button->hide();
+    const auto kuubikStatusItems = statusBar()->findChildren<QWidget*>();
+    for (QWidget* widget : kuubikStatusItems) {
+        if (widget != coordinateWidget
+            && widget->property("kuubikStatusItem").toBool()) {
+            widget->hide();
         }
+    }
+    if (auto* customize = statusBar()->findChild<QToolButton*>(
+            QStringLiteral("kuubikStatusCustomize"))) {
+        customize->hide();
     }
 
     const QStringList classicToolbars {
@@ -1806,19 +2115,143 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     contract.insert("commandLine", commandLineObject);
 
     QJsonArray statusControls;
-    const auto statusButtons = statusBar()->findChildren<QToolButton*>(
-        QStringLiteral("kuubikStatusToggle"));
+    const auto statusButtons = statusBar()->findChildren<QToolButton*>();
     for (QToolButton* statusButton : statusButtons) {
+        if (!statusButton->property("kuubikStatusItem").toBool()) continue;
         const QString key = statusButton->property("kuubikActionKey").toString();
+        const QString bindingType = statusButton->property(
+            "kuubikBindingType").toString();
+        bool functionalBinding = false;
+        if (bindingType == QStringLiteral("direct-action")) {
+            functionalBinding = statusButton->defaultAction()
+                                == a_map.value(key, nullptr);
+        } else if (bindingType == QStringLiteral("inverse-action")) {
+            functionalBinding = a_map.value(key, nullptr) != nullptr;
+        } else if (bindingType == QStringLiteral("snap-mode")) {
+            functionalBinding = actionHandler != nullptr
+                                && statusButton->property(
+                                       "kuubikSnapMask").toUInt() != 0;
+        } else if (bindingType == QStringLiteral("application-setting")) {
+            functionalBinding = key == QStringLiteral("DynamicInput");
+        } else if (bindingType == QStringLiteral("dock-visibility")) {
+            functionalBinding = key == QStringLiteral("QuickProperties")
+                                && kuubikPropertiesDock != nullptr;
+        } else if (bindingType == QStringLiteral("object-snap-menu")) {
+            functionalBinding = actionHandler != nullptr
+                                && statusButton->menu() != nullptr
+                                && statusButton->menu()->actions().size() >= 10;
+        }
         QJsonObject statusObject;
         statusObject.insert("objectName", statusButton->objectName());
         statusObject.insert("actionKey", key);
-        statusObject.insert("nativeBinding", !key.isEmpty()
-                                             && statusButton->defaultAction()
-                                                    == a_map.value(key, nullptr));
+        statusObject.insert("bindingType", bindingType);
+        statusObject.insert("visibilityKey", statusButton->property(
+            "kuubikStatusKey").toString());
+        statusObject.insert("nativeBinding", !key.isEmpty() && functionalBinding);
         statusControls.append(statusObject);
     }
     contract.insert("statusControls", statusControls);
+
+    QJsonObject statusBarObject;
+    auto* customizeButton = statusBar()->findChild<QToolButton*>(
+        QStringLiteral("kuubikStatusCustomize"));
+    auto* customizeMenu = statusBar()->findChild<QMenu*>(
+        QStringLiteral("kuubikStatusCustomizationMenu"));
+    QJsonArray customizationEntries;
+    if (customizeMenu != nullptr) {
+        for (QAction* action : customizeMenu->actions()) {
+            const QString visibilityKey = action->property(
+                "kuubikStatusKey").toString();
+            if (visibilityKey.isEmpty()) continue;
+            QJsonObject entry;
+            entry.insert("key", visibilityKey);
+            entry.insert("checked", action->isChecked());
+            bool controlPresent = false;
+            const auto widgets = statusBar()->findChildren<QWidget*>();
+            for (QWidget* widget : widgets) {
+                if (widget->property("kuubikStatusKey").toString()
+                    == visibilityKey) {
+                    controlPresent = true;
+                    break;
+                }
+            }
+            entry.insert("controlPresent", controlPresent);
+            customizationEntries.append(entry);
+        }
+    }
+
+    bool customizationToggleRoundTrip = false;
+    if (customizeMenu != nullptr) {
+        QAction* gridVisibility = customizeMenu->findChild<QAction*>(
+            QStringLiteral("kuubikStatusVisibility_Grid"));
+        QWidget* gridControl = nullptr;
+        const auto widgets = statusBar()->findChildren<QWidget*>();
+        for (QWidget* widget : widgets) {
+            if (widget->property("kuubikStatusKey").toString()
+                == QStringLiteral("Grid")) {
+                gridControl = widget;
+                break;
+            }
+        }
+        if (gridVisibility != nullptr && gridControl != nullptr) {
+            const bool checkedBefore = gridVisibility->isChecked();
+            const bool hiddenBefore = gridControl->isHidden();
+            gridVisibility->trigger();
+            QApplication::processEvents();
+            const bool toggled = gridVisibility->isChecked() != checkedBefore
+                                 && gridControl->isHidden() != hiddenBefore;
+            gridVisibility->trigger();
+            QApplication::processEvents();
+            customizationToggleRoundTrip = toggled
+                && gridVisibility->isChecked() == checkedBefore
+                && gridControl->isHidden() == hiddenBefore;
+        }
+    }
+
+    auto* coordinateMenu = coordinateWidget == nullptr
+        ? nullptr
+        : coordinateWidget->findChild<QMenu*>(
+              QStringLiteral("kuubikCoordinateMenu"));
+    auto* osnapStatusButton = statusBar()->findChild<QToolButton*>(
+        QStringLiteral("kuubikOsnapButton"));
+    int osnapModeCount = 0;
+    if (osnapStatusButton != nullptr && osnapStatusButton->menu() != nullptr) {
+        for (QAction* action : osnapStatusButton->menu()->actions()) {
+            if (action->property("kuubikSnapMask").isValid()) ++osnapModeCount;
+        }
+    }
+    const QString statusMenuScreenshotPath = qEnvironmentVariable(
+        "KUUBIK_STATUS_MENU_SCREENSHOT_PATH");
+    bool statusMenuScreenshotSaved = statusMenuScreenshotPath.isEmpty();
+    int statusMenuScreenshotWidth = 0;
+    int statusMenuScreenshotHeight = 0;
+    if (!statusMenuScreenshotPath.isEmpty() && customizeMenu != nullptr) {
+        customizeMenu->ensurePolished();
+        customizeMenu->adjustSize();
+        customizeMenu->show();
+        QApplication::processEvents();
+        const QPixmap menuScreenshot = customizeMenu->grab();
+        statusMenuScreenshotWidth = menuScreenshot.width();
+        statusMenuScreenshotHeight = menuScreenshot.height();
+        statusMenuScreenshotSaved = menuScreenshot.save(
+            statusMenuScreenshotPath, "PNG");
+        customizeMenu->hide();
+    }
+    statusBarObject.insert("customizationButtonPresent", customizeButton != nullptr);
+    statusBarObject.insert("customizationMenuPresent", customizeMenu != nullptr);
+    statusBarObject.insert("customizationEntries", customizationEntries);
+    statusBarObject.insert("customizationToggleRoundTrip",
+                           customizationToggleRoundTrip);
+    statusBarObject.insert("coordinateDisplayPresent", coordinateWidget != nullptr);
+    statusBarObject.insert("coordinateModeCount",
+                           coordinateMenu == nullptr
+                               ? 0 : coordinateMenu->actions().size());
+    statusBarObject.insert("osnapModeCount", osnapModeCount);
+    statusBarObject.insert("sizeGripDisabled", !statusBar()->isSizeGripEnabled());
+    statusBarObject.insert("menuScreenshotSaved", statusMenuScreenshotSaved);
+    statusBarObject.insert("menuScreenshotWidth", statusMenuScreenshotWidth);
+    statusBarObject.insert("menuScreenshotHeight", statusMenuScreenshotHeight);
+    contract.insert("statusBar", statusBarObject);
 
     QJsonObject dpiObject;
     dpiObject.insert("logicalDpiX", logicalDpiX());

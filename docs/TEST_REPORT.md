@@ -255,3 +255,23 @@ for the ten drafting controls and the extended OSNAP menu. The Qt 5 build and
 full offscreen GUI smoke both passed after the resource and layout change;
 `git diff --check` also passed. A live Wayland capture confirmed the compact
 single-row rendering at a narrow half-screen window width.
+
+## Local AutoCAD-familiar status-bar check — 2026-09-04
+
+The status bar was rebuilt around the Autodesk-documented interaction pattern
+using original Kuubik assets. The Qt 5 release build completed successfully.
+The offscreen UI contract completed with exit code 0 and recorded:
+
+- ten functional status-button bindings;
+- twelve persistent customization entries with matching controls;
+- a successful GRID hide/restore round trip through the customization action;
+- fourteen OSNAP modes and a synchronized split-button state;
+- four live coordinate display formats;
+- no bottom-right resize grip;
+- a rendered 222×374 customization-menu image and 1024×1024 application image.
+
+The full local native GUI smoke also exited 0 with `PASS`. It retained LINE and
+PLINE Enter behavior, visible dynamic input, global Escape cancellation, native
+document lifecycle, and COPY and MOVE atomic Undo/Redo. `git diff --check`
+passed. This is local Linux evidence only; the packaged Windows MSVC/qwindows
+workflow and real Windows display-scale checks remain pending.

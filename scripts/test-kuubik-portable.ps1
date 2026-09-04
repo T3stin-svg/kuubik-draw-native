@@ -181,10 +181,14 @@ if ((Get-Item -LiteralPath $pdf).Length -lt 1000) {
 }
 
 $uiContractPath = Join-Path $smokeRoot 'kuubik-ui-contract.json'
+$statusMenuScreenshotPath = Join-Path $smokeRoot 'status-bar-customization.png'
 $env:KUUBIK_UI_CONTRACT_PATH = $uiContractPath
+$env:KUUBIK_STATUS_MENU_SCREENSHOT_PATH = $statusMenuScreenshotPath
 Run-Native -Executable $portableExe -Arguments @() -Label 'Kuubik UI contract smoke' -Environment $offscreenEnvironment
 Remove-Item Env:KUUBIK_UI_CONTRACT_PATH
+Remove-Item Env:KUUBIK_STATUS_MENU_SCREENSHOT_PATH
 Require-Path $uiContractPath
+Require-Path $statusMenuScreenshotPath
 
 $uiContract = Get-Content -LiteralPath $uiContractPath -Raw | ConvertFrom-Json
 foreach ($key in @(
@@ -308,7 +312,8 @@ foreach ($control in $statusControls) {
     }
 }
 $expectedStatusActions = @(
-    'ViewGrid', 'RestrictOrthogonal', 'SnapEnd', 'SnapMiddle', 'SnapCenter', 'SnapIntersection'
+    'ViewGrid', 'SnapGrid', 'RestrictOrthogonal', 'SnapAngle', 'ObjectSnapMenu',
+    'SnapTracking', 'DynamicInput', 'ViewDraft', 'QuickProperties', 'Fullscreen'
 )
 $actualStatusActions = @($statusControls | ForEach-Object actionKey | Sort-Object -Unique)
 if ($actualStatusActions.Count -ne $expectedStatusActions.Count) {
@@ -317,6 +322,52 @@ if ($actualStatusActions.Count -ne $expectedStatusActions.Count) {
 foreach ($expectedAction in $expectedStatusActions) {
     if ($expectedAction -notin $actualStatusActions) {
         throw "Kuubik status control is missing: $expectedAction"
+    }
+}
+
+$statusBarContract = Require-JsonProperty $uiContract 'statusBar' 'uiContract'
+if (-not (Require-JsonBoolean $statusBarContract 'customizationButtonPresent' 'uiContract.statusBar') -or
+    -not (Require-JsonBoolean $statusBarContract 'customizationMenuPresent' 'uiContract.statusBar')) {
+    throw 'AutoCAD-familiar status-bar customization control is absent.'
+}
+if (-not (Require-JsonBoolean $statusBarContract 'customizationToggleRoundTrip' 'uiContract.statusBar')) {
+    throw 'Status-bar customization did not hide and restore its native control.'
+}
+if (-not (Require-JsonBoolean $statusBarContract 'coordinateDisplayPresent' 'uiContract.statusBar')) {
+    throw 'Status bar has no native live coordinate display.'
+}
+if ((Require-JsonNumber $statusBarContract 'coordinateModeCount' 'uiContract.statusBar') -ne 4) {
+    throw 'Status coordinate display does not expose all four supported formats.'
+}
+if ((Require-JsonNumber $statusBarContract 'osnapModeCount' 'uiContract.statusBar') -lt 14) {
+    throw 'OSNAP status menu is missing native snap modes.'
+}
+if (-not (Require-JsonBoolean $statusBarContract 'sizeGripDisabled' 'uiContract.statusBar')) {
+    throw 'Status bar retained a non-AutoCAD resize grip.'
+}
+if (-not (Require-JsonBoolean $statusBarContract 'menuScreenshotSaved' 'uiContract.statusBar') -or
+    (Require-JsonNumber $statusBarContract 'menuScreenshotWidth' 'uiContract.statusBar') -lt 180 -or
+    (Require-JsonNumber $statusBarContract 'menuScreenshotHeight' 'uiContract.statusBar') -lt 250) {
+    throw 'Status-bar customization menu did not render a usable evidence image.'
+}
+$customizationEntries = @(Require-JsonProperty $statusBarContract 'customizationEntries' 'uiContract.statusBar')
+$expectedCustomizationKeys = @(
+    'Coordinates', 'ModelSpace', 'Grid', 'SnapMode', 'OrthoMode', 'SnapAngle',
+    'ObjectSnap', 'SnapTracking', 'DynamicInput', 'Lineweight', 'QuickProperties',
+    'CleanScreen'
+)
+$actualCustomizationKeys = @($customizationEntries | ForEach-Object key | Sort-Object -Unique)
+if ($actualCustomizationKeys.Count -ne $expectedCustomizationKeys.Count) {
+    throw 'Status-bar customization menu does not expose the complete supported control set.'
+}
+foreach ($expectedKey in $expectedCustomizationKeys) {
+    if ($expectedKey -notin $actualCustomizationKeys) {
+        throw "Status-bar customization entry is missing: $expectedKey"
+    }
+}
+foreach ($entry in $customizationEntries) {
+    if (-not (Require-JsonBoolean $entry 'controlPresent' 'uiContract.statusBar.customizationEntries')) {
+        throw "Status-bar customization entry has no matching control: $($entry.key)"
     }
 }
 

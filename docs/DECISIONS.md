@@ -146,3 +146,20 @@ button whose main area disables/restores the selected object snap set.
 
 This decision supersedes D-016's deliberately limited list. Autodesk artwork
 is not copied.
+
+## D-018 — AutoCAD-familiar status-bar customization uses working controls only
+
+The Kuubik workspace follows AutoCAD's compact status-bar interaction pattern:
+a grey single row, blue checked states, icon-first drafting controls, an OSNAP
+split menu, settings on applicable controls and a three-line customization menu
+at the far right. The customization menu immediately shows or hides each
+control and persists the choice.
+
+The supported row contains optional live coordinates, MODEL, GRID, SNAP,
+ORTHO, POLAR, OSNAP, OTRACK, dynamic input, lineweight display, Quick
+Properties and clean screen. Coordinates offer absolute/relative Cartesian and
+polar formats. Lineweight is the inverse view of LibreCAD's native Draft mode;
+Quick Properties controls the existing native Properties dock. Unsupported
+AutoCAD-only status features are omitted instead of appearing as display-only
+buttons. All symbols are original Kuubik assets; no Autodesk artwork or path
+data is copied.
