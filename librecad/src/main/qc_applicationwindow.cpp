@@ -32,19 +32,23 @@
 #include "qc_applicationwindow.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 #include <QActionGroup>
 #include <QApplication>
 #include <QByteArray>
 #include <QAbstractButton>
+#include <QColor>
 #include <QDialogButtonBox>
 #include <QDockWidget>
 #include <QDir>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFont>
 #include <QFrame>
 #include <QHash>
+#include <QHBoxLayout>
 #include <QImageWriter>
 #include <QInputDialog>
 #include <QJsonArray>
@@ -53,6 +57,7 @@
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QLabel>
+#include <QLayout>
 #include <QMdiArea>
 #include <QMenu>
 #include <QMenuBar>
@@ -65,7 +70,9 @@
 #include <QPrintDialog>
 #include <QRadioButton>
 #include <QRegExp>
+#include <QResizeEvent>
 #include <QSaveFile>
+#include <QScreen>
 #include <QSet>
 #include <QSignalBlocker>
 #include <QShortcut>
@@ -176,6 +183,44 @@
 #define WTB_MAX_SIZE        79
 
 namespace {
+struct KuubikStatusPlaceholderSpec {
+    const char* key;
+    const char* label;
+    const char* iconPath;
+    int referencePage;
+};
+
+constexpr std::array<KuubikStatusPlaceholderSpec, 9>
+    kuubikStatusPlaceholderSpecs {{
+        {"ViewportMaximize", "Viewport Maximize",
+         ":/icons/kuubik/view/status-viewport-maximize.svg", 17},
+        {"AnnotationVisibility", "Annotation Visibility",
+         ":/icons/kuubik/view/status-annotation-visibility.svg", 18},
+        {"AnnotationAutoScale", "Annotation AutoScale",
+         ":/icons/kuubik/view/status-annotation-auto-scale.svg", 19},
+        {"AnnotationScale", "Annotation Scale",
+         ":/icons/kuubik/view/status-annotation-scale.svg", 20},
+        {"ViewportLock", "Viewport Lock",
+         ":/icons/kuubik/view/status-viewport-lock.svg", 21},
+        {"ViewportScale", "Viewport Scale",
+         ":/icons/kuubik/view/status-viewport-scale.svg", 22},
+        {"ViewportScaleSync", "Viewport Scale Sync",
+         ":/icons/kuubik/view/status-viewport-scale-sync.svg", 23},
+        {"AnnotationMonitor", "Annotation Monitor",
+         ":/icons/kuubik/view/status-annotation-monitor.svg", 25},
+        {"GraphicsPerformance", "Graphics Performance",
+         ":/icons/kuubik/view/status-graphics-performance.svg", 29}
+    }};
+
+void compactKuubikStatusLayout(QStatusBar* bar)
+{
+    if (bar == nullptr || bar->layout() == nullptr) return;
+    bar->layout()->setContentsMargins(0, 0, 0, 0);
+    bar->layout()->setSpacing(0);
+    bar->layout()->invalidate();
+    bar->layout()->activate();
+}
+
 void printMargins(const QMarginsF &margins, QString name)
 {
     LC_ERR << name << " margins(mm): " << margins.left() << ": " << margins.top() << " : "
@@ -200,6 +245,44 @@ void applyPhaseThreeVisibilityDefaults(Contains contains, SetValue setValue)
             setValue(key, true);
         }
     }
+}
+
+template <typename Contains, typename SetValue>
+void applyPhaseFourVisibilityDefaults(Contains contains, SetValue setValue)
+{
+    for (const auto& spec : kuubikStatusPlaceholderSpecs) {
+        const QString key = QStringLiteral("KuubikStatus/Visible/")
+            + QString::fromLatin1(spec.key);
+        if (!contains(key)) {
+            setValue(key, true);
+        }
+    }
+}
+
+void popupKuubikMenuOnScreen(QMenu* menu, QPoint position)
+{
+    if (menu == nullptr) return;
+
+    menu->ensurePolished();
+    menu->adjustSize();
+    QScreen* screen = QGuiApplication::screenAt(position);
+    if (screen == nullptr) screen = QGuiApplication::primaryScreen();
+    if (screen != nullptr) {
+        const QRect available = screen->availableGeometry();
+        if (position.x() + menu->width() > available.right() + 1) {
+            position.setX(available.right() - menu->width() + 1);
+        }
+        if (position.y() + menu->height() > available.bottom() + 1) {
+            position.setY(position.y() - menu->height());
+        }
+        position.setX(qBound(available.left(), position.x(),
+                             qMax(available.left(), available.right()
+                                  - menu->width() + 1)));
+        position.setY(qBound(available.top(), position.y(),
+                             qMax(available.top(), available.bottom()
+                                  - menu->height() + 1)));
+    }
+    menu->popup(position);
 }
 }
 
@@ -1136,9 +1219,23 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     QStatusBar* bar = statusBar();
     bar->setObjectName(QStringLiteral("kuubikStatusBar"));
     bar->setSizeGripEnabled(false);
+    bar->setContentsMargins(0, 0, 0, 0);
+    bar->setMinimumHeight(KuubikTheme::statusBarHeight());
+    bar->setMaximumHeight(KuubikTheme::statusBarHeight());
+    compactKuubikStatusLayout(bar);
+
+    auto* statusRow = new QWidget(bar);
+    statusRow->setObjectName(QStringLiteral("kuubikStatusRow"));
+    statusRow->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    statusRow->setMinimumHeight(24);
+    statusRow->setMaximumHeight(24);
+    auto* statusRowLayout = new QHBoxLayout(statusRow);
+    statusRowLayout->setContentsMargins(0, 0, 0, 0);
+    statusRowLayout->setSpacing(0);
+    bar->addPermanentWidget(statusRow);
 
     QSettings statusSettings;
-    constexpr int referencePhaseVersion = 3;
+    constexpr int referencePhaseVersion = 4;
     const int installedReferencePhase = statusSettings.value(
         QStringLiteral("KuubikStatus/ReferencePhaseVersion"), 0).toInt();
     if (installedReferencePhase < 1) {
@@ -1182,22 +1279,35 @@ void QC_ApplicationWindow::createKuubikStatusControls()
                 statusSettings.setValue(key, value);
             });
     }
+    if (installedReferencePhase < 4) {
+        // The M2 visual phase exposes the requested unsupported reference
+        // controls as honest disabled placeholders. Only missing preferences
+        // receive the visible default; an explicit user choice stays intact.
+        applyPhaseFourVisibilityDefaults(
+            [&statusSettings](const QString& key) {
+                return statusSettings.contains(key);
+            },
+            [&statusSettings](const QString& key, bool value) {
+                statusSettings.setValue(key, value);
+            });
+    }
     statusSettings.setValue(QStringLiteral("KuubikStatus/ReferencePhaseVersion"),
                             referencePhaseVersion);
 
     QList<StatusItem> statusItems;
-    const auto registerStatusItem = [bar, &statusItems](QWidget* widget,
-                                                        const QString& key,
-                                                        const QString& label,
-                                                        bool defaultVisible,
-                                                        bool addToBar = true) {
+    const auto registerStatusItem = [statusRowLayout, &statusItems](
+                                        QWidget* widget,
+                                        const QString& key,
+                                        const QString& label,
+                                        bool defaultVisible,
+                                        bool addToRow = true) {
         widget->setProperty("kuubikStatusItem", true);
         widget->setProperty("kuubikStatusKey", key);
         widget->setProperty("kuubikStatusDefaultVisible", defaultVisible);
         widget->setProperty("kuubikStatusOrder", statusItems.size());
         statusItems.append({key, label, widget, defaultVisible});
-        if (addToBar) {
-            bar->addPermanentWidget(widget);
+        if (addToRow) {
+            statusRowLayout->addWidget(widget);
         }
     };
 
@@ -1205,7 +1315,7 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         // Keep the coordinate readout in the same right-aligned drafting
         // cluster as MODEL and GRID, matching the approved reference pages.
         bar->removeWidget(coordinateWidget);
-        bar->addPermanentWidget(coordinateWidget);
+        statusRowLayout->addWidget(coordinateWidget);
         coordinateWidget->setProperty("kuubikReferencePage", 3);
         coordinateWidget->setToolTip(
             tr("Coordinates\nRight-click to change the coordinate format."));
@@ -1242,7 +1352,8 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         coordinateWidget->setContextMenuPolicy(Qt::CustomContextMenu);
         connect(coordinateWidget, &QWidget::customContextMenuRequested,
                 coordinateMenu, [this, coordinateMenu](const QPoint& pos) {
-                    coordinateMenu->popup(coordinateWidget->mapToGlobal(pos));
+                    popupKuubikMenuOnScreen(
+                        coordinateMenu, coordinateWidget->mapToGlobal(pos));
                 });
     }
 
@@ -1269,7 +1380,7 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         button->setContextMenuPolicy(Qt::CustomContextMenu);
         connect(button, &QWidget::customContextMenuRequested, menu,
                 [button, menu](const QPoint& pos) {
-                    menu->popup(button->mapToGlobal(pos));
+                    popupKuubikMenuOnScreen(menu, button->mapToGlobal(pos));
                 });
     };
 
@@ -2046,7 +2157,8 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         dynamicButton->setContextMenuPolicy(Qt::CustomContextMenu);
         connect(dynamicButton, &QWidget::customContextMenuRequested,
                 dynamicMenu, [dynamicButton, dynamicMenu](const QPoint& pos) {
-            dynamicMenu->popup(dynamicButton->mapToGlobal(pos));
+            popupKuubikMenuOnScreen(dynamicMenu,
+                                    dynamicButton->mapToGlobal(pos));
         });
         auto* dynamicShortcut = new QShortcut(
             QKeySequence(Qt::Key_F12), this);
@@ -2059,6 +2171,7 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     if (QAction* draftAction = a_map.value(QStringLiteral("ViewDraft"), nullptr)) {
         auto* lineweightButton = new QToolButton(statusBar());
         lineweightButton->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        lineweightButton->setProperty("kuubikReferencePage", 14);
         lineweightButton->setProperty("kuubikActionKey", QStringLiteral("ViewDraft"));
         lineweightButton->setProperty("kuubikBindingType", QStringLiteral("inverse-action"));
         lineweightButton->setText(QStringLiteral("LWT"));
@@ -2084,9 +2197,38 @@ void QC_ApplicationWindow::createKuubikStatusControls()
                            tr("LineWeight"), true);
     }
 
+    for (const auto& spec : kuubikStatusPlaceholderSpecs) {
+        const QString key = QString::fromLatin1(spec.key);
+        const QString label = tr(spec.label);
+        const QString iconPath = QString::fromLatin1(spec.iconPath);
+        auto* placeholder = new QToolButton(statusBar());
+        placeholder->setObjectName(QStringLiteral("kuubikStatusPlaceholder"));
+        placeholder->setProperty("kuubikBindingType",
+                                 QStringLiteral("unavailable-placeholder"));
+        placeholder->setProperty("kuubikStatusPlaceholder", true);
+        placeholder->setProperty("kuubikReferencePage", spec.referencePage);
+        placeholder->setProperty("kuubikIconPath", iconPath);
+        placeholder->setText(label);
+        placeholder->setIcon(QIcon(iconPath));
+        placeholder->setIconSize(QSize(18, 18));
+        placeholder->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        placeholder->setAutoRaise(false);
+        placeholder->setCheckable(false);
+        placeholder->setChecked(false);
+        placeholder->setFocusPolicy(Qt::NoFocus);
+        placeholder->setAccessibleName(
+            tr("%1 - unavailable in Kuubik Draw").arg(label));
+        placeholder->setToolTip(
+            tr("%1 is unavailable in Kuubik Draw.").arg(label));
+        placeholder->setEnabled(false);
+        registerStatusItem(placeholder, key,
+                           tr("%1 (Unavailable)").arg(label), true);
+    }
+
     if (kuubikPropertiesDock != nullptr) {
         auto* quickPropertiesButton = new QToolButton(statusBar());
         quickPropertiesButton->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        quickPropertiesButton->setProperty("kuubikReferencePage", 27);
         quickPropertiesButton->setProperty("kuubikActionKey", QStringLiteral("QuickProperties"));
         quickPropertiesButton->setProperty("kuubikBindingType", QStringLiteral("dock-visibility"));
         quickPropertiesButton->setText(QStringLiteral("QP"));
@@ -2120,6 +2262,7 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     if (QAction* fullScreen = a_map.value(QStringLiteral("Fullscreen"), nullptr)) {
         auto* cleanScreen = new QToolButton(statusBar());
         cleanScreen->setObjectName(QStringLiteral("kuubikStatusToggle"));
+        cleanScreen->setProperty("kuubikReferencePage", 30);
         cleanScreen->setProperty("kuubikActionKey", QStringLiteral("Fullscreen"));
         cleanScreen->setProperty("kuubikBindingType", QStringLiteral("direct-action"));
         const QString cleanIconPath = QStringLiteral(
@@ -2151,24 +2294,39 @@ void QC_ApplicationWindow::createKuubikStatusControls()
                            tr("Clean Screen"), true);
     }
 
-    // Match the control progression shown across reference pages 1-11 even
-    // though several widgets are constructed later to reuse native helpers.
+    // Match the reference-page progression even though several widgets are
+    // constructed later to reuse native helpers.
     const QStringList referenceStatusOrder {
         QStringLiteral("Coordinates"), QStringLiteral("ModelSpace"),
         QStringLiteral("Grid"), QStringLiteral("SnapMode"),
         QStringLiteral("InferConstraints"), QStringLiteral("DynamicInput"),
         QStringLiteral("OrthoMode"), QStringLiteral("SnapAngle"),
-        QStringLiteral("IsometricDrafting"), QStringLiteral("ObjectSnap"),
-        QStringLiteral("SnapTracking"), QStringLiteral("Lineweight"),
-        QStringLiteral("QuickProperties"), QStringLiteral("CleanScreen")
+        QStringLiteral("IsometricDrafting"), QStringLiteral("SnapTracking"),
+        QStringLiteral("ObjectSnap"), QStringLiteral("Lineweight"),
+        QStringLiteral("ViewportMaximize"),
+        QStringLiteral("AnnotationVisibility"),
+        QStringLiteral("AnnotationAutoScale"),
+        QStringLiteral("AnnotationScale"), QStringLiteral("ViewportLock"),
+        QStringLiteral("ViewportScale"),
+        QStringLiteral("ViewportScaleSync"),
+        QStringLiteral("AnnotationMonitor"),
+        QStringLiteral("QuickProperties"),
+        QStringLiteral("GraphicsPerformance"),
+        QStringLiteral("CleanScreen")
     };
-    for (const StatusItem& item : statusItems) {
-        const int order = referenceStatusOrder.indexOf(item.key);
-        if (order >= 0) item.widget->setProperty("kuubikStatusOrder", order);
+    std::stable_sort(statusItems.begin(), statusItems.end(),
+                     [&referenceStatusOrder](const StatusItem& left,
+                                             const StatusItem& right) {
+        return referenceStatusOrder.indexOf(left.key)
+            < referenceStatusOrder.indexOf(right.key);
+    });
+    for (int index = 0; index < statusItems.size(); ++index) {
+        statusItems[index].widget->setProperty("kuubikStatusOrder", index);
     }
 
     auto* customizeButton = new QToolButton(statusBar());
     customizeButton->setObjectName(QStringLiteral("kuubikStatusCustomize"));
+    customizeButton->setProperty("kuubikReferencePage", 32);
     customizeButton->setIcon(QIcon(QStringLiteral(":/icons/kuubik/view/status-customize.svg")));
     customizeButton->setIconSize(QSize(18, 18));
     customizeButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
@@ -2179,22 +2337,31 @@ void QC_ApplicationWindow::createKuubikStatusControls()
 
     auto* customizeMenu = new QMenu(customizeButton);
     customizeMenu->setObjectName(QStringLiteral("kuubikStatusCustomizationMenu"));
+    bool previousWasPlaceholder = false;
     for (const StatusItem& item : statusItems) {
+        const bool isPlaceholder = item.widget->property(
+            "kuubikStatusPlaceholder").toBool();
+        if (isPlaceholder != previousWasPlaceholder) {
+            customizeMenu->addSeparator();
+        }
         QAction* visibilityAction = customizeMenu->addAction(item.label);
         visibilityAction->setObjectName(
             QStringLiteral("kuubikStatusVisibility_%1").arg(item.key));
         visibilityAction->setProperty("kuubikStatusKey", item.key);
         visibilityAction->setCheckable(true);
+        visibilityAction->setProperty("kuubikStatusUnavailable",
+                                      isPlaceholder);
         visibilityAction->setChecked(statusSettings.value(
             QStringLiteral("KuubikStatus/Visible/") + item.key,
             item.defaultVisible).toBool());
-        connect(visibilityAction, &QAction::toggled, item.widget,
-                [item](bool visible) {
+        connect(visibilityAction, &QAction::toggled, this,
+                [this, item](bool visible) {
                     QSettings().setValue(
                         QStringLiteral("KuubikStatus/Visible/") + item.key,
                         visible);
-                    item.widget->setVisible(visible);
+                    applyKuubikStatusVisibility();
                 });
+        previousWasPlaceholder = isPlaceholder;
     }
     customizeMenu->addSeparator();
     QAction* restoreDefaults = customizeMenu->addAction(tr("Reset Status Bar"));
@@ -2213,11 +2380,12 @@ void QC_ApplicationWindow::createKuubikStatusControls()
                 applyKuubikStatusVisibility();
             });
     customizeButton->setMenu(customizeMenu);
-    bar->addPermanentWidget(customizeButton);
+    statusRowLayout->addWidget(customizeButton);
     bar->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(bar, &QWidget::customContextMenuRequested, customizeMenu,
             [bar, customizeMenu](const QPoint& pos) {
-                customizeMenu->popup(bar->mapToGlobal(pos));
+                popupKuubikMenuOnScreen(customizeMenu,
+                                        bar->mapToGlobal(pos));
             });
 
     configureKuubikCoordinateWidget(true);
@@ -2229,6 +2397,12 @@ void QC_ApplicationWindow::configureKuubikCoordinateWidget(bool kuubikMode)
     if (coordinateWidget == nullptr) return;
 
     if (!kuubikMode) {
+        if (QWidget* row = statusBar()->findChild<QWidget*>(
+                QStringLiteral("kuubikStatusRow"))) {
+            if (row->layout() != nullptr) {
+                row->layout()->removeWidget(coordinateWidget);
+            }
+        }
         statusBar()->removeWidget(coordinateWidget);
         statusBar()->insertWidget(0, coordinateWidget);
         coordinateWidget->setProperty("kuubikCompactCoordinates", false);
@@ -2285,19 +2459,27 @@ void QC_ApplicationWindow::applyKuubikStatusOrder()
 
     QToolButton* customize = bar->findChild<QToolButton*>(
         QStringLiteral("kuubikStatusCustomize"));
+    QWidget* row = bar->findChild<QWidget*>(
+        QStringLiteral("kuubikStatusRow"));
+    QLayout* rowLayout = row == nullptr ? nullptr : row->layout();
+    if (rowLayout == nullptr) return;
     for (QWidget* widget : items) {
+        rowLayout->removeWidget(widget);
         bar->removeWidget(widget);
     }
     if (customize != nullptr) {
+        rowLayout->removeWidget(customize);
         bar->removeWidget(customize);
     }
     for (QWidget* widget : items) {
-        bar->addPermanentWidget(widget);
+        rowLayout->addWidget(widget);
         widget->setVisible(visibility.value(widget));
     }
     if (customize != nullptr) {
-        bar->addPermanentWidget(customize);
+        rowLayout->addWidget(customize);
     }
+    row->adjustSize();
+    compactKuubikStatusLayout(bar);
 }
 
 void QC_ApplicationWindow::applyKuubikStatusVisibility()
@@ -2317,6 +2499,68 @@ void QC_ApplicationWindow::applyKuubikStatusVisibility()
             QStringLiteral("kuubikStatusCustomize"))) {
         customize->show();
     }
+    applyKuubikStatusOverflow();
+    QStatusBar* bar = statusBar();
+    compactKuubikStatusLayout(bar);
+    QTimer::singleShot(0, bar, [bar]() {
+        compactKuubikStatusLayout(bar);
+    });
+}
+
+void QC_ApplicationWindow::applyKuubikStatusOverflow()
+{
+    QStatusBar* bar = statusBar();
+    if (bar == nullptr) return;
+
+    QList<QWidget*> placeholders;
+    int requestedWidth = 2;
+    const auto widgets = bar->findChildren<QWidget*>();
+    for (QWidget* widget : widgets) {
+        if (!widget->property("kuubikStatusItem").toBool()
+            || widget->isHidden()) {
+            continue;
+        }
+        widget->ensurePolished();
+        requestedWidth += qMax(widget->minimumWidth(),
+                               widget->sizeHint().width());
+        if (widget->property("kuubikStatusPlaceholder").toBool()) {
+            widget->setProperty("kuubikOverflowHidden", false);
+            placeholders.append(widget);
+        }
+    }
+    if (auto* customize = bar->findChild<QToolButton*>(
+            QStringLiteral("kuubikStatusCustomize"))) {
+        customize->ensurePolished();
+        requestedWidth += qMax(customize->minimumWidth(),
+                               customize->sizeHint().width());
+    }
+
+    std::sort(placeholders.begin(), placeholders.end(),
+              [](QWidget* left, QWidget* right) {
+        return left->property("kuubikReferencePage").toInt()
+            > right->property("kuubikReferencePage").toInt();
+    });
+    const int availableWidth = bar->contentsRect().width();
+    for (QWidget* placeholder : placeholders) {
+        if (requestedWidth <= availableWidth) break;
+        requestedWidth -= qMax(placeholder->minimumWidth(),
+                               placeholder->sizeHint().width());
+        placeholder->setProperty("kuubikOverflowHidden", true);
+        placeholder->hide();
+    }
+}
+
+void QC_ApplicationWindow::resizeEvent(QResizeEvent* event)
+{
+    MainWindowX::resizeEvent(event);
+    if (QSettings().value(QStringLiteral("Workspace/Mode"),
+                          QStringLiteral("kuubik")).toString()
+        != QStringLiteral("kuubik")) {
+        return;
+    }
+    QTimer::singleShot(0, this, [this]() {
+        applyKuubikStatusVisibility();
+    });
 }
 
 void QC_ApplicationWindow::initializeKuubikVisuals()
@@ -2813,6 +3057,9 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     const auto statusButtons = statusBar()->findChildren<QToolButton*>();
     for (QToolButton* statusButton : statusButtons) {
         if (!statusButton->property("kuubikStatusItem").toBool()) continue;
+        if (statusButton->property("kuubikStatusPlaceholder").toBool()) {
+            continue;
+        }
         const QString key = statusButton->property("kuubikActionKey").toString();
         const QString bindingType = statusButton->property(
             "kuubikBindingType").toString();
@@ -2913,16 +3160,22 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
             QJsonObject entry;
             entry.insert("key", visibilityKey);
             entry.insert("checked", action->isChecked());
+            entry.insert("enabled", action->isEnabled());
+            entry.insert("checkable", action->isCheckable());
             bool controlPresent = false;
+            bool unavailable = false;
             const auto widgets = statusBar()->findChildren<QWidget*>();
             for (QWidget* widget : widgets) {
                 if (widget->property("kuubikStatusKey").toString()
                     == visibilityKey) {
                     controlPresent = true;
+                    unavailable = widget->property(
+                        "kuubikStatusPlaceholder").toBool();
                     break;
                 }
             }
             entry.insert("controlPresent", controlPresent);
+            entry.insert("unavailable", unavailable);
             customizationEntries.append(entry);
         }
     }
@@ -2972,11 +3225,20 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     bool statusMenuScreenshotSaved = statusMenuScreenshotPath.isEmpty();
     int statusMenuScreenshotWidth = 0;
     int statusMenuScreenshotHeight = 0;
+    bool statusMenuWithinScreen = false;
     if (!statusMenuScreenshotPath.isEmpty() && customizeMenu != nullptr) {
-        customizeMenu->ensurePolished();
-        customizeMenu->adjustSize();
-        customizeMenu->show();
+        const QPoint requestedMenuPosition = customizeButton == nullptr
+            ? mapToGlobal(QPoint(width(), height()))
+            : customizeButton->mapToGlobal(
+                  QPoint(customizeButton->width(), 0));
+        popupKuubikMenuOnScreen(customizeMenu, requestedMenuPosition);
         QApplication::processEvents();
+        QScreen* menuScreen = QGuiApplication::screenAt(
+            customizeMenu->geometry().center());
+        if (menuScreen == nullptr) menuScreen = QGuiApplication::primaryScreen();
+        statusMenuWithinScreen = menuScreen != nullptr
+            && menuScreen->availableGeometry().contains(
+                customizeMenu->geometry());
         const QPixmap menuScreenshot = customizeMenu->grab();
         statusMenuScreenshotWidth = menuScreenshot.width();
         statusMenuScreenshotHeight = menuScreenshot.height();
@@ -2998,6 +3260,7 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     statusBarObject.insert("menuScreenshotSaved", statusMenuScreenshotSaved);
     statusBarObject.insert("menuScreenshotWidth", statusMenuScreenshotWidth);
     statusBarObject.insert("menuScreenshotHeight", statusMenuScreenshotHeight);
+    statusBarObject.insert("menuWithinScreen", statusMenuWithinScreen);
 
     QJsonObject referenceFirstFive;
     auto* modelStatus = statusBar()->findChild<QLabel*>(
@@ -4048,6 +4311,421 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         && f11ActualKeyEvents && osnapNonObjectBitsPreserved);
     statusBarObject.insert("referencePdfPageThirtyThreeShortcuts",
                            referencePageThirtyThree);
+
+    // M2 visual contract: validate the rendered row and the nine honest,
+    // disabled reference placeholders without relying on proprietary goldens.
+    const QSize normalWindowSize = size();
+    const QSize previousMinimumSize = minimumSize();
+    applyKuubikStatusVisibility();
+    QApplication::processEvents();
+
+    QList<QWidget*> orderedStatusItems;
+    const auto statusWidgets = statusBar()->findChildren<QWidget*>();
+    for (QWidget* widget : statusWidgets) {
+        if (widget->property("kuubikStatusItem").toBool()) {
+            orderedStatusItems.append(widget);
+        }
+    }
+    std::sort(orderedStatusItems.begin(), orderedStatusItems.end(),
+              [](QWidget* left, QWidget* right) {
+        return left->property("kuubikStatusOrder").toInt()
+            < right->property("kuubikStatusOrder").toInt();
+    });
+
+    QStringList expectedRowKeys {
+        QStringLiteral("Coordinates"), QStringLiteral("ModelSpace"),
+        QStringLiteral("Grid"), QStringLiteral("SnapMode"),
+        QStringLiteral("InferConstraints"), QStringLiteral("DynamicInput"),
+        QStringLiteral("OrthoMode"), QStringLiteral("SnapAngle"),
+        QStringLiteral("IsometricDrafting"), QStringLiteral("SnapTracking"),
+        QStringLiteral("ObjectSnap"), QStringLiteral("Lineweight"),
+        QStringLiteral("ViewportMaximize"),
+        QStringLiteral("AnnotationVisibility"),
+        QStringLiteral("AnnotationAutoScale"),
+        QStringLiteral("AnnotationScale"), QStringLiteral("ViewportLock"),
+        QStringLiteral("ViewportScale"),
+        QStringLiteral("ViewportScaleSync"),
+        QStringLiteral("AnnotationMonitor"),
+        QStringLiteral("QuickProperties"),
+        QStringLiteral("GraphicsPerformance"),
+        QStringLiteral("CleanScreen")
+    };
+    QStringList actualRowKeys;
+    QJsonArray rowItems;
+    bool rowGeometryOrdered = true;
+    bool zeroInterCellGaps = true;
+    bool rowItemsUnclipped = true;
+    bool standardGeometryExact = true;
+    int previousRight = -1;
+    for (QWidget* widget : orderedStatusItems) {
+        const QString key = widget->property("kuubikStatusKey").toString();
+        actualRowKeys.append(key);
+        const QRect geometry(widget->mapTo(statusBar(), QPoint()),
+                             widget->size());
+        const bool visible = !widget->isHidden();
+        if (visible) {
+            rowGeometryOrdered = rowGeometryOrdered
+                && geometry.left() > previousRight;
+            if (previousRight >= 0) {
+                zeroInterCellGaps = zeroInterCellGaps
+                    && geometry.left() == previousRight + 1;
+            }
+            previousRight = geometry.right();
+            rowItemsUnclipped = rowItemsUnclipped
+                && statusBar()->rect().contains(geometry);
+        }
+        const QString objectName = widget->objectName();
+        if (objectName == QStringLiteral("kuubikStatusToggle")
+            || objectName == QStringLiteral("kuubikStatusPlaceholder")) {
+            standardGeometryExact = standardGeometryExact
+                && widget->width() == 29 && widget->height() == 24;
+        } else if (objectName == QStringLiteral("kuubikStatusSplitToggle")) {
+            standardGeometryExact = standardGeometryExact
+                && widget->width() == 38 && widget->height() == 24;
+        } else if (objectName == QStringLiteral("kuubikOsnapButton")
+                   || objectName == QStringLiteral("kuubikIsometricButton")) {
+            standardGeometryExact = standardGeometryExact
+                && widget->width() == 42 && widget->height() == 24;
+        }
+        QJsonObject item;
+        item.insert("key", key);
+        item.insert("referencePage", widget->property(
+            "kuubikReferencePage").toInt());
+        item.insert("left", geometry.left());
+        item.insert("top", geometry.top());
+        item.insert("width", geometry.width());
+        item.insert("height", geometry.height());
+        item.insert("visible", visible);
+        item.insert("placeholder", widget->property(
+            "kuubikStatusPlaceholder").toBool());
+        rowItems.append(item);
+    }
+
+    QJsonArray placeholderObjects;
+    QList<QToolButton*> placeholderButtons;
+    bool placeholdersSemanticallyHonest = true;
+    bool placeholderIconsAvailable = true;
+    bool placeholderVisibilityActionsEnabled = true;
+    bool allPlaceholdersVisibleAtNormalWidth = true;
+    for (const auto& spec : kuubikStatusPlaceholderSpecs) {
+        const QString key = QString::fromLatin1(spec.key);
+        QToolButton* placeholder = nullptr;
+        for (QToolButton* button : statusButtons) {
+            if (button->property("kuubikStatusKey").toString() == key) {
+                placeholder = button;
+                break;
+            }
+        }
+        QAction* visibilityAction = customizeMenu == nullptr ? nullptr
+            : customizeMenu->findChild<QAction*>(
+                  QStringLiteral("kuubikStatusVisibility_%1").arg(key));
+        const QString iconPath = placeholder == nullptr ? QString()
+            : placeholder->property("kuubikIconPath").toString();
+        const QIcon resourceIcon(iconPath);
+        const bool iconAvailable = placeholder != nullptr
+            && !iconPath.isEmpty() && !resourceIcon.isNull()
+            && !placeholder->icon().isNull();
+        const bool honest = placeholder != nullptr
+            && placeholder->property("kuubikStatusPlaceholder").toBool()
+            && placeholder->property("kuubikReferencePage").toInt()
+                == spec.referencePage
+            && !placeholder->isEnabled() && !placeholder->isCheckable()
+            && !placeholder->isChecked()
+            && placeholder->focusPolicy() == Qt::NoFocus
+            && !placeholder->accessibleName().isEmpty()
+            && placeholder->toolTip().contains(
+                QStringLiteral("unavailable in Kuubik Draw"))
+            && placeholder->menu() == nullptr
+            && placeholder->toolButtonStyle() == Qt::ToolButtonIconOnly;
+        const bool visibilityActionValid = visibilityAction != nullptr
+            && visibilityAction->isEnabled()
+            && visibilityAction->isCheckable()
+            && visibilityAction->property(
+                "kuubikStatusUnavailable").toBool();
+        placeholdersSemanticallyHonest = placeholdersSemanticallyHonest
+            && honest;
+        placeholderIconsAvailable = placeholderIconsAvailable
+            && iconAvailable;
+        placeholderVisibilityActionsEnabled =
+            placeholderVisibilityActionsEnabled && visibilityActionValid;
+        allPlaceholdersVisibleAtNormalWidth =
+            allPlaceholdersVisibleAtNormalWidth && placeholder != nullptr
+            && !placeholder->isHidden();
+        if (placeholder != nullptr) placeholderButtons.append(placeholder);
+
+        QJsonObject placeholderObject;
+        placeholderObject.insert("key", key);
+        placeholderObject.insert("referencePage", spec.referencePage);
+        placeholderObject.insert("present", placeholder != nullptr);
+        placeholderObject.insert("enabled", placeholder != nullptr
+            && placeholder->isEnabled());
+        placeholderObject.insert("checkable", placeholder != nullptr
+            && placeholder->isCheckable());
+        placeholderObject.insert("checked", placeholder != nullptr
+            && placeholder->isChecked());
+        placeholderObject.insert("noFocus", placeholder != nullptr
+            && placeholder->focusPolicy() == Qt::NoFocus);
+        placeholderObject.insert("accessibleName", placeholder == nullptr
+            ? QString() : placeholder->accessibleName());
+        placeholderObject.insert("tooltip", placeholder == nullptr
+            ? QString() : placeholder->toolTip());
+        placeholderObject.insert("iconPath", iconPath);
+        placeholderObject.insert("iconResourceNonNull", iconAvailable);
+        placeholderObject.insert("visibleAtNormalWidth", placeholder != nullptr
+            && !placeholder->isHidden());
+        placeholderObject.insert("hasFakeMenu", placeholder != nullptr
+            && placeholder->menu() != nullptr);
+        placeholderObject.insert("visibilityActionEnabled",
+                                 visibilityActionValid);
+        placeholderObjects.append(placeholderObject);
+    }
+
+    // Page 25 precedes pages 23-17 in the required removal order.
+    const QStringList overflowPriority {
+        QStringLiteral("GraphicsPerformance"),
+        QStringLiteral("AnnotationMonitor"),
+        QStringLiteral("ViewportScaleSync"),
+        QStringLiteral("ViewportScale"), QStringLiteral("ViewportLock"),
+        QStringLiteral("AnnotationScale"),
+        QStringLiteral("AnnotationAutoScale"),
+        QStringLiteral("AnnotationVisibility"),
+        QStringLiteral("ViewportMaximize")
+    };
+
+    setMinimumSize(1, 1);
+    const int narrowTargetWidth = qMax(680, normalWindowSize.width() - 420);
+    resize(narrowTargetWidth, normalWindowSize.height());
+    QApplication::processEvents();
+    applyKuubikStatusVisibility();
+    QApplication::processEvents();
+    QStringList narrowHiddenPlaceholders;
+    for (const QString& key : overflowPriority) {
+        for (QToolButton* placeholder : placeholderButtons) {
+            if (placeholder->property("kuubikStatusKey").toString() == key
+                && placeholder->isHidden()) {
+                narrowHiddenPlaceholders.append(key);
+            }
+        }
+    }
+    const bool overflowPriorityCorrect = !narrowHiddenPlaceholders.isEmpty()
+        && narrowHiddenPlaceholders
+            == overflowPriority.mid(0, narrowHiddenPlaceholders.size());
+    bool nativeControlsPreservedWhenNarrow = true;
+    bool narrowItemsUnclipped = true;
+    for (QWidget* widget : orderedStatusItems) {
+        if (widget->property("kuubikStatusPlaceholder").toBool()) continue;
+        const QString key = widget->property("kuubikStatusKey").toString();
+        const bool userVisible = settings.value(
+            QStringLiteral("KuubikStatus/Visible/") + key,
+            widget->property("kuubikStatusDefaultVisible").toBool()).toBool();
+        if (userVisible) {
+            nativeControlsPreservedWhenNarrow =
+                nativeControlsPreservedWhenNarrow && !widget->isHidden();
+        }
+        if (!widget->isHidden()) {
+            const QRect geometry(widget->mapTo(statusBar(), QPoint()),
+                                 widget->size());
+            narrowItemsUnclipped = narrowItemsUnclipped
+                && statusBar()->rect().contains(geometry);
+        }
+    }
+    const int narrowActualWidth = width();
+
+    resize(normalWindowSize);
+    QApplication::processEvents();
+    applyKuubikStatusVisibility();
+    QApplication::processEvents();
+    bool restoredAfterNarrow = true;
+    for (QToolButton* placeholder : placeholderButtons) {
+        const QString key = placeholder->property(
+            "kuubikStatusKey").toString();
+        const bool userVisible = settings.value(
+            QStringLiteral("KuubikStatus/Visible/") + key, true).toBool();
+        restoredAfterNarrow = restoredAfterNarrow
+            && (!userVisible || !placeholder->isHidden());
+    }
+
+    bool userHiddenPreferencePreserved = false;
+    if (!placeholderButtons.isEmpty() && customizeMenu != nullptr) {
+        QToolButton* testPlaceholder = placeholderButtons.first();
+        const QString key = testPlaceholder->property(
+            "kuubikStatusKey").toString();
+        QAction* visibilityAction = customizeMenu->findChild<QAction*>(
+            QStringLiteral("kuubikStatusVisibility_%1").arg(key));
+        if (visibilityAction != nullptr) {
+            const bool originalChecked = visibilityAction->isChecked();
+            visibilityAction->setChecked(false);
+            QApplication::processEvents();
+            resize(narrowTargetWidth, normalWindowSize.height());
+            QApplication::processEvents();
+            resize(normalWindowSize);
+            QApplication::processEvents();
+            applyKuubikStatusVisibility();
+            QApplication::processEvents();
+            userHiddenPreferencePreserved = !visibilityAction->isChecked()
+                && testPlaceholder->isHidden()
+                && !settings.value(
+                    QStringLiteral("KuubikStatus/Visible/") + key,
+                    true).toBool();
+            visibilityAction->setChecked(originalChecked);
+            QApplication::processEvents();
+        }
+    }
+    resize(normalWindowSize);
+    setMinimumSize(previousMinimumSize);
+    QApplication::processEvents();
+    applyKuubikStatusVisibility();
+    QApplication::processEvents();
+
+    const auto samplePixmap = [](const QPixmap& pixmap, int x, int y) {
+        const QImage image = pixmap.toImage();
+        const qreal dpr = pixmap.devicePixelRatioF();
+        const int pixelX = qBound(0, qRound(x * dpr), image.width() - 1);
+        const int pixelY = qBound(0, qRound(y * dpr), image.height() - 1);
+        return image.pixelColor(pixelX, pixelY)
+            .name(QColor::HexRgb).toUpper();
+    };
+    const QPixmap rowPixmap = statusBar()->grab();
+    QJsonObject sampledColors;
+    sampledColors.insert("base", samplePixmap(
+        rowPixmap, 2, statusBar()->height() / 2));
+    sampledColors.insert("top", samplePixmap(rowPixmap, 2, 0));
+    sampledColors.insert("bottom", samplePixmap(
+        rowPixmap, 2, statusBar()->height() - 1));
+    if (coordinateWidget != nullptr) {
+        sampledColors.insert("coordinateSurface", samplePixmap(
+            coordinateWidget->grab(), 2, 2));
+    }
+    if (modelStatus != nullptr) {
+        sampledColors.insert("modelSurface", samplePixmap(
+            modelStatus->grab(), 2, 2));
+    }
+    if (dynamicStatusButton != nullptr) {
+        const bool originalChecked = dynamicStatusButton->isChecked();
+        const bool originalDown = dynamicStatusButton->isDown();
+        const bool originalUnderMouse = dynamicStatusButton->testAttribute(
+            Qt::WA_UnderMouse);
+        {
+            const QSignalBlocker blocker(dynamicStatusButton);
+            dynamicStatusButton->setAttribute(Qt::WA_UnderMouse, false);
+            dynamicStatusButton->setChecked(false);
+            dynamicStatusButton->setDown(false);
+            dynamicStatusButton->repaint();
+            QApplication::processEvents();
+            sampledColors.insert("divider", samplePixmap(
+                dynamicStatusButton->grab(),
+                dynamicStatusButton->width() - 1,
+                dynamicStatusButton->height() / 2));
+
+            dynamicStatusButton->setAttribute(Qt::WA_UnderMouse, true);
+            dynamicStatusButton->repaint();
+            QApplication::processEvents();
+            sampledColors.insert("hover", samplePixmap(
+                dynamicStatusButton->grab(), 2, 2));
+
+            dynamicStatusButton->setAttribute(Qt::WA_UnderMouse, false);
+            dynamicStatusButton->setDown(true);
+            dynamicStatusButton->repaint();
+            QApplication::processEvents();
+            sampledColors.insert("pressed", samplePixmap(
+                dynamicStatusButton->grab(), 2, 2));
+
+            dynamicStatusButton->setDown(false);
+            dynamicStatusButton->setChecked(true);
+            dynamicStatusButton->repaint();
+            QApplication::processEvents();
+            sampledColors.insert("active", samplePixmap(
+                dynamicStatusButton->grab(), 2, 2));
+
+            dynamicStatusButton->setChecked(originalChecked);
+            dynamicStatusButton->setDown(originalDown);
+            dynamicStatusButton->setAttribute(Qt::WA_UnderMouse,
+                                               originalUnderMouse);
+        }
+        dynamicStatusButton->repaint();
+        QApplication::processEvents();
+    }
+    if (!placeholderButtons.isEmpty()) {
+        QToolButton* placeholder = placeholderButtons.first();
+        sampledColors.insert("disabledSurface", samplePixmap(
+            placeholder->grab(), 2, 2));
+    }
+
+    const QIcon menuArrowDown(QStringLiteral(
+        ":/icons/kuubik/view/status-menu-arrow-down.svg"));
+    const QIcon menuArrowRight(QStringLiteral(
+        ":/icons/kuubik/view/status-menu-arrow-right.svg"));
+    const QIcon menuCheck(QStringLiteral(
+        ":/icons/kuubik/view/status-menu-check.svg"));
+
+    const QString statusBarScreenshotPath =
+        qEnvironmentVariable("KUUBIK_STATUS_BAR_SCREENSHOT_PATH").isEmpty()
+        ? QFileInfo(path).absoluteDir().filePath(
+              QStringLiteral("status-bar.png"))
+        : qEnvironmentVariable("KUUBIK_STATUS_BAR_SCREENSHOT_PATH");
+    const QPixmap statusBarScreenshot = statusBar()->grab();
+    const bool statusBarScreenshotSaved = statusBarScreenshot.save(
+        statusBarScreenshotPath, "PNG");
+
+    QJsonObject m2StatusVisual;
+    m2StatusVisual.insert("referenceStartPage", 14);
+    m2StatusVisual.insert("referenceEndPage", 32);
+    m2StatusVisual.insert("placeholderCount", placeholderObjects.size());
+    m2StatusVisual.insert("placeholders", placeholderObjects);
+    m2StatusVisual.insert("placeholderSemanticsPassed",
+                          placeholdersSemanticallyHonest);
+    m2StatusVisual.insert("placeholderIconsAvailable",
+                          placeholderIconsAvailable);
+    m2StatusVisual.insert("visibilityActionsEnabled",
+                          placeholderVisibilityActionsEnabled);
+    m2StatusVisual.insert("normalWidth", normalWindowSize.width());
+    m2StatusVisual.insert("allPlaceholdersVisibleAtNormalWidth",
+                          allPlaceholdersVisibleAtNormalWidth);
+    m2StatusVisual.insert("rowKeys",
+                          QJsonArray::fromStringList(actualRowKeys));
+    m2StatusVisual.insert("rowItems", rowItems);
+    m2StatusVisual.insert("referenceOrderExact",
+                          actualRowKeys == expectedRowKeys
+                          && rowGeometryOrdered);
+    m2StatusVisual.insert("zeroInterCellGaps", zeroInterCellGaps);
+    m2StatusVisual.insert("logicalHeight", statusBar()->height());
+    m2StatusVisual.insert("standardCellWidth", 29);
+    m2StatusVisual.insert("standardCellHeight", 24);
+    m2StatusVisual.insert("splitCellWidth", 38);
+    m2StatusVisual.insert("wideSplitCellWidth", 42);
+    m2StatusVisual.insert("fixedGeometryExact", standardGeometryExact);
+    m2StatusVisual.insert("rowItemsUnclipped", rowItemsUnclipped);
+    m2StatusVisual.insert("narrowTargetWidth", narrowTargetWidth);
+    m2StatusVisual.insert("narrowActualWidth", narrowActualWidth);
+    m2StatusVisual.insert("narrowHiddenPlaceholders",
+                          QJsonArray::fromStringList(
+                              narrowHiddenPlaceholders));
+    m2StatusVisual.insert("overflowHidePriority",
+                          QJsonArray::fromStringList(overflowPriority));
+    m2StatusVisual.insert("overflowPriorityCorrect",
+                          overflowPriorityCorrect);
+    m2StatusVisual.insert("nativeControlsPreservedWhenNarrow",
+                          nativeControlsPreservedWhenNarrow);
+    m2StatusVisual.insert("narrowItemsUnclipped", narrowItemsUnclipped);
+    m2StatusVisual.insert("restoredAfterNarrow", restoredAfterNarrow);
+    m2StatusVisual.insert("userHiddenPreferencePreserved",
+                          userHiddenPreferencePreserved);
+    m2StatusVisual.insert("sampledColors", sampledColors);
+    m2StatusVisual.insert("menuGlyphResourcesNonNull",
+                          !menuArrowDown.isNull()
+                          && !menuArrowRight.isNull()
+                          && !menuCheck.isNull());
+    m2StatusVisual.insert("statusBarScreenshotSaved",
+                          statusBarScreenshotSaved);
+    m2StatusVisual.insert("statusBarScreenshotFile",
+                          QFileInfo(statusBarScreenshotPath).fileName());
+    m2StatusVisual.insert("statusBarScreenshotPixelWidth",
+                          statusBarScreenshot.width());
+    m2StatusVisual.insert("statusBarScreenshotPixelHeight",
+                          statusBarScreenshot.height());
+    m2StatusVisual.insert("statusBarScreenshotDevicePixelRatio",
+                          statusBarScreenshot.devicePixelRatioF());
+    statusBarObject.insert("m2StatusVisual", m2StatusVisual);
     contract.insert("statusBar", statusBarObject);
 
     QJsonObject dpiObject;

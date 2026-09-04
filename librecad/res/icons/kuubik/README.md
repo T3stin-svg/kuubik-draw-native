@@ -36,3 +36,9 @@ from-scratch GPL-2.0-only provenance. They are status UI assets rather than
 additional `KuubikIconRegistry` action mappings. The geometric-inference and
 isometric-grid symbols added for reference pages 7 and 11 are also original
 Kuubik linework and do not trace Autodesk's published status icons.
+
+The M2 status-fidelity wave adds nine original generic symbols for explicitly
+unavailable viewport, annotation, and graphics placeholders, plus original
+menu arrow and check glyphs. These were composed from basic geometric drafting
+primitives without copying, tracing, embedding, or deriving path data from the
+Autodesk visual-reference PDF.

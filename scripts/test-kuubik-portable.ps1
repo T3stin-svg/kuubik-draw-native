@@ -182,13 +182,17 @@ if ((Get-Item -LiteralPath $pdf).Length -lt 1000) {
 
 $uiContractPath = Join-Path $smokeRoot 'kuubik-ui-contract.json'
 $statusMenuScreenshotPath = Join-Path $smokeRoot 'status-bar-customization.png'
-$env:KUUBIK_UI_CONTRACT_PATH = $uiContractPath
-$env:KUUBIK_STATUS_MENU_SCREENSHOT_PATH = $statusMenuScreenshotPath
-Run-Native -Executable $portableExe -Arguments @() -Label 'Kuubik UI contract smoke' -Environment $offscreenEnvironment
-Remove-Item Env:KUUBIK_UI_CONTRACT_PATH
-Remove-Item Env:KUUBIK_STATUS_MENU_SCREENSHOT_PATH
+$statusBarScreenshotPath = Join-Path $smokeRoot 'status-bar.png'
+$uiContractEnvironment = $offscreenEnvironment.Clone()
+$uiContractEnvironment['KUUBIK_UI_CONTRACT_PATH'] = $uiContractPath
+$uiContractEnvironment['KUUBIK_STATUS_MENU_SCREENSHOT_PATH'] = $statusMenuScreenshotPath
+$uiContractEnvironment['KUUBIK_STATUS_BAR_SCREENSHOT_PATH'] = $statusBarScreenshotPath
+$uiContractEnvironment['KUUBIK_UI_CONTRACT_WIDTH'] = '1200'
+$uiContractEnvironment['KUUBIK_UI_CONTRACT_HEIGHT'] = '700'
+Run-Native -Executable $portableExe -Arguments @() -Label 'Kuubik UI contract smoke' -Environment $uiContractEnvironment
 Require-Path $uiContractPath
 Require-Path $statusMenuScreenshotPath
+Require-Path $statusBarScreenshotPath
 
 $uiContract = Get-Content -LiteralPath $uiContractPath -Raw | ConvertFrom-Json
 foreach ($key in @(
@@ -355,6 +359,9 @@ if ((Require-JsonNumber $statusBarContract 'osnapModeCount' 'uiContract.statusBa
 if (-not (Require-JsonBoolean $statusBarContract 'sizeGripDisabled' 'uiContract.statusBar')) {
     throw 'Status bar retained a non-AutoCAD resize grip.'
 }
+if (-not (Require-JsonBoolean $statusBarContract 'menuWithinScreen' 'uiContract.statusBar')) {
+    throw 'Status-bar customization menu rendered outside the available screen.'
+}
 $referenceFirstFive = Require-JsonProperty $statusBarContract 'referencePdfFirstFive' 'uiContract.statusBar'
 if ((Require-JsonNumber $referenceFirstFive 'referencePageCount' 'uiContract.statusBar.referencePdfFirstFive') -ne 5) {
     throw 'The implemented reference batch is not limited to the approved first five PDF pages.'
@@ -519,6 +526,122 @@ foreach ($shortcutFlag in @(
         throw "Page 33 F3/F11 shortcut contract failed: $shortcutFlag"
     }
 }
+$m2StatusVisual = Require-JsonProperty $statusBarContract 'm2StatusVisual' 'uiContract.statusBar'
+if ((Require-JsonNumber $m2StatusVisual 'referenceStartPage' 'uiContract.statusBar.m2StatusVisual') -ne 14 -or
+    (Require-JsonNumber $m2StatusVisual 'referenceEndPage' 'uiContract.statusBar.m2StatusVisual') -ne 32 -or
+    (Require-JsonNumber $m2StatusVisual 'placeholderCount' 'uiContract.statusBar.m2StatusVisual') -ne 9) {
+    throw 'M2 status visual contract does not cover the required reference-page range and nine placeholders.'
+}
+foreach ($flag in @(
+    'placeholderSemanticsPassed', 'placeholderIconsAvailable',
+    'visibilityActionsEnabled', 'allPlaceholdersVisibleAtNormalWidth',
+    'referenceOrderExact', 'zeroInterCellGaps', 'fixedGeometryExact',
+    'rowItemsUnclipped',
+    'overflowPriorityCorrect', 'nativeControlsPreservedWhenNarrow',
+    'narrowItemsUnclipped', 'restoredAfterNarrow',
+    'userHiddenPreferencePreserved', 'menuGlyphResourcesNonNull',
+    'statusBarScreenshotSaved'
+)) {
+    if (-not (Require-JsonBoolean $m2StatusVisual $flag 'uiContract.statusBar.m2StatusVisual')) {
+        throw "M2 status visual contract failed: $flag"
+    }
+}
+if ((Require-JsonNumber $m2StatusVisual 'normalWidth' 'uiContract.statusBar.m2StatusVisual') -ne 1200 -or
+    (Require-JsonNumber $m2StatusVisual 'logicalHeight' 'uiContract.statusBar.m2StatusVisual') -ne 28 -or
+    (Require-JsonNumber $m2StatusVisual 'standardCellWidth' 'uiContract.statusBar.m2StatusVisual') -ne 29 -or
+    (Require-JsonNumber $m2StatusVisual 'standardCellHeight' 'uiContract.statusBar.m2StatusVisual') -ne 24 -or
+    (Require-JsonNumber $m2StatusVisual 'splitCellWidth' 'uiContract.statusBar.m2StatusVisual') -ne 38 -or
+    (Require-JsonNumber $m2StatusVisual 'wideSplitCellWidth' 'uiContract.statusBar.m2StatusVisual') -ne 42) {
+    throw 'M2 status row fixed geometry regressed.'
+}
+
+$expectedPlaceholderPages = [ordered]@{
+    ViewportMaximize = 17
+    AnnotationVisibility = 18
+    AnnotationAutoScale = 19
+    AnnotationScale = 20
+    ViewportLock = 21
+    ViewportScale = 22
+    ViewportScaleSync = 23
+    AnnotationMonitor = 25
+    GraphicsPerformance = 29
+}
+$placeholders = @(Require-JsonProperty $m2StatusVisual 'placeholders' 'uiContract.statusBar.m2StatusVisual')
+if ($placeholders.Count -ne $expectedPlaceholderPages.Count) {
+    throw 'M2 status placeholder producer count is incorrect.'
+}
+foreach ($expected in $expectedPlaceholderPages.GetEnumerator()) {
+    $placeholder = @($placeholders | Where-Object key -eq $expected.Key)
+    $placeholderContext = "uiContract.statusBar.m2StatusVisual.placeholders.$($expected.Key)"
+    if ($placeholder.Count -ne 1 -or
+        (Require-JsonNumber $placeholder[0] 'referencePage' $placeholderContext) -ne $expected.Value -or
+        -not (Require-JsonBoolean $placeholder[0] 'present' $placeholderContext) -or
+        (Require-JsonBoolean $placeholder[0] 'enabled' $placeholderContext) -or
+        (Require-JsonBoolean $placeholder[0] 'checkable' $placeholderContext) -or
+        (Require-JsonBoolean $placeholder[0] 'checked' $placeholderContext) -or
+        -not (Require-JsonBoolean $placeholder[0] 'noFocus' $placeholderContext) -or
+        -not (Require-JsonBoolean $placeholder[0] 'iconResourceNonNull' $placeholderContext) -or
+        -not (Require-JsonBoolean $placeholder[0] 'visibleAtNormalWidth' $placeholderContext) -or
+        (Require-JsonBoolean $placeholder[0] 'hasFakeMenu' $placeholderContext) -or
+        -not (Require-JsonBoolean $placeholder[0] 'visibilityActionEnabled' $placeholderContext) -or
+        (Require-JsonString $placeholder[0] 'accessibleName' $placeholderContext) -notmatch 'unavailable in Kuubik Draw' -or
+        (Require-JsonString $placeholder[0] 'tooltip' $placeholderContext) -notmatch 'unavailable in Kuubik Draw') {
+        throw "M2 status placeholder semantics regressed: $($expected.Key)"
+    }
+    [void](Require-JsonString $placeholder[0] 'iconPath' $placeholderContext)
+}
+
+$expectedRowKeys = @(
+    'Coordinates', 'ModelSpace', 'Grid', 'SnapMode', 'InferConstraints',
+    'DynamicInput', 'OrthoMode', 'SnapAngle', 'IsometricDrafting',
+    'SnapTracking', 'ObjectSnap', 'Lineweight', 'ViewportMaximize',
+    'AnnotationVisibility', 'AnnotationAutoScale', 'AnnotationScale',
+    'ViewportLock', 'ViewportScale', 'ViewportScaleSync', 'AnnotationMonitor',
+    'QuickProperties', 'GraphicsPerformance', 'CleanScreen'
+)
+$actualRowKeys = @(Require-JsonProperty $m2StatusVisual 'rowKeys' 'uiContract.statusBar.m2StatusVisual')
+if (($actualRowKeys -join '|') -ne ($expectedRowKeys -join '|')) {
+    throw 'M2 status controls are not in reference-page order.'
+}
+$expectedOverflowPriority = @(
+    'GraphicsPerformance', 'AnnotationMonitor', 'ViewportScaleSync',
+    'ViewportScale', 'ViewportLock', 'AnnotationScale',
+    'AnnotationAutoScale', 'AnnotationVisibility', 'ViewportMaximize'
+)
+$actualOverflowPriority = @(Require-JsonProperty $m2StatusVisual 'overflowHidePriority' 'uiContract.statusBar.m2StatusVisual')
+$narrowHidden = @(Require-JsonProperty $m2StatusVisual 'narrowHiddenPlaceholders' 'uiContract.statusBar.m2StatusVisual')
+if (($actualOverflowPriority -join '|') -ne ($expectedOverflowPriority -join '|') -or
+    $narrowHidden.Count -eq 0) {
+    throw 'M2 status placeholder overflow priority was not exercised.'
+}
+
+$sampledColors = Require-JsonProperty $m2StatusVisual 'sampledColors' 'uiContract.statusBar.m2StatusVisual'
+$requiredSamples = [ordered]@{
+    base = '#3B4453'
+    top = '#526174'
+    bottom = '#252D37'
+    divider = '#252D37'
+    coordinateSurface = '#3B4453'
+    modelSurface = '#3B4453'
+    disabledSurface = '#3B4453'
+    hover = '#4E5A6E'
+    active = '#608FBF'
+    pressed = '#334052'
+}
+foreach ($sample in $requiredSamples.GetEnumerator()) {
+    $actual = Require-JsonString $sampledColors $sample.Key 'uiContract.statusBar.m2StatusVisual.sampledColors'
+    if ($actual -ne $sample.Value) {
+        throw "Rendered status color regressed: $($sample.Key) expected $($sample.Value), got $actual"
+    }
+}
+
+if ((Require-JsonString $m2StatusVisual 'statusBarScreenshotFile' 'uiContract.statusBar.m2StatusVisual') -ne 'status-bar.png' -or
+    (Require-JsonNumber $m2StatusVisual 'statusBarScreenshotPixelWidth' 'uiContract.statusBar.m2StatusVisual') -ne 1200 -or
+    (Require-JsonNumber $m2StatusVisual 'statusBarScreenshotPixelHeight' 'uiContract.statusBar.m2StatusVisual') -ne 28 -or
+    [Math]::Abs((Require-JsonNumber $m2StatusVisual 'statusBarScreenshotDevicePixelRatio' 'uiContract.statusBar.m2StatusVisual') - 1.0) -gt 0.06 -or
+    (Get-Item -LiteralPath $statusBarScreenshotPath).Length -lt 1000) {
+    throw 'Native status-bar crop is missing or has incorrect fixed geometry.'
+}
 if (-not (Require-JsonBoolean $statusBarContract 'menuScreenshotSaved' 'uiContract.statusBar') -or
     (Require-JsonNumber $statusBarContract 'menuScreenshotWidth' 'uiContract.statusBar') -lt 180 -or
     (Require-JsonNumber $statusBarContract 'menuScreenshotHeight' 'uiContract.statusBar') -lt 250) {
@@ -528,7 +651,10 @@ $customizationEntries = @(Require-JsonProperty $statusBarContract 'customization
 $expectedCustomizationKeys = @(
     'Coordinates', 'ModelSpace', 'Grid', 'SnapMode', 'InferConstraints',
     'DynamicInput', 'OrthoMode', 'SnapAngle', 'IsometricDrafting',
-    'ObjectSnap', 'SnapTracking', 'Lineweight', 'QuickProperties', 'CleanScreen'
+    'SnapTracking', 'ObjectSnap', 'Lineweight', 'ViewportMaximize',
+    'AnnotationVisibility', 'AnnotationAutoScale', 'AnnotationScale',
+    'ViewportLock', 'ViewportScale', 'ViewportScaleSync', 'AnnotationMonitor',
+    'QuickProperties', 'GraphicsPerformance', 'CleanScreen'
 )
 $actualCustomizationKeys = @($customizationEntries | ForEach-Object key | Sort-Object -Unique)
 if ($actualCustomizationKeys.Count -ne $expectedCustomizationKeys.Count) {
@@ -540,8 +666,14 @@ foreach ($expectedKey in $expectedCustomizationKeys) {
     }
 }
 foreach ($entry in $customizationEntries) {
-    if (-not (Require-JsonBoolean $entry 'controlPresent' 'uiContract.statusBar.customizationEntries')) {
+    if (-not (Require-JsonBoolean $entry 'controlPresent' 'uiContract.statusBar.customizationEntries') -or
+        -not (Require-JsonBoolean $entry 'enabled' 'uiContract.statusBar.customizationEntries') -or
+        -not (Require-JsonBoolean $entry 'checkable' 'uiContract.statusBar.customizationEntries')) {
         throw "Status-bar customization entry has no matching control: $($entry.key)"
+    }
+    $unavailable = Require-JsonBoolean $entry 'unavailable' 'uiContract.statusBar.customizationEntries'
+    if (($entry.key -in $expectedPlaceholderPages.Keys) -ne $unavailable) {
+        throw "Status-bar customization unavailable label is incorrect: $($entry.key)"
     }
 }
 

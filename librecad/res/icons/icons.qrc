@@ -329,6 +329,18 @@
         <file>kuubik/view/status-customize.svg</file>
         <file>kuubik/view/status-infer.svg</file>
         <file>kuubik/view/status-isometric.svg</file>
+        <file>kuubik/view/status-viewport-maximize.svg</file>
+        <file>kuubik/view/status-annotation-visibility.svg</file>
+        <file>kuubik/view/status-annotation-auto-scale.svg</file>
+        <file>kuubik/view/status-annotation-scale.svg</file>
+        <file>kuubik/view/status-viewport-lock.svg</file>
+        <file>kuubik/view/status-viewport-scale.svg</file>
+        <file>kuubik/view/status-viewport-scale-sync.svg</file>
+        <file>kuubik/view/status-annotation-monitor.svg</file>
+        <file>kuubik/view/status-graphics-performance.svg</file>
+        <file>kuubik/view/status-menu-arrow-down.svg</file>
+        <file>kuubik/view/status-menu-arrow-right.svg</file>
+        <file>kuubik/view/status-menu-check.svg</file>
         <file>kuubik/view/snap-geometric-center.svg</file>
         <file>kuubik/view/snap-node.svg</file>
         <file>kuubik/view/snap-quadrant.svg</file>

@@ -67,6 +67,7 @@ class QG_SnapToolBar;
 class QDockWidget;
 class QMdiArea;
 class QMdiSubWindow;
+class QResizeEvent;
 class RS_Block;
 class RS_Document;
 class RS_GraphicView;
@@ -343,6 +344,7 @@ protected:
      void dropEvent(QDropEvent* e) override;
      void dragEnterEvent(QDragEnterEvent * event) override;
     void changeEvent(QEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
     //! \}
 
 private:
@@ -354,6 +356,7 @@ private:
     void createKuubikStatusControls();
     void applyKuubikStatusOrder();
     void applyKuubikStatusVisibility();
+    void applyKuubikStatusOverflow();
     void configureKuubikCoordinateWidget(bool kuubikMode);
     void applyKuubikTheme();
     void applyKuubikWorkspace(bool resetLayout);

@@ -28,7 +28,13 @@ QMap<QString, QString> KuubikTheme::colors()
         {"active", "#176F9F"},
         {"highlight", "#4CC2FF"},
         {"primaryText", "#E8EBEF"},
-        {"mutedText", "#A7B0B7"}
+        {"mutedText", "#A7B0B7"},
+        {"statusBase", "#3B4453"},
+        {"statusTop", "#526174"},
+        {"statusEdge", "#252D37"},
+        {"statusHover", "#4E5A6E"},
+        {"statusActive", "#608FBF"},
+        {"statusPressed", "#334052"}
     };
 }
 
@@ -86,5 +92,5 @@ int KuubikTheme::commandMaximumHeight()
 
 int KuubikTheme::statusBarHeight()
 {
-    return 27;
+    return 28;
 }
