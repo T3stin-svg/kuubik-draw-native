@@ -107,10 +107,13 @@
 #include "rs_document.h"
 #include "rs_eventhandler.h"
 #include "rs_graphic.h"
+#include "rs_insert.h"
 #include "rs_layer.h"
 #include "rs_layerlist.h"
 #include "rs_line.h"
+#include "rs_overlayline.h"
 #include "rs_painterqt.h"
+#include "rs_point.h"
 #include "rs_snapper.h"
 #include "rs_pen.h"
 #include "rs_polyline.h"
@@ -185,6 +188,18 @@ bool usePenWizard()
 {
     auto guard= RS_SETTINGS->beginGroupGuard("/CustomToolbars");
     return RS_SETTINGS->readNumEntry("/UsePenWizard", 0) == 1;
+}
+
+template <typename Contains, typename SetValue>
+void applyPhaseThreeVisibilityDefaults(Contains contains, SetValue setValue)
+{
+    for (const QString& key : {
+             QStringLiteral("KuubikStatus/Visible/ObjectSnap"),
+             QStringLiteral("KuubikStatus/Visible/SnapTracking")}) {
+        if (!contains(key)) {
+            setValue(key, true);
+        }
+    }
 }
 }
 
@@ -1157,12 +1172,15 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     }
     if (installedReferencePhase < 3) {
         // Pages 12-13 make the already-present OSNAP and OTRACK controls part
-        // of the default precision row. Apply this only for the milestone
-        // migration; subsequent customization remains authoritative.
-        statusSettings.setValue(
-            QStringLiteral("KuubikStatus/Visible/ObjectSnap"), true);
-        statusSettings.setValue(
-            QStringLiteral("KuubikStatus/Visible/SnapTracking"), true);
+        // of the default precision row. Missing keys receive the new default;
+        // an existing explicit hidden choice remains authoritative.
+        applyPhaseThreeVisibilityDefaults(
+            [&statusSettings](const QString& key) {
+                return statusSettings.contains(key);
+            },
+            [&statusSettings](const QString& key, bool value) {
+                statusSettings.setValue(key, value);
+            });
     }
     statusSettings.setValue(QStringLiteral("KuubikStatus/ReferencePhaseVersion"),
                             referencePhaseVersion);
@@ -1697,7 +1715,7 @@ void QC_ApplicationWindow::createKuubikStatusControls()
     osnapButton->setCheckable(true);
     osnapButton->setAccessibleName(tr("Object Snap modes"));
     osnapButton->setToolTip(tr("Object Snap modes (F3)"));
-    osnapButton->setProperty("kuubikReferencePage", 12);
+    osnapButton->setProperty("kuubikReferencePage", 13);
 
     auto* osnapMenu = new QMenu(osnapButton);
     osnapMenu->setObjectName(QStringLiteral("kuubikOsnapMenu"));
@@ -1935,7 +1953,7 @@ void QC_ApplicationWindow::createKuubikStatusControls()
         QStringLiteral("SnapTracking"), RS_SnapMode::SnapTracking,
         &RS_SnapMode::snapTracking, tr("Object snap tracking (F11)"));
     if (trackingButton != nullptr) {
-        trackingButton->setProperty("kuubikReferencePage", 13);
+        trackingButton->setProperty("kuubikReferencePage", 12);
         auto* trackingF11 = new QShortcut(
             QKeySequence(Qt::Key_F11), this);
         trackingF11->setObjectName(QStringLiteral("kuubikShortcutF11"));
@@ -3329,9 +3347,12 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     bool osnapStateRoundTrip = false;
     bool osnapMouseKeyboardSynchronized = false;
     bool osnapPriorSetPersisted = false;
+    bool osnapNonObjectBitsPreserved = false;
+    bool f3ActualKeyEvents = false;
     bool trackingStateRoundTrip = false;
     bool trackingMouseKeyboardSynchronized = false;
     bool trackingSerializationRoundTrip = false;
+    bool f11ActualKeyEvents = false;
     if (actionHandler != nullptr && osnapStatusButton != nullptr
         && trackingStatusButton != nullptr) {
         const RS_SnapMode original = actionHandler->getSnaps();
@@ -3348,7 +3369,32 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
             | RS_SnapMode::SnapIntersection | RS_SnapMode::SnapPerpendicular
             | RS_SnapMode::SnapTangent | RS_SnapMode::SnapOnEntity
             | RS_SnapMode::SnapExtension | RS_SnapMode::SnapParallel);
+        configured.snapFree = true;
+        configured.snapGrid = true;
+        configured.snapAngle = true;
+        configured.snapTracking = true;
+        configured.restriction = RS2::RestrictVertical;
         const unsigned configuredBits = RS_SnapMode::toInt(configured);
+        const unsigned configuredNonObjectBits = configuredBits
+            & ~objectSnapMask;
+        const auto preservesNonObjectBits = [configuredNonObjectBits](
+                const RS_SnapMode& mode) {
+            return (RS_SnapMode::toInt(mode) & ~objectSnapMask)
+                == configuredNonObjectBits;
+        };
+        const auto sendFunctionKey = [this](Qt::Key key) {
+            QWidget* target = QApplication::focusWidget();
+            if (target == nullptr || target->window() != this) {
+                target = this;
+                target->setFocus(Qt::OtherFocusReason);
+            }
+            QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier);
+            const bool pressSent = QApplication::sendEvent(target, &press);
+            QKeyEvent release(QEvent::KeyRelease, key, Qt::NoModifier);
+            const bool releaseSent = QApplication::sendEvent(target, &release);
+            QApplication::processEvents();
+            return pressSent && releaseSent;
+        };
         actionHandler->slotSetSnaps(configured);
         {
             const QSignalBlocker blocker(osnapStatusButton);
@@ -3360,32 +3406,35 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         const RS_SnapMode disabled = actionHandler->getSnaps();
         const bool mouseDisabled =
             (RS_SnapMode::toInt(disabled) & objectSnapMask) == 0
+            && preservesNonObjectBits(disabled)
             && !osnapStatusButton->isChecked();
         const unsigned persistedObjectBits = settings.value(
             savedOsnapKey, 0).toUInt() & objectSnapMask;
 
         const bool f3Invoked = osnapF3Registered
-            && QMetaObject::invokeMethod(osnapF3, "activated",
-                                         Qt::DirectConnection);
-        QApplication::processEvents();
+            && sendFunctionKey(Qt::Key_F3);
         const bool keyboardRestored = f3Invoked
             && RS_SnapMode::toInt(actionHandler->getSnaps()) == configuredBits
             && osnapStatusButton->isChecked();
         const bool f3DisabledAgain = osnapF3Registered
-            && QMetaObject::invokeMethod(osnapF3, "activated",
-                                         Qt::DirectConnection);
-        QApplication::processEvents();
+            && sendFunctionKey(Qt::Key_F3);
+        const RS_SnapMode keyboardDisabledMode = actionHandler->getSnaps();
         const bool keyboardDisabled = f3DisabledAgain
-            && (RS_SnapMode::toInt(actionHandler->getSnaps())
-                & objectSnapMask) == 0
+            && (RS_SnapMode::toInt(keyboardDisabledMode) & objectSnapMask) == 0
+            && preservesNonObjectBits(keyboardDisabledMode)
             && !osnapStatusButton->isChecked();
         osnapStatusButton->click();
         QApplication::processEvents();
         const bool mouseRestored =
             RS_SnapMode::toInt(actionHandler->getSnaps()) == configuredBits
             && osnapStatusButton->isChecked();
+        osnapNonObjectBitsPreserved = preservesNonObjectBits(disabled)
+            && preservesNonObjectBits(keyboardDisabledMode)
+            && mouseRestored && keyboardRestored;
+        f3ActualKeyEvents = f3Invoked && f3DisabledAgain;
         osnapStateRoundTrip = mouseDisabled && keyboardRestored
-            && keyboardDisabled && mouseRestored;
+            && keyboardDisabled && mouseRestored
+            && osnapNonObjectBitsPreserved && f3ActualKeyEvents;
         osnapMouseKeyboardSynchronized = osnapStateRoundTrip;
         osnapPriorSetPersisted = persistedObjectBits
             == (configuredBits & objectSnapMask);
@@ -3403,24 +3452,22 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
             actionHandler->getSnaps().snapTracking
             && trackingStatusButton->isChecked();
         const bool f11Invoked = trackingF11Registered
-            && QMetaObject::invokeMethod(trackingF11, "activated",
-                                         Qt::DirectConnection);
-        QApplication::processEvents();
+            && sendFunctionKey(Qt::Key_F11);
         const bool keyboardDisabledTracking = f11Invoked
             && !actionHandler->getSnaps().snapTracking
             && !trackingStatusButton->isChecked();
         const bool f11Restored = trackingF11Registered
-            && QMetaObject::invokeMethod(trackingF11, "activated",
-                                         Qt::DirectConnection);
-        QApplication::processEvents();
+            && sendFunctionKey(Qt::Key_F11);
         const RS_SnapMode trackingRestored = actionHandler->getSnaps();
         const bool keyboardEnabledTracking = f11Restored
             && trackingRestored.snapTracking
             && trackingStatusButton->isChecked();
         trackingSerializationRoundTrip = RS_SnapMode::fromInt(
             RS_SnapMode::toInt(trackingRestored)).snapTracking;
+        f11ActualKeyEvents = f11Invoked && f11Restored;
         trackingStateRoundTrip = mouseEnabledTracking
-            && keyboardDisabledTracking && keyboardEnabledTracking;
+            && keyboardDisabledTracking && keyboardEnabledTracking
+            && f11ActualKeyEvents;
         trackingMouseKeyboardSynchronized = trackingStateRoundTrip;
 
         actionHandler->slotSetSnaps(original);
@@ -3441,6 +3488,36 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
             settings.remove(savedOsnapKey);
         }
     }
+
+    const QString objectSnapVisibilityKey = QStringLiteral(
+        "KuubikStatus/Visible/ObjectSnap");
+    const QString trackingVisibilityKey = QStringLiteral(
+        "KuubikStatus/Visible/SnapTracking");
+    QVariantMap existingVisibilityChoices{
+        {objectSnapVisibilityKey, false},
+        {trackingVisibilityKey, false}
+    };
+    applyPhaseThreeVisibilityDefaults(
+        [&existingVisibilityChoices](const QString& key) {
+            return existingVisibilityChoices.contains(key);
+        },
+        [&existingVisibilityChoices](const QString& key, bool value) {
+            existingVisibilityChoices.insert(key, value);
+        });
+    const bool phaseThreePreservesExplicitHidden =
+        !existingVisibilityChoices.value(objectSnapVisibilityKey).toBool()
+        && !existingVisibilityChoices.value(trackingVisibilityKey).toBool();
+    QVariantMap missingVisibilityChoices;
+    applyPhaseThreeVisibilityDefaults(
+        [&missingVisibilityChoices](const QString& key) {
+            return missingVisibilityChoices.contains(key);
+        },
+        [&missingVisibilityChoices](const QString& key, bool value) {
+            missingVisibilityChoices.insert(key, value);
+        });
+    const bool phaseThreeDefaultsMissingVisible =
+        missingVisibilityChoices.value(objectSnapVisibilityKey).toBool()
+        && missingVisibilityChoices.value(trackingVisibilityKey).toBool();
 
     const auto pointEvidence = [](const RS_Vector& actual,
                                   const RS_Vector& expected,
@@ -3465,94 +3542,188 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         constexpr double geometryTolerance = 1.0e-7;
         const RS_Vector originalRelativeZero = referenceView->getRelativeZero();
 
+        const auto eventPoint = [referenceView](const RS_Vector& point) {
+            const RS_Vector gui = referenceView->toGui(point);
+            return QPoint(qRound(gui.x), qRound(gui.y));
+        };
+        const auto eventGraphPoint = [referenceView, &eventPoint](
+                const RS_Vector& point) {
+            const QPoint pixel = eventPoint(point);
+            return referenceView->toGraph(pixel.x(), pixel.y());
+        };
+        const auto dispatchSnap = [referenceView, &eventPoint](
+                RS_Graphic& fixture, const RS_SnapMode& mode,
+                const RS_Vector& query) {
+            RS_Snapper verifier(fixture, *referenceView);
+            verifier.init();
+            verifier.setSnapMode(mode);
+            QMouseEvent event(QEvent::MouseMove, QPointF(eventPoint(query)),
+                              Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+            const RS_Vector result = verifier.snapPoint(&event);
+            verifier.finish();
+            return result;
+        };
+        const auto modeFor = [](unsigned bit) {
+            return RS_SnapMode::fromInt(bit);
+        };
+
         RS_Graphic lineFixture;
         lineFixture.addEntity(new RS_Line(
             &lineFixture, RS_Vector(0.0, 0.0), RS_Vector(10.0, 0.0)));
         lineFixture.addEntity(new RS_Line(
             &lineFixture, RS_Vector(5.0, -5.0), RS_Vector(5.0, 5.0)));
-        RS_Snapper lineVerifier(lineFixture, *referenceView);
-        lineVerifier.init();
-        lineVerifier.setSnapMode(RS_SnapMode());
-        const RS_Vector endpoint = lineVerifier.snapEndpoint(
+        const RS_Vector endpoint = dispatchSnap(
+            lineFixture, modeFor(RS_SnapMode::SnapEndpoint),
             RS_Vector(0.1, 0.1));
-        const RS_Vector midpoint = lineVerifier.snapMiddle(
+        const RS_Vector midpoint = dispatchSnap(
+            lineFixture, modeFor(RS_SnapMode::SnapMiddle),
+            RS_Vector(4.9, 0.1));
+        const RS_Vector distance = dispatchSnap(
+            lineFixture, modeFor(RS_SnapMode::SnapDistance),
+            RS_Vector(1.1, 0.1));
+        const RS_Vector intersection = dispatchSnap(
+            lineFixture, modeFor(RS_SnapMode::SnapIntersection),
             RS_Vector(5.1, 0.1));
-        const RS_Vector intersection = lineVerifier.snapIntersection(
-            RS_Vector(5.1, 0.1));
-        const RS_Vector nearest = lineVerifier.snapOnEntity(
+        const RS_Vector nearest = dispatchSnap(
+            lineFixture, modeFor(RS_SnapMode::SnapOnEntity),
             RS_Vector(2.0, 2.0));
-        const RS_Vector extension = lineVerifier.snapExtension(
+        const RS_Vector extensionQuery = eventGraphPoint(
             RS_Vector(12.0, 0.2));
+        const RS_Vector extension = dispatchSnap(
+            lineFixture, modeFor(RS_SnapMode::SnapExtension),
+            extensionQuery);
         referenceView->setRelativeZero(RS_Vector(3.0, 4.0));
-        const RS_Vector perpendicular = lineVerifier.snapPerpendicular(
+        const RS_Vector perpendicular = dispatchSnap(
+            lineFixture, modeFor(RS_SnapMode::SnapPerpendicular),
             RS_Vector(3.0, 0.2));
         referenceView->setRelativeZero(RS_Vector(0.0, 10.0));
-        const RS_Vector parallel = lineVerifier.snapParallel(
-            RS_Vector(2.0, 1.0));
-        lineVerifier.finish();
+        const RS_Vector parallelQuery = eventGraphPoint(RS_Vector(2.0, 1.0));
+        const RS_Vector parallel = dispatchSnap(
+            lineFixture, modeFor(RS_SnapMode::SnapParallel), parallelQuery);
+        const RS_Vector parallelExpected = RS_Vector(0.0, 10.0)
+            + RS_Vector::polar(
+                RS_Vector(0.0, 10.0).distanceTo(parallelQuery), 0.0);
 
         RS_Graphic circleFixture;
         circleFixture.addEntity(new RS_Circle(
             &circleFixture, RS_CircleData(RS_Vector(20.0, 0.0), 5.0)));
-        RS_Snapper circleVerifier(circleFixture, *referenceView);
-        circleVerifier.init();
-        circleVerifier.setSnapMode(RS_SnapMode());
-        const RS_Vector center = circleVerifier.snapCenter(
+        const RS_Vector center = dispatchSnap(
+            circleFixture, modeFor(RS_SnapMode::SnapCenter),
             RS_Vector(20.1, 0.1));
-        const RS_Vector quadrant = circleVerifier.snapQuadrant(
+        const RS_Vector quadrant = dispatchSnap(
+            circleFixture, modeFor(RS_SnapMode::SnapQuadrant),
             RS_Vector(25.1, 0.1));
         referenceView->setRelativeZero(RS_Vector(30.0, 0.0));
-        const RS_Vector tangent = circleVerifier.snapTangent(
+        const RS_Vector tangent = dispatchSnap(
+            circleFixture, modeFor(RS_SnapMode::SnapTangent),
             RS_Vector(22.5, 4.3));
-        circleVerifier.finish();
+
+        RS_Graphic nodeFixture;
+        nodeFixture.addEntity(new RS_Point(
+            &nodeFixture, RS_PointData(RS_Vector(30.0, 5.0))));
+        const RS_Vector node = dispatchSnap(
+            nodeFixture, modeFor(RS_SnapMode::SnapNode),
+            RS_Vector(30.1, 5.1));
+
+        RS_Graphic insertionFixture;
+        insertionFixture.addEntity(new RS_Insert(
+            &insertionFixture,
+            RS_InsertData(QStringLiteral("contract-insert"),
+                          RS_Vector(40.0, 5.0), RS_Vector(1.0, 1.0),
+                          0.0, 1, 1, RS_Vector(0.0, 0.0), nullptr,
+                          RS2::NoUpdate)));
+        const RS_Vector insertion = dispatchSnap(
+            insertionFixture, modeFor(RS_SnapMode::SnapInsertion),
+            RS_Vector(40.1, 5.1));
+
+        RS_Graphic geometricCenterFixture;
+        auto* rectangle = new RS_Polyline(&geometricCenterFixture);
+        rectangle->addVertex(RS_Vector(50.0, 0.0));
+        rectangle->addVertex(RS_Vector(60.0, 0.0));
+        rectangle->addVertex(RS_Vector(60.0, 10.0));
+        rectangle->addVertex(RS_Vector(50.0, 10.0));
+        rectangle->setClosed(true);
+        rectangle->endPolyline();
+        geometricCenterFixture.addEntity(rectangle);
+        const RS_Vector geometricCenter = dispatchSnap(
+            geometricCenterFixture,
+            modeFor(RS_SnapMode::SnapGeometricCenter),
+            RS_Vector(55.1, 5.1));
+
+        RS_Graphic apparentIntersectionFixture;
+        apparentIntersectionFixture.addEntity(new RS_Line(
+            &apparentIntersectionFixture, RS_Vector(70.0, 0.0),
+            RS_Vector(74.0, 0.0)));
+        apparentIntersectionFixture.addEntity(new RS_Line(
+            &apparentIntersectionFixture, RS_Vector(76.0, 2.0),
+            RS_Vector(76.0, 6.0)));
+        const RS_Vector apparentIntersection = dispatchSnap(
+            apparentIntersectionFixture,
+            modeFor(RS_SnapMode::SnapApparentIntersection),
+            RS_Vector(76.1, 0.1));
         referenceView->setRelativeZero(originalRelativeZero);
 
+        snapFamilies.insert("dispatchPath",
+                            "RS_Snapper::snapPoint(QMouseEvent*)");
+        snapFamilies.insert("allFamiliesViaSnapPoint", true);
+        snapFamilies.insert("helperOnlyFamilies", QJsonArray());
         snapFamilies.insert("endpoint", pointEvidence(
             endpoint, RS_Vector(0.0, 0.0), geometryTolerance));
         snapFamilies.insert("midpoint", pointEvidence(
             midpoint, RS_Vector(5.0, 0.0), geometryTolerance));
+        snapFamilies.insert("distance", pointEvidence(
+            distance, RS_Vector(1.0, 0.0), geometryTolerance));
         snapFamilies.insert("center", pointEvidence(
             center, RS_Vector(20.0, 0.0), geometryTolerance));
         snapFamilies.insert("quadrant", pointEvidence(
             quadrant, RS_Vector(25.0, 0.0), geometryTolerance));
         snapFamilies.insert("intersection", pointEvidence(
             intersection, RS_Vector(5.0, 0.0), geometryTolerance));
+        snapFamilies.insert("node", pointEvidence(
+            node, RS_Vector(30.0, 5.0), geometryTolerance));
+        snapFamilies.insert("insertion", pointEvidence(
+            insertion, RS_Vector(40.0, 5.0), geometryTolerance));
         snapFamilies.insert("perpendicular", pointEvidence(
             perpendicular, RS_Vector(3.0, 0.0), geometryTolerance));
         snapFamilies.insert("tangent", pointEvidence(
             tangent, RS_Vector(22.5, 5.0 * std::sqrt(3.0) / 2.0),
             geometryTolerance));
-        snapFamilies.insert("nearest", pointEvidence(
-            nearest, RS_Vector(2.0, 0.0), geometryTolerance));
-        snapFamilies.insert("extension", pointEvidence(
-            extension, RS_Vector(12.0, 0.0), geometryTolerance));
-        snapFamilies.insert("parallel", pointEvidence(
-            parallel, RS_Vector(std::sqrt(85.0), 10.0),
+        snapFamilies.insert("geometricCenter", pointEvidence(
+            geometricCenter, RS_Vector(55.0, 5.0), geometryTolerance));
+        snapFamilies.insert("apparentIntersection", pointEvidence(
+            apparentIntersection, RS_Vector(76.0, 0.0),
             geometryTolerance));
+        snapFamilies.insert("nearest", pointEvidence(
+            nearest, RS_Vector(eventGraphPoint(RS_Vector(2.0, 2.0)).x, 0.0),
+            geometryTolerance));
+        snapFamilies.insert("extension", pointEvidence(
+            extension, RS_Vector(extensionQuery.x, 0.0), geometryTolerance));
+        snapFamilies.insert("parallel", pointEvidence(
+            parallel, parallelExpected, geometryTolerance));
         snapFamiliesPassed = true;
         for (auto it = snapFamilies.constBegin();
              it != snapFamilies.constEnd(); ++it) {
-            snapFamiliesPassed = snapFamiliesPassed
-                && it.value().toObject().value("passed").toBool();
+            if (it.value().isObject()) {
+                snapFamiliesPassed = snapFamiliesPassed
+                    && it.value().toObject().value("passed").toBool();
+            }
         }
 
         const QPoint acquisitionPixel(referenceView->width() / 2,
                                       referenceView->height() / 2);
         const RS_Vector acquisitionPoint = referenceView->toGraph(
             acquisitionPixel.x(), acquisitionPixel.y());
-        const double fortyPixels = referenceView->toGraphDX(40);
         RS_Graphic trackingFixture;
-        trackingFixture.addEntity(new RS_Line(
-            &trackingFixture, acquisitionPoint,
-            acquisitionPoint + RS_Vector(fortyPixels, 0.0)));
+        trackingFixture.addEntity(new RS_Point(
+            &trackingFixture, RS_PointData(acquisitionPoint)));
         const unsigned trackingEntityCount = trackingFixture.count();
         const int trackingUndoCyclesBefore =
             trackingFixture.countUndoCycles();
         RS_Snapper trackingVerifier(trackingFixture, *referenceView);
         trackingVerifier.init();
         RS_SnapMode trackingMode;
-        trackingMode.snapEndpoint = true;
-        trackingMode.snapFree = true;
+        trackingMode.snapNode = true;
+        trackingMode.snapFree = false;
         trackingMode.snapTracking = true;
         trackingVerifier.setSnapMode(trackingMode);
         QMouseEvent acquisitionEvent(
@@ -3563,6 +3734,8 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         const bool candidateAcquired = trackingVerifier.hasTrackingAcquisition()
             && acquiredResult.distanceTo(acquisitionPoint)
                    <= geometryTolerance;
+        const bool acquisitionKeyEntityPresent =
+            trackingVerifier.getKeyEntity() != nullptr;
 
         const QPoint orthogonalPixel = acquisitionPixel + QPoint(80, -4);
         const RS_Vector orthogonalRaw = referenceView->toGraph(
@@ -3578,17 +3751,64 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
             geometryTolerance, std::abs(referenceView->toGraphDX(0.25)));
         const QJsonObject orthogonalEvidence = pointEvidence(
             orthogonalResult, orthogonalExpected, trackingTolerance);
+        const auto overlayGuideEvidence = [referenceView, &pointEvidence](
+                const RS_Vector& acquired, const RS_Vector& projected) {
+            QJsonObject evidence;
+            evidence.insert("overlayContainer", "RS2::Snapper");
+            evidence.insert("entityType", "RS_OverlayLine");
+            const RS_Vector expectedStart = referenceView->toGui(acquired);
+            const RS_Vector expectedEnd = referenceView->toGui(projected);
+            RS_Vector actualStart(false);
+            RS_Vector actualEnd(false);
+            int overlayLineCount = 0;
+            auto* overlay = referenceView->getOverlayContainer(RS2::Snapper);
+            for (RS_Entity* entity : overlay->getEntityList()) {
+                auto* line = dynamic_cast<RS_OverlayLine*>(entity);
+                if (line == nullptr
+                    || line->rtti() != RS2::EntityOverlayLine) {
+                    continue;
+                }
+                ++overlayLineCount;
+                const RS_Vector start = line->getStartpoint();
+                const RS_Vector end = line->getEndpoint();
+                const bool direct = start.distanceTo(expectedStart) <= 1.0e-7
+                    && end.distanceTo(expectedEnd) <= 1.0e-7;
+                const bool reverse = start.distanceTo(expectedEnd) <= 1.0e-7
+                    && end.distanceTo(expectedStart) <= 1.0e-7;
+                if (direct || reverse) {
+                    actualStart = direct ? start : end;
+                    actualEnd = direct ? end : start;
+                    break;
+                }
+            }
+            const QJsonObject startEvidence = pointEvidence(
+                actualStart, expectedStart, 1.0e-7);
+            const QJsonObject endEvidence = pointEvidence(
+                actualEnd, expectedEnd, 1.0e-7);
+            const bool passed = startEvidence.value("passed").toBool()
+                && endEvidence.value("passed").toBool();
+            evidence.insert("overlayLineCount", overlayLineCount);
+            evidence.insert("lineFound", passed);
+            evidence.insert("start", startEvidence);
+            evidence.insert("end", endEvidence);
+            evidence.insert("passed", passed);
+            return evidence;
+        };
+        const QJsonObject orthogonalOverlay = overlayGuideEvidence(
+            acquisitionPoint, orthogonalResult);
         const bool orthogonalGuide = trackingVerifier.hasTrackingGuide()
             && trackingVerifier.trackingAcquisition().distanceTo(
                    acquisitionPoint) <= trackingTolerance
             && trackingVerifier.trackingGuideEnd().distanceTo(
-                   orthogonalResult) <= trackingTolerance;
+                   orthogonalResult) <= trackingTolerance
+            && orthogonalOverlay.value("passed").toBool();
+        const bool trackingKeyEntityIsNull =
+            trackingVerifier.getKeyEntity() == nullptr;
 
         const RS_Vector competingEndpoint = referenceView->toGraph(
             acquisitionPixel.x() + 80, acquisitionPixel.y() - 20);
-        trackingFixture.addEntity(new RS_Line(
-            &trackingFixture, competingEndpoint,
-            competingEndpoint + RS_Vector(fortyPixels / 2.0, 0.0)));
+        trackingFixture.addEntity(new RS_Point(
+            &trackingFixture, RS_PointData(competingEndpoint)));
         const unsigned entitiesBeforePriorityChecks = trackingFixture.count();
         QMouseEvent objectPriorityEvent(
             QEvent::MouseMove,
@@ -3670,18 +3890,37 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         const RS_Vector polarResult = trackingVerifier.snapPoint(&polarEvent);
         const QJsonObject polarEvidence = pointEvidence(
             polarResult, polarExpected, trackingTolerance);
-        const bool polarGuide = trackingVerifier.hasTrackingGuide();
+        const QJsonObject polarOverlay = overlayGuideEvidence(
+            acquisitionPoint, polarResult);
+        const bool polarGuide = trackingVerifier.hasTrackingGuide()
+            && polarOverlay.value("passed").toBool();
+        const bool polarKeyEntityIsNull =
+            trackingVerifier.getKeyEntity() == nullptr;
         {
             auto settingsGuard = RS_SETTINGS->beginGroupGuard("/Snap");
             RS_SETTINGS->writeEntry("/AngleIncrement",
                                     originalTrackingIncrement);
         }
 
+        const bool overlayDrawnBeforeSuspend =
+            referenceView->getOverlayContainer(RS2::Snapper)->count() > 0;
+        trackingVerifier.suspend();
+        const bool suspendClearsDrawnOverlayImmediately =
+            overlayDrawnBeforeSuspend
+            && !trackingVerifier.hasTrackingAcquisition()
+            && !trackingVerifier.hasTrackingGuide()
+            && referenceView->getOverlayContainer(RS2::Snapper)->count() == 0;
+
+        trackingVerifier.setSnapMode(polarTrackingMode);
+        trackingVerifier.snapPoint(&acquisitionEvent);
+        trackingVerifier.snapPoint(&polarEvent);
+        const bool guideDrawnBeforeDisable = trackingVerifier.hasTrackingGuide()
+            && referenceView->getOverlayContainer(RS2::Snapper)->count() > 0;
         RS_SnapMode trackingDisabled = polarTrackingMode;
         trackingDisabled.snapTracking = false;
         trackingVerifier.setSnapMode(trackingDisabled);
-        const bool disablingClearsTracking =
-            !trackingVerifier.hasTrackingAcquisition()
+        const bool disablingClearsTracking = guideDrawnBeforeDisable
+            && !trackingVerifier.hasTrackingAcquisition()
             && !trackingVerifier.hasTrackingGuide()
             && referenceView->getOverlayContainer(RS2::Snapper)->count() == 0;
         const bool documentUnchanged = trackingFixture.count()
@@ -3693,14 +3932,28 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
             == trackingUndoCyclesBefore;
         trackingVerifier.finish();
 
+        trackingGeometry.insert("snapFreeDisabled", !trackingMode.snapFree);
         trackingGeometry.insert("candidateAcquired", candidateAcquired);
+        trackingGeometry.insert("acquisitionKeyEntityPresent",
+                                acquisitionKeyEntityPresent);
         trackingGeometry.insert("orthogonalProjection", orthogonalEvidence);
+        trackingGeometry.insert("orthogonalProjectionWithSnapFreeDisabled",
+                                orthogonalEvidence.value("passed").toBool());
         trackingGeometry.insert("orthogonalGuideVisible", orthogonalGuide);
+        trackingGeometry.insert("orthogonalOverlayLine", orthogonalOverlay);
         trackingGeometry.insert("polarProjection", polarEvidence);
+        trackingGeometry.insert("polarProjectionWithSnapFreeDisabled",
+                                polarEvidence.value("passed").toBool());
         trackingGeometry.insert("polarGuideVisible", polarGuide);
+        trackingGeometry.insert("polarOverlayLine", polarOverlay);
+        trackingGeometry.insert("keyEntityNullForTracking",
+            acquisitionKeyEntityPresent && trackingKeyEntityIsNull
+                && polarKeyEntityIsNull);
         trackingGeometry.insert("objectSnapPrecedence", objectSnapPrecedence);
         trackingGeometry.insert("gridSnapPrecedence", gridPrecedence);
         trackingGeometry.insert("orthoRestrictionPrecedence", orthoPrecedence);
+        trackingGeometry.insert("suspendClearsDrawnOverlayImmediately",
+                                suspendClearsDrawnOverlayImmediately);
         trackingGeometry.insert("disabledClearsAcquisition",
                                 disablingClearsTracking);
         trackingGeometry.insert("documentEntityCountBefore",
@@ -3715,11 +3968,14 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         trackingGeometry.insert("undoStateUnchanged", undoStateUnchanged);
         trackingGeometry.insert("overlayOnly", documentUnchanged
             && undoStateUnchanged && orthogonalGuide && polarGuide);
-        trackingGeometryPassed = candidateAcquired
+        trackingGeometryPassed = !trackingMode.snapFree && candidateAcquired
+            && acquisitionKeyEntityPresent && trackingKeyEntityIsNull
             && orthogonalEvidence.value("passed").toBool()
             && orthogonalGuide && polarEvidence.value("passed").toBool()
-            && polarGuide && objectSnapPrecedence && gridPrecedence
-            && orthoPrecedence && disablingClearsTracking
+            && polarGuide && polarKeyEntityIsNull
+            && objectSnapPrecedence && gridPrecedence
+            && orthoPrecedence && suspendClearsDrawnOverlayImmediately
+            && disablingClearsTracking
             && documentUnchanged && undoStateUnchanged;
         trackingGeometry.insert("passed", trackingGeometryPassed);
     }
@@ -3729,6 +3985,12 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     referenceTwelveToThirteen.insert("referenceStartPage", 12);
     referenceTwelveToThirteen.insert("referenceEndPage", 13);
     referenceTwelveToThirteen.insert("referencePageCount", 2);
+    referenceTwelveToThirteen.insert("osnapReferencePage",
+        osnapStatusButton == nullptr ? 0
+            : osnapStatusButton->property("kuubikReferencePage").toInt());
+    referenceTwelveToThirteen.insert("trackingReferencePage",
+        trackingStatusButton == nullptr ? 0
+            : trackingStatusButton->property("kuubikReferencePage").toInt());
     referenceTwelveToThirteen.insert("osnapControlVisible",
         osnapStatusButton != nullptr && !osnapStatusButton->isHidden());
     referenceTwelveToThirteen.insert("trackingControlVisible",
@@ -3739,17 +4001,30 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
                                      osnapMouseKeyboardSynchronized);
     referenceTwelveToThirteen.insert("osnapPriorSetPersisted",
                                      osnapPriorSetPersisted);
+    referenceTwelveToThirteen.insert("osnapNonObjectBitsPreserved",
+                                     osnapNonObjectBitsPreserved);
+    referenceTwelveToThirteen.insert("f3ActualKeyEvents",
+                                     f3ActualKeyEvents);
     referenceTwelveToThirteen.insert("trackingStateRoundTrip",
                                      trackingStateRoundTrip);
     referenceTwelveToThirteen.insert("trackingMouseKeyboardSynchronized",
                                      trackingMouseKeyboardSynchronized);
     referenceTwelveToThirteen.insert("trackingSerializationRoundTrip",
                                      trackingSerializationRoundTrip);
+    referenceTwelveToThirteen.insert("f11ActualKeyEvents",
+                                     f11ActualKeyEvents);
+    referenceTwelveToThirteen.insert("phaseThreePreservesExplicitHidden",
+                                     phaseThreePreservesExplicitHidden);
+    referenceTwelveToThirteen.insert("phaseThreeDefaultsMissingVisible",
+                                     phaseThreeDefaultsMissingVisible);
     referenceTwelveToThirteen.insert("snapFamilies", snapFamilies);
     referenceTwelveToThirteen.insert("trackingGeometry", trackingGeometry);
     referenceTwelveToThirteen.insert("passed", snapFamiliesPassed
         && trackingGeometryPassed && osnapStateRoundTrip
-        && trackingStateRoundTrip && osnapPriorSetPersisted);
+        && trackingStateRoundTrip && osnapPriorSetPersisted
+        && osnapNonObjectBitsPreserved && f3ActualKeyEvents
+        && f11ActualKeyEvents && phaseThreePreservesExplicitHidden
+        && phaseThreeDefaultsMissingVisible);
     statusBarObject.insert("referencePdfPagesTwelveToThirteen",
                            referenceTwelveToThirteen);
 
@@ -3762,10 +4037,15 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
                                     osnapMouseKeyboardSynchronized);
     referencePageThirtyThree.insert("f11UsesTrackingToggle",
                                     trackingMouseKeyboardSynchronized);
+    referencePageThirtyThree.insert("f3ActualKeyEvents", f3ActualKeyEvents);
+    referencePageThirtyThree.insert("f11ActualKeyEvents", f11ActualKeyEvents);
+    referencePageThirtyThree.insert("f3PreservesNonObjectSnapBits",
+                                    osnapNonObjectBitsPreserved);
     referencePageThirtyThree.insert("passed", osnapF3Registered
         && trackingF11Registered && fullscreenF11Removed
         && osnapMouseKeyboardSynchronized
-        && trackingMouseKeyboardSynchronized);
+        && trackingMouseKeyboardSynchronized && f3ActualKeyEvents
+        && f11ActualKeyEvents && osnapNonObjectBitsPreserved);
     statusBarObject.insert("referencePdfPageThirtyThreeShortcuts",
                            referencePageThirtyThree);
     contract.insert("statusBar", statusBarObject);

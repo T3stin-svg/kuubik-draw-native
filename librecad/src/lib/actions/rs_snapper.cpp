@@ -43,6 +43,7 @@
 #include "rs_overlayline.h"
 #include "rs_pen.h"
 #include "rs_point.h"
+#include "rs_polyline.h"
 #include "rs_settings.h"
 
 namespace {
@@ -347,6 +348,7 @@ RS_Vector RS_Snapper::snapPoint(QMouseEvent* e)
     pImpData->kind = ImpData::None;
     pImpData->trackingGuideActive = false;
     pImpData->trackingGuideEnd = RS_Vector(false);
+    keyEntity = nullptr;
     RS_Vector t(false);
 
 	if (!e) {
@@ -466,11 +468,21 @@ RS_Vector RS_Snapper::snapPoint(QMouseEvent* e)
         }
     }
 
-    const bool objectCandidate = pImpData->kind != ImpData::None
+    const bool objectCandidateFound = pImpData->kind != ImpData::None
         && pImpData->kind != ImpData::Grid
         && pImpData->kind != ImpData::Tracking
-        && pImpData->snapSpot.valid
+        && pImpData->snapSpot.valid;
+    const bool objectCandidate = objectCandidateFound
         && mouseCoord.distanceTo(pImpData->snapSpot) <= getSnapRange();
+    if (snapMode.snapTracking && objectCandidateFound && !objectCandidate) {
+        // A forced object-snap mode may return its closest candidate even when
+        // snapFree is disabled. OTRACK still treats candidates outside the
+        // normal acquisition range as free cursor movement so that a prior
+        // acquisition can project a guide in the default snapFree=false mode.
+        pImpData->snapSpot = mouseCoord;
+        pImpData->kind = ImpData::None;
+        keyEntity = nullptr;
+    }
     if (snapMode.snapTracking && objectCandidate) {
         // Acquisition is deliberately overlay-only state. Merely hovering a
         // working object-snap candidate must never modify the document.
@@ -703,8 +715,8 @@ RS_Vector RS_Snapper::snapNode(const RS_Vector& coord) {
 RS_Vector RS_Snapper::snapInsertion(const RS_Vector& coord) {
     RS_Vector best(false);
     double bestDistance = RS_MAXDOUBLE;
-    for (RS_Entity* entity = container->firstEntity(RS2::ResolveAll);
-         entity; entity = container->nextEntity(RS2::ResolveAll)) {
+    for (RS_Entity* entity = container->firstEntity(RS2::ResolveNone);
+         entity; entity = container->nextEntity(RS2::ResolveNone)) {
         const RS2::EntityType type = entity->rtti();
         if (!entity->isVisible() || (type != RS2::EntityInsert
             && type != RS2::EntityText && type != RS2::EntityMText)) continue;
@@ -738,10 +750,44 @@ RS_Vector RS_Snapper::snapTangent(const RS_Vector& coord) {
 RS_Vector RS_Snapper::snapGeometricCenter(const RS_Vector& coord) {
     RS_Vector best(false);
     double bestDistance = RS_MAXDOUBLE;
-    for (RS_Entity* entity = container->firstEntity(RS2::ResolveAll);
-         entity; entity = container->nextEntity(RS2::ResolveAll)) {
-        if (!entity->isVisible() || entity->rtti() != RS2::EntityPolyline) continue;
-        const RS_Vector point = entity->getCenter();
+    for (RS_Entity* entity = container->firstEntity(RS2::ResolveNone);
+         entity; entity = container->nextEntity(RS2::ResolveNone)) {
+        auto* polyline = dynamic_cast<RS_Polyline*>(entity);
+        if (!polyline || !polyline->isVisible() || !polyline->isClosed()) {
+            continue;
+        }
+        std::vector<RS_Vector> vertices;
+        for (RS_Entity* segment : polyline->getEntityList()) {
+            auto* line = dynamic_cast<RS_Line*>(segment);
+            if (!line) {
+                vertices.clear();
+                break;
+            }
+            if (vertices.empty()) {
+                vertices.push_back(line->getStartpoint());
+            }
+            vertices.push_back(line->getEndpoint());
+        }
+        if (vertices.size() > 1
+            && vertices.front().distanceTo(vertices.back()) <= RS_TOLERANCE) {
+            vertices.pop_back();
+        }
+        if (vertices.size() < 3) continue;
+
+        double twiceArea = 0.0;
+        double weightedX = 0.0;
+        double weightedY = 0.0;
+        for (size_t i = 0; i < vertices.size(); ++i) {
+            const RS_Vector& current = vertices[i];
+            const RS_Vector& next = vertices[(i + 1) % vertices.size()];
+            const double cross = current.x * next.y - next.x * current.y;
+            twiceArea += cross;
+            weightedX += (current.x + next.x) * cross;
+            weightedY += (current.y + next.y) * cross;
+        }
+        if (std::abs(twiceArea) <= RS_TOLERANCE) continue;
+        const RS_Vector point(weightedX / (3.0 * twiceArea),
+                              weightedY / (3.0 * twiceArea));
         const double distance = coord.distanceTo(point);
         if (point.valid && distance < bestDistance) {
             best = point;
@@ -1051,10 +1097,11 @@ RS_Entity* RS_Snapper::catchEntity(QMouseEvent* e, const EntityTypeList& enTypeL
 }
 
 void RS_Snapper::suspend() {
-			// RVT Don't delete the snapper here!
-	// RVT_PORT (can be deleted)();
+	// Mouse leave and action suspension must remove transient snap and
+	// tracking graphics immediately.
 	pImpData->snapSpot = pImpData->snapCoord = RS_Vector{false};
 	clearTrackingAcquisition();
+	deleteSnapper();
 }
 
 /**

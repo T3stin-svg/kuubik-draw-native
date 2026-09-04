@@ -407,14 +407,19 @@ if ((Require-JsonNumber $referenceSixToEleven 'snapModeChoiceCount' 'uiContract.
 $referenceTwelveToThirteen = Require-JsonProperty $statusBarContract 'referencePdfPagesTwelveToThirteen' 'uiContract.statusBar'
 if ((Require-JsonNumber $referenceTwelveToThirteen 'referenceStartPage' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen') -ne 12 -or
     (Require-JsonNumber $referenceTwelveToThirteen 'referenceEndPage' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen') -ne 13 -or
-    (Require-JsonNumber $referenceTwelveToThirteen 'referencePageCount' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen') -ne 2) {
+    (Require-JsonNumber $referenceTwelveToThirteen 'referencePageCount' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen') -ne 2 -or
+    (Require-JsonNumber $referenceTwelveToThirteen 'osnapReferencePage' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen') -ne 13 -or
+    (Require-JsonNumber $referenceTwelveToThirteen 'trackingReferencePage' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen') -ne 12) {
     throw 'The M1 precision reference batch must cover exactly PDF pages 12-13.'
 }
 foreach ($referenceFlag in @(
     'osnapControlVisible', 'trackingControlVisible', 'osnapStateRoundTrip',
     'osnapMouseKeyboardSynchronized', 'osnapPriorSetPersisted',
+    'osnapNonObjectBitsPreserved', 'f3ActualKeyEvents',
     'trackingStateRoundTrip', 'trackingMouseKeyboardSynchronized',
-    'trackingSerializationRoundTrip', 'passed'
+    'trackingSerializationRoundTrip', 'f11ActualKeyEvents',
+    'phaseThreePreservesExplicitHidden', 'phaseThreeDefaultsMissingVisible',
+    'passed'
 )) {
     if (-not (Require-JsonBoolean $referenceTwelveToThirteen $referenceFlag 'uiContract.statusBar.referencePdfPagesTwelveToThirteen')) {
         throw "Pages 12-13 status-bar contract failed: $referenceFlag"
@@ -424,9 +429,17 @@ $snapFamilies = Require-JsonProperty $referenceTwelveToThirteen 'snapFamilies' '
 if (-not (Require-JsonBoolean $snapFamilies 'passed' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.snapFamilies')) {
     throw 'The native OSNAP geometry family matrix did not pass.'
 }
+$helperOnlyFamilies = @(Require-JsonProperty $snapFamilies 'helperOnlyFamilies' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.snapFamilies')
+if ((Require-JsonString $snapFamilies 'dispatchPath' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.snapFamilies') -ne
+        'RS_Snapper::snapPoint(QMouseEvent*)' -or
+    -not (Require-JsonBoolean $snapFamilies 'allFamiliesViaSnapPoint' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.snapFamilies') -or
+    $helperOnlyFamilies.Count -ne 0) {
+    throw 'The native OSNAP matrix did not exercise every family through RS_Snapper::snapPoint().'
+}
 foreach ($snapFamily in @(
-    'endpoint', 'midpoint', 'center', 'quadrant', 'intersection',
-    'perpendicular', 'tangent', 'nearest', 'extension', 'parallel'
+    'endpoint', 'midpoint', 'distance', 'center', 'quadrant', 'intersection',
+    'node', 'insertion', 'perpendicular', 'tangent', 'geometricCenter',
+    'apparentIntersection', 'nearest', 'extension', 'parallel'
 )) {
     $familyResult = Require-JsonProperty $snapFamilies $snapFamily 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.snapFamilies'
     $familyContext = "uiContract.statusBar.referencePdfPagesTwelveToThirteen.snapFamilies.$snapFamily"
@@ -440,13 +453,39 @@ foreach ($snapFamily in @(
 }
 $trackingGeometry = Require-JsonProperty $referenceTwelveToThirteen 'trackingGeometry' 'uiContract.statusBar.referencePdfPagesTwelveToThirteen'
 foreach ($trackingFlag in @(
-    'candidateAcquired', 'orthogonalGuideVisible', 'polarGuideVisible',
+    'snapFreeDisabled', 'candidateAcquired', 'acquisitionKeyEntityPresent',
+    'orthogonalProjectionWithSnapFreeDisabled', 'orthogonalGuideVisible',
+    'polarProjectionWithSnapFreeDisabled', 'polarGuideVisible',
+    'keyEntityNullForTracking',
     'objectSnapPrecedence', 'gridSnapPrecedence',
-    'orthoRestrictionPrecedence', 'disabledClearsAcquisition',
+    'orthoRestrictionPrecedence', 'suspendClearsDrawnOverlayImmediately',
+    'disabledClearsAcquisition',
     'documentEntitiesUnchanged', 'undoStateUnchanged', 'overlayOnly', 'passed'
 )) {
     if (-not (Require-JsonBoolean $trackingGeometry $trackingFlag 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.trackingGeometry')) {
         throw "Native object-snap tracking contract failed: $trackingFlag"
+    }
+}
+foreach ($overlayName in @('orthogonalOverlayLine', 'polarOverlayLine')) {
+    $overlay = Require-JsonProperty $trackingGeometry $overlayName 'uiContract.statusBar.referencePdfPagesTwelveToThirteen.trackingGeometry'
+    $overlayContext = "uiContract.statusBar.referencePdfPagesTwelveToThirteen.trackingGeometry.$overlayName"
+    if ((Require-JsonString $overlay 'overlayContainer' $overlayContext) -ne 'RS2::Snapper' -or
+        (Require-JsonString $overlay 'entityType' $overlayContext) -ne 'RS_OverlayLine' -or
+        (Require-JsonNumber $overlay 'overlayLineCount' $overlayContext) -lt 1 -or
+        -not (Require-JsonBoolean $overlay 'lineFound' $overlayContext) -or
+        -not (Require-JsonBoolean $overlay 'passed' $overlayContext)) {
+        throw "Native object-snap tracking overlay is incorrect: $overlayName"
+    }
+    foreach ($endpointName in @('start', 'end')) {
+        $endpoint = Require-JsonProperty $overlay $endpointName $overlayContext
+        $endpointContext = "$overlayContext.$endpointName"
+        foreach ($coordinateField in @('actualX', 'actualY', 'expectedX', 'expectedY', 'error')) {
+            [void](Require-JsonNumber $endpoint $coordinateField $endpointContext)
+        }
+        if (-not (Require-JsonBoolean $endpoint 'passed' $endpointContext) -or
+            (Require-JsonNumber $endpoint 'error' $endpointContext) -gt 0.000001) {
+            throw "Native object-snap tracking overlay endpoint is incorrect: $overlayName.$endpointName"
+        }
     }
 }
 foreach ($projectionName in @('orthogonalProjection', 'polarProjection')) {
@@ -472,7 +511,9 @@ if ($trackingUndoBefore -ne $trackingUndoAfter) {
 $pageThirtyThreeShortcuts = Require-JsonProperty $statusBarContract 'referencePdfPageThirtyThreeShortcuts' 'uiContract.statusBar'
 foreach ($shortcutFlag in @(
     'f3Registered', 'f11Registered', 'fullscreenF11Removed',
-    'f3UsesOsnapMainToggle', 'f11UsesTrackingToggle', 'passed'
+    'f3UsesOsnapMainToggle', 'f11UsesTrackingToggle',
+    'f3ActualKeyEvents', 'f11ActualKeyEvents',
+    'f3PreservesNonObjectSnapBits', 'passed'
 )) {
     if (-not (Require-JsonBoolean $pageThirtyThreeShortcuts $shortcutFlag 'uiContract.statusBar.referencePdfPageThirtyThreeShortcuts')) {
         throw "Page 33 F3/F11 shortcut contract failed: $shortcutFlag"
