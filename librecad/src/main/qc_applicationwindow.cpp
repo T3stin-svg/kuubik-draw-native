@@ -3661,7 +3661,7 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         const unsigned configuredBits = RS_SnapMode::toInt(configured);
         const unsigned configuredNonObjectBits = configuredBits
             & ~objectSnapMask;
-        const auto preservesNonObjectBits = [configuredNonObjectBits](
+        const auto preservesNonObjectBits = [configuredNonObjectBits, objectSnapMask](
                 const RS_SnapMode& mode) {
             return (RS_SnapMode::toInt(mode) & ~objectSnapMask)
                 == configuredNonObjectBits;
