@@ -3,6 +3,23 @@
 These are current product decisions. A later AI may recommend changes, but must
 not silently reverse them.
 
+## D-028 — Native saves refuse paperspace until the document can preserve it
+
+2026-09-05: Imported LAYOUT records, VIEWPORTs and paper entities mark the existing
+RS_Graphic as unsafe for its legacy drawing writer. Save, Save As, autosave and
+direct drawing export refuse before changing files, backups, names or Modified.
+The UI handles this policy before its retry dialog and shared autosave failure
+path. New documents clear the restriction; ordinary modelspace saves stay usable.
+This is deliberately conservative, including empty foreign LAYOUT records.
+
+The common libdxfrw entity notification precedes geometry callbacks, including
+unknown types; scoped application groups cannot overwrite entity owners/spaces.
+Paper BLOCK context counts only when it contains an entity; null owners do not.
+The QCad 1 compatibility importer applies the same presence gate to its input
+buffer. This is an interim loss-prevention gate, not native layout editing or
+arbitrary DXF losslessness. Binary application chunks and integer values wider
+than DRW_Variant can retain remain unsupported; no binary-DXF certification follows.
+
 ## D-027 — Paperspace file foundation uses a bounded, identity-preserving export
 
 2026-09-05: The first layout writer is an explicit libdxfrw operation over one

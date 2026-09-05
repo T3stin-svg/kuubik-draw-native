@@ -1,5 +1,42 @@
 # Kuubik Draw Native — verified test checkpoint
 
+## P1-02a — native paperspace save protection (local)
+
+The bounded writer source `6e49a93a` passed Windows MSVC run `33983851259`.
+The subsequent native guard is locally verified, with its own CI still pending.
+The original native RED reproduced 11 failed protection assertions; the later
+mesh RED remained after removing the null-owner false positive. Review also found
+102 scope, block context, POLYLINE/SEQEND attribution, compatibility import and UI
+retry/autosave gaps. Each is covered by the final corpus.
+
+- `test-native-paperspace.py`: 22 isolated native processes, both default and QCad 1
+  import. Six ordinary model saves retain a 5000 mm LINE and pass audit 0/0,
+  including CRLF and nested application data. Sixteen protected cases each pass
+  15 checks covering Save/Save As/autosave/direct export, UI refusal and retained
+  autosave timer, unchanged original/backup/autosave/target bytes, and fresh-doc
+  export. Fixtures include A3 layouts, paper LINE/VIEWPORT/mesh/ordinate dimension,
+  unknown entity, nested102 and paper BLOCK content without redundant owners.
+- `test-dxf-entity-context.py`: 12 entity/unknown/block/real-POLYLINE contexts,
+  12 rejected application groups and nested ASCII/binary scalar payload checks.
+  Binary payload width is not a binary-DXF interoperability claim; F-01 is open.
+  Wider application integers are rejected because DRW_Variant cannot retain them.
+- All prior camera, layout-reader, bounded writer and PLOTSETTINGS tests pass.
+  Full native GUI and independent DXF/PDF/SVG regression pass, including nine
+  Properties states, four ribbon geometry checks and eight isolated profiles.
+  All process runs leave the native settings registry unchanged.
+
+The compatibility positive test exposed two inherited bugs: CRLF normalization
+left a stale buffer length, and an empty string value ended parsing before LINE.
+Both fixes are required for ordinary model save to remain usable.
+The first extended test setup misspelled `$Paper_Space`; no behavior claim was
+made until that fixture error was fixed and the complete corpus passed.
+
+Run the Python scripts with the assertion-enabled adapter/KuubikDraw executable
+and fresh output directories; the existing MSVC workflow now runs both checks.
+Evidence stays under ignored `.artifacts/paperspace-wave/`, notably
+`native-guard-verified`, `native-guard-gui-final` and `*-guard-complete`.
+Native layout ownership/editing/rendering remain separate unfinished gates.
+
 ## Five-hour wave — P0 Windows proof and P1 camera records
 
 P0 source `3cefc819620335852f3fc807d5ee2c60bb0e3033` passed all gates in

@@ -207,6 +207,19 @@ jobs:
           python scripts\test-dxf-viewport.py "%RUNNER_TEMP%\dxf-viewport.exe" "%RUNNER_TEMP%\viewport-camera"
           if errorlevel 1 exit /b 1
 
+      - name: Verify common entity scope and native paperspace save guard
+        shell: pwsh
+        run: |
+          cl /nologo /EHsc /std:c++17 /MD /UNDEBUG /D_USE_MATH_DEFINES /I libraries\libdxfrw\src tests\dxf-entity-context.cpp generated\lib\dxfrw.lib /Fe"$env:RUNNER_TEMP\dxf-entity-context.exe" /Fo"$env:RUNNER_TEMP\dxf-entity-context.obj"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts\test-dxf-entity-context.py "$env:RUNNER_TEMP\dxf-entity-context.exe" "$env:RUNNER_TEMP\entity-context"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $package = (Resolve-Path artifacts\KuubikDraw-0.2.0-preview.2-win64).Path
+          $env:QT_PLUGIN_PATH = $package
+          $env:QT_QPA_PLATFORM_PLUGIN_PATH = Join-Path $package 'platforms'
+          python scripts\test-native-paperspace.py "$package\KuubikDraw.exe" "$env:RUNNER_TEMP\paperspace-save-guard"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Verify layout read and owner contexts
         shell: cmd
         run: |
@@ -242,6 +255,9 @@ jobs:
             ${{ runner.temp }}/viewport-camera/*.dxf
             ${{ runner.temp }}/layout-read/*.dxf
             ${{ runner.temp }}/layout-write/*.dxf
+            ${{ runner.temp }}/entity-context/*.dxf
+            ${{ runner.temp }}/paperspace-save-guard/**/*.json
+            ${{ runner.temp }}/paperspace-save-guard/**/*.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-active.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-committed.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.json

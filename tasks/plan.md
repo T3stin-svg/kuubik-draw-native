@@ -128,4 +128,33 @@ visibility/style RED checks were recorded before fixes. A Windows CRLF stream
 position failure also received a failing raw test and a flush-before-tellp fix.
 The final local suite passes four inputs/two saves plus image-recovery output,
 raw ownership and independent audit 0/0, twenty-one Windows failure/retry cases,
-camera/read/PLOTSETTINGS regressions. Full native build and GUI checks follow.
+camera/read/PLOTSETTINGS regressions. Full native build and GUI checks passed,
+as did Windows MSVC run 33983851259 for source 6e49a93a.
+
+## P1-02a save guard checkpoint
+
+The guard and both import routes pass 22 isolated native cases, with six ordinary
+model saves and sixteen protected paperspace cases, each checking 15 outcomes.
+Fresh review exposed skipped geometry, 102 scoping, null/block owner context,
+POLYLINE/SEQEND attribution, compatibility-buffer length and UI failure branches.
+All were addressed; the positive compatibility case also exposed an inherited
+empty-string early exit. Full native/independent GUI regression passes. The common
+parser check includes malformed/wide input rejection and nested scalar write-back.
+This guard is deliberately conservative and remains active until native preservation
+is actually connected; file-API success does not remove the restriction.
+
+## P1-02b ownership and Undo review
+
+The existing read-only reviewer traced RS_Graphic/newDoc/import and RS_UndoCycle.
+The next bounded design uses one value-owned layout/page/viewport registry in
+RS_Graphic, with stable IDs independent of editable names. Model entities stay
+in the existing graphic. Import commits validated staged values without creating
+Undo, while edits use the existing native history and Modified notifications.
+
+Before metadata edits, add a narrow history reset and cycle-owned Undo payload
+path. Existing entity Undo references remain borrowed. Reset history before
+newDoc clears entities, and before graphic members die on close. One metadata
+snapshot per current cycle aggregates first-before/final-after states: the current
+pointer-ordered set cannot safely toggle multiple whole-registry snapshots.
+Payload destructors must not call the document or UI. Cover nested cycles, mixed
+LINE/metadata, obsolete redo, save/undo, newDoc and close in applied/undone states.

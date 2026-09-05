@@ -118,6 +118,7 @@
 #include "rs_layer.h"
 #include "rs_layerlist.h"
 #include "rs_line.h"
+#include "rs_fileio.h"
 #include "rs_overlayline.h"
 #include "rs_painterqt.h"
 #include "rs_point.h"
@@ -707,6 +708,7 @@ bool QC_ApplicationWindow::doSave(QC_MDIWindow * w, bool forceSaveAs)
 	QString name, msg;
 	bool cancelled;
 	if (!w) return false;
+    if (w->getGraphic() && !w->getGraphic()->checkDrawingSaveAllowed()) return false;
     if (w->getDocument()->isModified() || forceSaveAs) {
 		name = w->getDocument()->getFilename();
 		if (name.isEmpty())
@@ -5272,8 +5274,85 @@ bool QC_ApplicationWindow::runKuubikToolOptionsSmoke(
     return file.commit() && allPassed;
 }
 
+bool QC_ApplicationWindow::runKuubikPaperspaceSaveSmoke(const QString& outputDirectory,
+                                                     const QString& inputPath)
+{
+    QDir output(outputDirectory);
+    if (!QDir().mkpath(output.absolutePath())) return false;
+    const auto read = [](const QString& path) {
+        QFile file(path);
+        return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
+    };
+    const auto sentinel = [](const QString& path) {
+        QFile file(path);
+        return !file.exists() && file.open(QIODevice::WriteOnly)
+            && file.write("KEEP EXISTING FILE\n") == 19;
+    };
+    const QString sourcePath = output.absoluteFilePath("protected-source.dxf");
+    if (QFile::exists(sourcePath) || !QFile::copy(inputPath, sourcePath)) return false;
+    const QByteArray original = read(sourcePath);
+    const bool compatibility = qEnvironmentVariableIsSet("KUUBIK_PAPERSPACE_GUARD_COMPATIBILITY");
+    const bool modelOnly = qEnvironmentVariableIsSet("KUUBIK_PAPERSPACE_GUARD_MODEL_ONLY");
+    slotFileOpen(sourcePath, compatibility ? RS2::FormatDXF1 : RS2::FormatDXFRW);
+    QApplication::processEvents();
+    auto* mdi = getMDIWindow();
+    auto* graphic = mdi ? mdi->getGraphic() : nullptr;
+    if (!graphic || graphic->getFilename() != sourcePath || original.isEmpty()) return false;
+    if (modelOnly) {
+        graphic->setModified(true);
+        const bool allowed = graphic->checkDrawingSaveAllowed();
+        const bool saved = allowed && doSave(mdi, false);
+        graphic->setModified(false);
+        QSaveFile report(output.absoluteFilePath("paperspace-save-guard.json"));
+        if (!report.open(QIODevice::WriteOnly)) return false;
+        report.write(QJsonDocument(QJsonObject{{"passed", saved}, {"modelSaved", saved}}).toJson());
+        return report.commit() && saved;
+    }
+    const QString backupPath = sourcePath + '~';
+    const QString autosavePath = graphic->getAutoSaveFilename();
+    const QString copyPath = output.absoluteFilePath("protected-copy.dxf");
+    const QString directPath = output.absoluteFilePath("protected-export.dxf");
+    if (!sentinel(backupPath) || !sentinel(autosavePath) || !sentinel(copyPath) || !sentinel(directPath)) return false;
+    const QByteArray keep = read(backupPath);
+    QJsonObject checks;
+    graphic->setModified(true);
+    checks.insert("uiSaveRefused", !doSave(mdi, false));
+    checks.insert("uiSaveAsRefused", !doSave(mdi, true));
+    RS_SETTINGS->beginGroup("/Defaults");
+    RS_SETTINGS->writeEntry("/AutoBackupDocument", 1);
+    RS_SETTINGS->endGroup();
+    startAutoSave(true);
+    slotFileAutoSave();
+    checks.insert("autosaveTimerRetained", m_autosaveTimer->isActive());
+    checks.insert("saveRefused", !graphic->save());
+    checks.insert("sourcePreserved", read(sourcePath) == original);
+    checks.insert("backupPreserved", read(backupPath) == keep);
+    checks.insert("modifiedRetained", graphic->isModified());
+    checks.insert("saveAsRefused", !graphic->saveAs(copyPath, RS2::FormatDXFRW, true));
+    checks.insert("saveAsTargetPreserved", read(copyPath) == keep);
+    checks.insert("filenameRetained", graphic->getFilename() == sourcePath);
+    checks.insert("autoSaveRefused", !graphic->save(true));
+    checks.insert("autoSavePreserved", read(autosavePath) == keep);
+    checks.insert("directExportRefused", !RS_FileIO::instance()->fileExport(*graphic, directPath, RS2::FormatDXFRW));
+    checks.insert("directTargetPreserved", read(directPath) == keep);
+    // A new document must not inherit the imported file's restriction.
+    graphic->newDoc();
+    graphic->setUnit(RS2::Millimeter);
+    graphic->addEntity(new RS_Line(graphic, {{0, 0}, {5000, 0}}));
+    checks.insert("newDocumentExports", RS_FileIO::instance()->fileExport(*graphic, output.absoluteFilePath("new-model.dxf"), RS2::FormatDXFRW));
+    graphic->setModified(false);
+    bool passed = true;
+    for (auto it = checks.begin(); it != checks.end(); ++it) passed = passed && it.value().toBool();
+    QSaveFile report(output.absoluteFilePath("paperspace-save-guard.json"));
+    if (!report.open(QIODevice::WriteOnly)) return false;
+    report.write(QJsonDocument(QJsonObject{{"passed", passed}, {"checks", checks}}).toJson());
+    return report.commit() && passed;
+}
+
 bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
 {
+    const QString paperspaceInput = qEnvironmentVariable("KUUBIK_PAPERSPACE_GUARD_INPUT_DXF");
+    if (!paperspaceInput.isEmpty()) return runKuubikPaperspaceSaveSmoke(outputDirectory, paperspaceInput);
     QDir output(outputDirectory);
     if (!output.exists() && !QDir().mkpath(output.absolutePath())) {
         return false;
@@ -8327,6 +8406,7 @@ void QC_ApplicationWindow::slotFileAutoSave() {
 
     QC_MDIWindow* w = getMDIWindow();
     if (w) {
+        if (w->getGraphic() && !w->getGraphic()->checkDrawingSaveAllowed()) return;
         bool cancelled;
         if (w->slotFileSave(cancelled, true)) {
             // auto-save cannot be cancelled by user, so the

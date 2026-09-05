@@ -214,6 +214,7 @@ RS2::FormatType RS_FileIO::detectFormat(QString const& file, bool forRead)
  */
 bool RS_FileIO::fileExport(RS_Graphic& graphic, const QString& file,
         RS2::FormatType type) {
+    if (!graphic.checkDrawingSaveAllowed()) return false;
 
     RS_DEBUG->print("RS_FileIO::fileExport");
     //RS_DEBUG->print("Trying to export file '%s'...", file.latin1());

@@ -2,8 +2,8 @@
 
 ## Jälgitav tööplaan
 
-**Uuendatud:** 2026-09-05 21:21 EEST. **Vastutaja:** Codex, integratsiooniomanik.
-**Hetkel:** P1-01c commit, avaliku push'i kontroll ja Windows CI.
+**Uuendatud:** 2026-09-05 22:04 EEST. **Vastutaja:** Codex, integratsiooniomanik.
+**Hetkel:** P1-02 ettevalmistus: native salvestuskaitse ja dokumendi/Undo omandi ülevaatus.
 **Tööaken:** 5.09 kell 19:10 kuni 6.09 kell 00:10 EEST; Reio kinnitas 5 h arendust.
 **Viimane sündmus:** P0 lähtepunkt `3cefc819` läbis Windows MSVC CI
 [33977714231](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33977714231).
@@ -18,6 +18,19 @@ UTF-8 nimi/lehesätted, hõredad/kattuvad tunnused, nähtavus ja raw-seosed + au
 Katkenud legacy-pildi kirjutuse järel ei kandu vana olek järgmisse eksporti.
 Camera, layout'i lugeja ja PLOTSETTINGS regressioonid läbivad. Native build, GUI,
 DXF/PDF/SVG, 4 ribboni mõõdukontrolli ja 8 isoleeritud profiili läbivad; register muutumatu.
+Kirjutuse commit `6e49a93a` on push'itud pärast Gitleaks/diff-kontrolli;
+[Windows CI 33983851259](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33983851259) läbitud: MSVC, GUI ja faililepingud.
+Uus alamülesanne P1-02a: peatada native salvestamisel veel toetamata paperspace'i vaikne kaotus.
+Sellele järgneb dokumendi layout-registri ja olemasoleva Undo ühendamine.
+Salvestuskaitse native RED on kinnitatud: 11/12 kontrolli ebaõnnestusid, sh layout'ide
+ja varukoopia kaotus. Kaitse on teostatud Save/Save As/autosave/file-export piiril;
+native build ja kolm esimest kaitsejuhtu läbivad. Ülevaatuse järel lisanduvad
+kõrvale jäetud entity, 102-skoobi, R12 null-owner, ühilduvusimpordi ja UI autosave'i regressioonid.
+Ühise entity-parseri 12 konteksti, vigaste gruppide keeld ja nested-grupi kirjutus läbivad.
+Varasemad camera/layout/ownership/PLOTSETTINGS testid läbivad uuesti. Kogu native
+kaitsekorpus läbib 22 avamisjuhtu: 16 × 15 kaitsekontrolli ja 6 tavalist mudelisalvestust.
+GUI, DXF/PDF/SVG ja neli ribboni kontrolli läbivad; register muutumatu.
+Kaitse commit/push on ettevalmistuses, MSVC tõend veel ootel.
 [Selle tööakna plaan](../tasks/plan.md).
 
 ```mermaid
@@ -26,7 +39,7 @@ flowchart TD
     A["P0-A · Properties<br/>Teostus ✓ · 9 olekut ✓<br/>Kohalik commit d4280f9b"]
     B["P0-B · DXF ownership<br/>Teostus ✓ · 14 väljundit audit 0/0 ✓<br/>Kohalik commit 4e40a43c"]
     G["G-01 · MSVC CI 33977714231 ✓<br/>Source 3cefc819 · portable-kordus ✓<br/>Omaniku vastuvõtt ootel"]
-    P["1 · Native paperspace<br/>Lugemine: kohalik ✓ · MSVC ✓<br/>Kirjutus + native regressioon: kohalik ✓ · CI ootel<br/>Native UI ootel"]
+    P["1 · Native paperspace<br/>Lugemine/kirjutus: kohalik ✓ · MSVC ✓<br/>Salvestuskaitse: kohalik ✓ · MSVC ootel<br/>Native UI ootel"]
     C["2 · Igapäevased CAD-töövood<br/>MOVE/COPY elutsükkel · Modify<br/>Layers · Annotation · Blocks · Properties"]
     R["3 · Töökindlus ja failitugi<br/>Taaste · suured DXF-id · päris Windows DPI<br/>Laiem failikorpus ja omaniku töövood"]
     UI --> A
@@ -45,7 +58,7 @@ protsente ega tähtaegu ei ole oletatud. Reprodutseeritav P0 viga tõuseb järje
 | SARibboni alus, `d35ec354` | Valmis | Läbitud | Läbitud: `33966232573` | Ootel |
 | P0-A Properties | Valmis | 9/9 olekut | Läbitud: `33977714231` | Ootel |
 | P0-B PLOTSETTINGS | Valmis | 14 väljundit: audit 0/0 | Läbitud: `33977714231` | Ootel |
-| Native paperspace | P1-01a/b lugemine ja P1-01c piiratud kirjutus valmis; UI puudub | Kirjutuse 9 väljundit audit 0/0, 21 tõrkejuhtu; native GUI/failiregressioon ✓ | Lugemine: `33981465387`; uus päis/kirjutus ootel | Puudub |
+| Native paperspace | P1-01a/b lugemine ja P1-01c piiratud kirjutus valmis; UI puudub | Kirjutuse 9 väljundit audit 0/0, 21 tõrkejuhtu; native GUI/failiregressioon ✓ | Lugemine: `33981465387`; päis/kirjutus: `33983851259` | Puudub |
 | AutoCADi-laadsed MOVE/COPY töövood | Planeeritud; native alus olemas | Täielik töövoog tõendamata | Täielik töövoog tõendamata | Puudub |
 | Laiem töökindlus ja failitugi | Planeeritud | Osaline senine korpus | Osaline senine korpus | Puudub |
 
@@ -103,7 +116,7 @@ See ei tähenda suvalise DXF-i täielikku kadudeta tuge.
 
 ## Järgmisena — native paperspace
 
-**P1-01 käimas; P1-02–08 planeeritud.** Detailne tehniline alus:
+**P1-01 piiratud failileping läbitud; P1-02a kaitse töös; P1-02b–08 planeeritud.** Detailne tehniline alus:
 [PAPERSPACE_PLAN](PAPERSPACE_PLAN.md). Enne arhitektuuri teostamist tehakse stage 0
 ülevaatus koos planning/doubt-driven oskustega. Üks RS_Graphic ja üks native Undo
 jäävad kõigis sammudes ainsaks mudeliks.
@@ -111,7 +124,8 @@ jäävad kõigis sammudes ainsaks mudeliks.
 ```mermaid
 flowchart TD
     G["G-01 · P0 üleandmise värav"] --> A["P1-01 · DXF objektileping ja testkorpus"]
-    A --> B["P1-02 · Layout ownership, eluiga ja Undo"]
+    A --> S["P1-02a · Native salvestuskaitse<br/>Kohalik ✓ · MSVC ootel"]
+    S --> B["P1-02b · Layout ownership, eluiga ja Undo"]
     B --> C["P1-03 · Ühine transform, clipping ja snap"]
     C --> D["P1-04 · DXF save / close / reopen"]
     D --> E["P1-05 · Model/Layout, scale ja lock"]
@@ -133,7 +147,7 @@ flowchart TD
 
 P1-01 alametapid: **a)** viewport'i camera väljad ja testid — kohalik/MSVC läbitud;
 **b)** LAYOUT/BLOCK_RECORD lugemine — kohalik/MSVC läbitud; **c)** terviklik ownership'i kirjutus,
-tunnuste säilitamine, failiasenduse veakaitse ja sõltumatu 0/0 audit — töös.
+tunnuste säilitamine, failiasenduse veakaitse ja sõltumatu 0/0 audit — kohalik/MSVC läbitud.
 Üks alametapp ei märgi kogu P1-01 tööd läbituks.
 
 **P1 koondvastuvõtt:** kõik kaheksa rida ei ole üks automaatne PASS. Põhislice'i

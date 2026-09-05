@@ -58,6 +58,12 @@ public:
     virtual void addBlockRecord(const DRW_Block_Record&) {}
     virtual void addLayout(const DRW_Layout&) {}
 
+    /** Common DXF entity attributes, before the typed geometry callback.
+     * Unknown entity types are reported with eType UNKNOWN and no geometry callback.
+     * The reference is valid only during this call.
+     */
+    virtual void addEntity(const DRW_Entity&) {}
+
     /**
      * Called for every block. Note: all entities added after this
      * command go into this block until endBlock() is called.

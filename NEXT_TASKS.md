@@ -62,7 +62,12 @@ native dialog are not identical AutoCAD command lifecycles.
   local full build and bounded native/independent tests pass; same reader MSVC run.
 - [x] P1-01c local: bounded layout identity/page settings, two saves, raw links and
   audit 0/0; failure-safe replacement and writer reuse including interrupted writes.
-- [ ] P1-01c: complete full application regression, commit and exact-source MSVC CI.
+- [x] P1-01c: full application regression and exact-source MSVC CI `33983851259`,
+  source `6e49a93a`.
+- [x] P1-02a local: implemented native paperspace save
+  guard; include unknown/discarded geometry, paper blocks, 102 scope, compatibility
+  import, ordinary model saves and actual UI autosave/retry behavior.
+- [ ] P1-02a: exact-source MSVC and downloaded portable replay.
 
 - [ ] Implement the single-document architecture in PAPERSPACE_PLAN.
 - [ ] A3 layout and two shared-model viewports at 1:50 and 1:100, independent locks.

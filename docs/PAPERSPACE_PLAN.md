@@ -49,11 +49,11 @@ Esmane tootmistee jääb libdxfrw. **Sellest ei piisa, et täita üks callback.*
 
 | Päris lähtekoodikoht | Praegune piirang / järgmine vajalik muudatus |
 |---|---|
-| `librecad/src/lib/filters/rs_filterdxfrw.h`, `addViewport` | Tühi callback; lisada päris native viewport'i import |
+| `librecad/src/lib/filters/rs_filterdxfrw.h`, `addViewport` | Märgib salvestuskaitse; päris native viewport'i omand on ootel |
 | `librecad/src/lib/filters/rs_filterdxfrw.cpp`, `addBlock` | `*Paper_Space` suunatakse dummyContainer'isse, mis impordi lõpus kustutatakse |
 | `libraries/libdxfrw/src/drw_entities.cpp`, `DRW_Viewport::parseCode` | P1-01a lisas camera suuna/sihtpunkti/kõrguse, twist'i ja lipud; kohalik test läbitud |
 | `libraries/libdxfrw/src/libdxfrw.cpp`, `writeViewport` | Camera väljad säilivad; piiratud layout'i kirjutus on lokaalselt kontrollitud |
-| `libraries/libdxfrw/src/drw_interface.h`, `drw_objects.h` | P1-01b lisas LAYOUT/BLOCK_RECORD lugemise ja ühilduvad callback'id; native adapter neid veel ei kasuta |
+| `libraries/libdxfrw/src/drw_interface.h`, `drw_objects.h` | P1-01b lisas LAYOUT/BLOCK_RECORD lugemise; native adapter kasutab LAYOUT-i esialgu salvestuskaitseks |
 | `libraries/libdxfrw/src/libdxfrw.cpp`, `writeLayoutDocument` | Piiratud typed-eksport säilitab ID-d/owner'id ning kirjutab ACAD_LAYOUT; native adapteri ühendamine ja toetamatu sisendi värav on ootel |
 | `librecad/src/lib/filters/rs_filterdxfrw.cpp`, `writeObjects` | Praegu ainult dokumendi üks PLOTSETTINGS; vajalikud layout-põhised lehesätted |
 
@@ -74,8 +74,9 @@ record/proxy, kui see on ohutult võimalik, vastasel juhul keelduda originaali
 ülekirjutamisest koos konkreetse selgitusega. Save As koopiale jääb eraldi
 teadlikult piiratud eksporditee. Selle toe puudumisel pole roundtrip sertifitseeritud.
 
-**Praegune SARibboni eelvaade ei rakenda seda kaitset. Layout'e sisaldavat
-tootmisoriginaali ei tohi selle eelvaatega üle salvestada; katsetada koopiaga.**
+**Avaldatud SARibboni eelvaade ei rakenda seda kaitset. Tööharu P1-02a lisab
+native Save/Save As/autosave/eksportimise keelu tuvastatud paperspace'ile;
+selle MSVC tõend on ootel. See ei ole veel paperspace'i muutmise ega roundtrip'i tugi.**
 
 ## Native integratsioonipunktid ja eluea piirid
 

@@ -197,6 +197,7 @@ bool dxfReaderBinary::readDouble() {
 
 //saved as int or add a bool member??
 bool dxfReaderBinary::readBool() {
+    type = BOOL;
     char buffer[1];
     filestr->read(buffer,1);
     intData = (int)(buffer[0]);
@@ -233,9 +234,9 @@ bool dxfReaderAscii::readBinary() {
 }
 
 bool dxfReaderAscii::readInt16() {
-    type = INT32;
     std::string text;
     if (readString(&text)){
+        type = INT32;
         intData = atoi(text.c_str());
         DRW_DBG(intData); DRW_DBG("\n");
         return true;
@@ -249,14 +250,19 @@ bool dxfReaderAscii::readInt32() {
 }
 
 bool dxfReaderAscii::readInt64() {
+    std::string text;
+    if (!readString(&text)) return false;
     type = INT64;
-    return readInt16();
+    std::istringstream input(text);
+    if (input >> int64) return true;
+    filestr->setstate(std::ios::failbit);
+    return false;
 }
 
 bool dxfReaderAscii::readDouble() {
-    type = DOUBLE;
     std::string text;
     if (readString(&text)){
+        type = DOUBLE;
 #if defined(__APPLE__)
         int succeeded=sscanf( & (text[0]), "%lg", &doubleData);
         if(succeeded != 1) {
@@ -276,9 +282,9 @@ bool dxfReaderAscii::readDouble() {
 
 //saved as int or add a bool member??
 bool dxfReaderAscii::readBool() {
-    type = BOOL;
     std::string text;
     if (readString(&text)){
+        type = BOOL;
         intData = atoi(text.c_str());
         DRW_DBG(intData); DRW_DBG("\n");
         return true;

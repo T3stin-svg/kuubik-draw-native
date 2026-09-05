@@ -70,6 +70,8 @@ public:
     bool saveAs(const QString& filename, RS2::FormatType type, bool force = false) override;
     bool open(const QString& filename, RS2::FormatType type) override;
     bool loadTemplate(const QString &filename, RS2::FormatType type) override;
+    void markUnsupportedPaperSpace() { unsupportedPaperSpace = true; }
+    bool checkDrawingSaveAllowed() const;
 
         // Wrappers for Layer functions:
     void clearLayers() {
@@ -354,6 +356,8 @@ private:
         RS2::CrosshairType crosshairType; //crosshair type used by isometric grid
         //if set to true, will refuse to modify paper scale
         bool paperScaleFixed = false;
+        // Cleared only with the document; imported layouts are not yet preserved by the native adapter.
+        bool unsupportedPaperSpace = false;
 
         // Paper margins in millimeters
         double marginLeft = 0.;

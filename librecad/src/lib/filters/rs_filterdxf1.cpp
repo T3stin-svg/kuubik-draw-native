@@ -25,6 +25,7 @@
 **********************************************************************/
 
 #include<cstdlib>
+#include <QTextStream>
 #include "rs_filterdxfrw.h"
 #include "rs_filterdxf1.h"
 
@@ -74,6 +75,38 @@ bool RS_FilterDXF1::fileImport(RS_Graphic& g, const QString& file, RS2::FormatTy
     name = file;
 
     if(readFileInBuffer()) {
+        if (!fBuf || fSize == 0 || *fBuf == '\0') return false;
+        // The compatibility parser drops unsupported records. Inspect the same
+        // input buffer before its line splitting/geometry parsing can discard them.
+        QByteArray bytes = QByteArray::fromRawData(fBuf, fSize);
+        QTextStream tags(&bytes, QIODevice::ReadOnly);
+        int depth = 0;
+        bool paperBlock = false;
+        QString kind;
+        while (!tags.atEnd()) {
+            bool validCode = false;
+            const int code = tags.readLine().trimmed().toInt(&validCode);
+            if (!validCode || tags.atEnd()) { g.markUnsupportedPaperSpace(); break; }
+            const QString value = tags.readLine().trimmed();
+            if (code == 0) {
+                if (depth != 0) g.markUnsupportedPaperSpace();
+                depth = 0;
+                kind = value;
+                if (kind == "ENDBLK") paperBlock = false;
+                if (kind == "LAYOUT" || kind == "VIEWPORT" || paperBlock)
+                    g.markUnsupportedPaperSpace();
+            } else if (code == 102) {
+                if (value.startsWith('{') && value.size() > 1) ++depth;
+                else if (value == "}" && depth > 0) --depth;
+                else { g.markUnsupportedPaperSpace(); break; }
+                if (depth > 64) { g.markUnsupportedPaperSpace(); break; }
+            } else if (depth == 0) {
+                if (code == 67 && value.toInt() == 1) g.markUnsupportedPaperSpace();
+                if (kind == "BLOCK" && code == 2)
+                    paperBlock = value.mid(1, 11).compare("paper_space", Qt::CaseInsensitive) == 0;
+            }
+        }
+        if (depth != 0) g.markUnsupportedPaperSpace();
         separateBuf();
         return readFromBuffer();
     }
@@ -1540,7 +1573,8 @@ bool RS_FilterDXF1::readFromBuffer() {
 
             }
         }
-        while(dxfLine.size() && dxfLine!="EOF");
+        // Empty DXF string values are records, not end-of-file.
+        while(fBufP < static_cast<int>(fSize) && dxfLine!="EOF");
 
         //graphic->terminateAction();
 
@@ -1627,6 +1661,7 @@ void RS_FilterDXF1::dos2unix() {
     }
 
     *dst = '\0';
+    fSize = dst - fBuf;
 }
 
 

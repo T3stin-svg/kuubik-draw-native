@@ -119,6 +119,7 @@ public:
     bool writeKuubikUiContract(const QString& path);
     bool runKuubikToolOptionsSmoke(const QString& outputDirectory);
     bool runKuubikGuiSmoke(const QString& outputDirectory);
+    bool runKuubikPaperspaceSaveSmoke(const QString& outputDirectory, const QString& inputPath);
     void refreshKuubikProperties(int selectedCount, double totalLength);
 
 public slots:

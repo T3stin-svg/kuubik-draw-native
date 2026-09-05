@@ -27,6 +27,8 @@
 #ifndef RS_FILTERDXFRW_H
 #define RS_FILTERDXFRW_H
 
+#include <QSet>
+
 #include "rs_filterinterface.h"
 
 #include "rs_color.h"
@@ -91,6 +93,8 @@ public:
      void addTextStyle(const DRW_Textstyle& /*data*/) override{}
      void addAppId(const DRW_AppId& /*data*/) override{}
      void addBlock(const DRW_Block& data) override;
+     void addLayout(const DRW_Layout&) override { unsupportedPaperSpace = true; }
+     void addEntity(const DRW_Entity& data) override;
      void setBlock(const int handle) override;
      void endBlock() override;
      void addPoint(const DRW_Point& data) override;
@@ -119,7 +123,7 @@ public:
      void addDimOrdinate(const DRW_DimOrdinate *data) override;
      void addLeader(const DRW_Leader *data) override;
      void addHatch(const DRW_Hatch* data) override;
-     void addViewport(const DRW_Viewport& /*data*/) override{}
+     void addViewport(const DRW_Viewport&) override { unsupportedPaperSpace = true; }
      void addImage(const DRW_Image* data) override;
      void linkImage(const DRW_ImageDef* data) override;
 
@@ -235,6 +239,9 @@ private:
     QHash<int, RS_EntityContainer*> blockHash;
     /** Pointer to entity container to store possible orphan entities like paper space */
     RS_EntityContainer* dummyContainer;
+    bool unsupportedPaperSpace = false;
+    bool inPaperSpaceBlock = false;
+    QSet<duint32> paperSpaceOwners;
 };
 
 #endif

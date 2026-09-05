@@ -12,6 +12,7 @@
 ******************************************************************************/
 
 #include <cstdlib>
+#include <limits>
 #include "drw_entities.h"
 #include "intern/dxfreader.h"
 #include "intern/dwgbuffer.h"
@@ -103,8 +104,7 @@ bool DRW_Entity::parseCode(int code, dxfReader *reader){
         space = static_cast<DRW::Space>(reader->getInt32());
         break;
     case 102:
-        parseDxfGroups(code, reader);
-        break;
+        return parseDxfGroups(code, reader);
     case 1000:
     case 1001:
     case 1002:
@@ -153,44 +153,45 @@ bool DRW_Entity::parseCode(int code, dxfReader *reader){
 
 //parses dxf 102 groups to read entity
 bool DRW_Entity::parseDxfGroups(int code, dxfReader *reader){
-    std::list<DRW_Variant> ls;
-    DRW_Variant curr;
-    int nc;
-    std::string appName= reader->getString();
-    if (!appName.empty() && appName.at(0)== '{'){
-        curr.addString(code, appName.substr(1, (int) appName.size()-1));
-        ls.push_back(curr);
-        while (code !=102 && appName.at(0)== '}'){
-            reader->readRec(&nc);//RLZ curr.code = code or nc?
-//            curr.code = code;
-            //RLZ code == 330 || code == 360 OR nc == 330 || nc == 360 ?
-            if (code == 330 || code == 360)
-                curr.addInt(code, reader->getHandleString());//RLZ code or nc
-            else {
-                switch (reader->type) {
-                case dxfReader::STRING:
-                    curr.addString(code, reader->getString());//RLZ code or nc
-                    break;
-                case dxfReader::INT32:
-                case dxfReader::INT64:
-                    curr.addInt(code, reader->getInt32());//RLZ code or nc
-                    break;
-                case dxfReader::DOUBLE:
-                    curr.addDouble(code, reader->getDouble());//RLZ code or nc
-                    break;
-                case dxfReader::BOOL:
-                    curr.addInt(code, reader->getInt32());//RLZ code or nc
-                    break;
-                default:
-                    break;
+    const std::string name = reader->getString();
+    if (name.size() < 2 || name.front() != '{') return false;
+    std::list<DRW_Variant> group;
+    group.emplace_back(code, name.substr(1));
+    int depth = 1;
+    while (reader->readRec(&code)) {
+        if (code == 0) return false; // unclosed application group
+        if (code == 102) {
+            const std::string control = reader->getString();
+            if (control == "}") {
+                if (--depth == 0) {
+                    appData.push_back(std::move(group));
+                    return true;
                 }
-            }
-            ls.push_back(curr);
+            } else if (control.size() > 1 && control.front() == '{') {
+                if (++depth > 64) return false;
+            } else return false;
+        }
+        switch (reader->type) {
+        case dxfReader::STRING:
+            group.emplace_back(code, reader->getString());
+            break;
+        case dxfReader::INT64:
+            if (reader->getInt64() > static_cast<unsigned long long>(std::numeric_limits<int>::max()))
+                return false; // DRW_Variant cannot retain wider integers.
+            group.emplace_back(code, static_cast<int>(reader->getInt64()));
+            break;
+        case dxfReader::INT32:
+        case dxfReader::BOOL:
+            group.emplace_back(code, reader->getInt32());
+            break;
+        case dxfReader::DOUBLE:
+            group.emplace_back(code, reader->getDouble());
+            break;
+        default:
+            return false;
         }
     }
-
-    appData.push_back(ls);
-    return true;
+    return false;
 }
 
 bool DRW_Entity::parseDwg(DRW::Version version, dwgBuffer *buf, dwgBuffer* strBuf, duint32 bs){

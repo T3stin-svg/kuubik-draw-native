@@ -104,6 +104,7 @@ private:
     bool processBlocks();
     bool processBlock();
     bool processEntities(bool isblock);
+    bool processUnknownEntity(bool notify = true);
     bool processObjects();
 
     bool processLType();

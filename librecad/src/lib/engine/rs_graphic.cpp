@@ -188,6 +188,7 @@ void RS_Graphic::newDoc() {
     RS_DEBUG->print("RS_Graphic::newDoc");
 
     clear();
+    unsupportedPaperSpace = false;
 
     clearLayers();
     clearBlocks();
@@ -302,8 +303,18 @@ bool RS_Graphic::BackupDrawingFile(const QString &filename)
  * 					  is saved more than one time without being modified.
  */
 
+bool RS_Graphic::checkDrawingSaveAllowed() const
+{
+    if (!unsupportedPaperSpace) return true;
+    RS_DIALOGFACTORY->commandMessage(QObject::tr(
+        "Saving is unavailable because this drawing contains layouts or paper-space objects "
+        "that Kuubik Draw cannot yet preserve. The original file has not been changed."));
+    return false;
+}
+
 bool RS_Graphic::save(bool isAutoSave)
 {
+    if (!checkDrawingSaveAllowed()) return false;
     bool ret	= false;
 
     RS_DEBUG->print("RS_Graphic::save: Entering...");
@@ -435,6 +446,7 @@ bool RS_Graphic::save(bool isAutoSave)
 
 bool RS_Graphic::saveAs(const QString &filename, RS2::FormatType type, bool force)
 {
+    if (!checkDrawingSaveAllowed()) return false;
 	RS_DEBUG->print("RS_Graphic::saveAs: Entering...");
 
 	// Set to "failed" by default.

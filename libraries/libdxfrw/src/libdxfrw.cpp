@@ -422,22 +422,39 @@ bool dxfRW::writeAppData(const std::list<std::list<DRW_Variant>>& appData) {
         }
 
         if(found) {
+            bool first = true;
             for(auto data : group) {
-                if(data.code() == 102) {
+                if(first && data.code() == 102) {
+                    first = false;
                     continue;
                 }
 
                 switch(data.type()) {
                     case DRW_Variant::STRING:
+                        if (binFile && ((data.code() >= 310 && data.code() < 320) || data.code() == 1004)) {
+                            writeFailed = true; // Binary chunks need a length prefix, not writeString.
+                            return false;
+                        }
                         writer->writeString(data.code(), *(data.content.s));
                         break;
 
-                    case DRW_Variant::INTEGER:
-                        writer->writeInt32(data.code(), data.content.i);
+                    case DRW_Variant::INTEGER: {
+                        const int code = data.code();
+                        if ((code >= 60 && code < 80) || (code >= 170 && code < 180)
+                            || (code >= 270 && code < 290) || (code >= 370 && code < 390)
+                            || (code >= 400 && code < 410) || (code >= 1060 && code < 1071))
+                            writer->writeInt16(code, data.content.i);
+                        else if (code >= 290 && code < 300)
+                            writer->writeBool(code, data.content.i != 0);
+                        else if (code >= 160 && code < 170)
+                            writer->writeInt64(code, data.content.i);
+                        else
+                            writer->writeInt32(code, data.content.i);
                         break;
+                    }
 
                     case DRW_Variant::DOUBLE:
-                        writer->writeDouble(data.code(), data.content.i);
+                        writer->writeDouble(data.code(), data.content.d);
                         break;
 
                     default:
@@ -2623,7 +2640,7 @@ bool dxfRW::processBlocks() {
             sectionstr = reader->getString();
             DRW_DBG(sectionstr); DRW_DBG("\n");
             if (sectionstr == "BLOCK") {
-                processBlock();
+                if (!processBlock()) return false;
             } else if (sectionstr == "ENDSEC") {
                 return true;  //found ENDSEC terminate
             }
@@ -2647,9 +2664,9 @@ bool dxfRW::processBlock() {
                 iface->endBlock();
                 return true;  //found ENDBLK, terminate
             } else {
-                processEntities(true);
+                const bool parsed = processEntities(true);
                 iface->endBlock();
-                return true;  //found ENDBLK, terminate
+                return parsed;
             }
         }
 
@@ -2667,14 +2684,11 @@ bool dxfRW::processBlock() {
 bool dxfRW::processEntities(bool isblock) {
     DRW_DBG("dxfRW::processEntities\n");
     int code;
-    if (!reader->readRec(&code)){
-        return setError(DRW::BAD_READ_ENTITIES);
-    }
-
-    if (code == 0) {
+    // processBlock already consumed the first entity's group 0.
+    if (!isblock) {
+        if (!reader->readRec(&code) || code != 0)
+            return setError(DRW::BAD_READ_ENTITIES);
         nextentity = reader->getString();
-    } else if (!isblock) {
-        return setError(DRW::BAD_READ_ENTITIES);  //first record in entities is 0
     }
 
     bool processed {false};
@@ -2725,17 +2739,27 @@ bool dxfRW::processEntities(bool isblock) {
         } else if (nextentity == "XLINE") {
             processed = processXline();
         } else {
-            if (!reader->readRec(&code)) {
-                return setError(DRW::BAD_READ_ENTITIES); //end of file without ENDSEC
-            }
-
-            if (code == 0) {
-                nextentity = reader->getString();
-            }
-            processed = true;
+            processed = processUnknownEntity();
         }
     } while (processed);
 
+    return setError(DRW::BAD_READ_ENTITIES);
+}
+
+bool dxfRW::processUnknownEntity(bool notify) {
+    DRW_Point attributes;
+    attributes.eType = DRW::UNKNOWN;
+    int code;
+    while (reader->readRec(&code)) {
+        if (code == 0) {
+            nextentity = reader->getString();
+            if (notify) iface->addEntity(attributes);
+            return true;
+        }
+        // Parse common metadata only; do not invent unsupported geometry.
+        if (!attributes.DRW_Entity::parseCode(code, reader))
+            return setError(DRW::BAD_CODE_PARSED);
+    }
     return setError(DRW::BAD_READ_ENTITIES);
 }
 
@@ -2750,6 +2774,7 @@ bool dxfRW::processEllipse() {
             DRW_DBG(nextentity); DRW_DBG("\n");
             if (applyExt)
                 ellipse.applyExtrusion();
+            iface->addEntity(ellipse);
             iface->addEllipse(ellipse);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2773,6 +2798,7 @@ bool dxfRW::processTrace() {
             DRW_DBG(nextentity); DRW_DBG("\n");
             if (applyExt)
                 trace.applyExtrusion();
+            iface->addEntity(trace);
             iface->addTrace(trace);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2796,6 +2822,7 @@ bool dxfRW::processSolid() {
             DRW_DBG(nextentity); DRW_DBG("\n");
             if (applyExt)
                 solid.applyExtrusion();
+            iface->addEntity(solid);
             iface->addSolid(solid);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2817,6 +2844,7 @@ bool dxfRW::process3dface() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(face);
             iface->add3dFace(face);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2838,6 +2866,7 @@ bool dxfRW::processViewport() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(vp);
             iface->addViewport(vp);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2859,6 +2888,7 @@ bool dxfRW::processPoint() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(point);
             iface->addPoint(point);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2880,6 +2910,7 @@ bool dxfRW::processLine() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(line);
             iface->addLine(line);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2901,6 +2932,7 @@ bool dxfRW::processRay() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(line);
             iface->addRay(line);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2922,6 +2954,7 @@ bool dxfRW::processXline() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(line);
             iface->addXline(line);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2945,6 +2978,7 @@ bool dxfRW::processCircle() {
             DRW_DBG(nextentity); DRW_DBG("\n");
             if (applyExt)
                 circle.applyExtrusion();
+            iface->addEntity(circle);
             iface->addCircle(circle);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2968,6 +3002,7 @@ bool dxfRW::processArc() {
             DRW_DBG(nextentity); DRW_DBG("\n");
             if (applyExt)
                 arc.applyExtrusion();
+            iface->addEntity(arc);
             iface->addArc(arc);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -2989,6 +3024,7 @@ bool dxfRW::processInsert() {
         if (0 == code) {
            nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(insert);
             iface->addInsert(insert);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -3012,6 +3048,7 @@ bool dxfRW::processLWPolyline() {
             DRW_DBG(nextentity); DRW_DBG("\n");
             if (applyExt)
                 pl.applyExtrusion();
+            iface->addEntity(pl);
             iface->addLWPolyline(pl);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -3033,11 +3070,14 @@ bool dxfRW::processPolyline() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
-            if (nextentity != "VERTEX") {
-                iface->addPolyline(pl);
-                return true;  //found new entity or ENDSEC, terminate
+            iface->addEntity(pl);
+            if (nextentity == "VERTEX") {
+                if (!processVertex(&pl)) return false;
+                // SEQEND owns its own attributes; never assign them to POLYLINE.
+                if (!processUnknownEntity(false)) return false;
             }
-            processVertex(&pl);
+            iface->addPolyline(pl);
+            return true;
         }
 
         if (!pl.parseCode(code, reader)) { //parseCode just initialize the members of pl
@@ -3063,7 +3103,7 @@ bool dxfRW::processVertex(DRW_Polyline *pl) {
             }
             if (nextentity == "VERTEX"){
                 v = std::make_shared<DRW_Vertex>(); //another vertex
-            }
+            } else return setError(DRW::BAD_READ_ENTITIES);
         }
 
         if (!v->parseCode(code, reader)) { //the members of v are reinitialized here
@@ -3083,6 +3123,7 @@ bool dxfRW::processText() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(txt);
             iface->addText(txt);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -3105,6 +3146,7 @@ bool dxfRW::processMText() {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
             txt.updateAngle();
+            iface->addEntity(txt);
             iface->addMText(txt);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -3126,6 +3168,7 @@ bool dxfRW::processHatch() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(hatch);
             iface->addHatch(&hatch);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -3148,6 +3191,7 @@ bool dxfRW::processSpline() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(sp);
             iface->addSpline(&sp);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -3170,6 +3214,7 @@ bool dxfRW::processImage() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(img);
             iface->addImage(&img);
             return true;  //found new entity or ENDSEC, terminate
         }
@@ -3192,6 +3237,7 @@ bool dxfRW::processDimension() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(dim);
             int type = dim.type & 0x0F;
             switch (type) {
             case 0: {
@@ -3243,6 +3289,7 @@ bool dxfRW::processLeader() {
         if (0 == code) {
             nextentity = reader->getString();
             DRW_DBG(nextentity); DRW_DBG("\n");
+            iface->addEntity(leader);
             iface->addLeader(&leader);
             return true;  //found new entity or ENDSEC, terminate
         }

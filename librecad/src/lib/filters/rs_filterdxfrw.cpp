@@ -24,6 +24,7 @@
 **********************************************************************/
 
 #include<cstdlib>
+#include <memory>
 #include <QStringList>
 #include <QTextCodec>
 
@@ -154,7 +155,12 @@ bool RS_FilterDXFRW::fileImport(RS_Graphic& g, const QString& file, RS2::FormatT
 
     graphic = &g;
     currentContainer = graphic;
-	dummyContainer = new RS_EntityContainer(nullptr, true);
+    blockHash.clear();
+    paperSpaceOwners.clear();
+    unsupportedPaperSpace = false;
+    inPaperSpaceBlock = false;
+    const auto discarded = std::make_unique<RS_EntityContainer>(nullptr, true);
+    dummyContainer = discarded.get();
 
     this->file = file;
     // add some variables that need to be there for DXF drawings:
@@ -205,7 +211,12 @@ bool RS_FilterDXFRW::fileImport(RS_Graphic& g, const QString& file, RS2::FormatT
     }
 #endif
 
-    delete dummyContainer;
+    if (unsupportedPaperSpace) {
+        graphic->markUnsupportedPaperSpace();
+        RS_DIALOGFACTORY->commandMessage(QObject::tr(
+            "This drawing contains layouts or paper-space objects. Saving is disabled until "
+            "Kuubik Draw can preserve them; model geometry can still be viewed."));
+    }
     /*set current layer */
     RS_Layer* cl = graphic->findLayer(graphic->getVariableString("$CLAYER", "0"));
 	if (cl ){
@@ -335,6 +346,7 @@ void RS_FilterDXFRW::addBlock(const DRW_Block& data) {
 
     QString name = QString::fromUtf8(data.name.c_str());
     QString mid = name.mid(1,11);
+    inPaperSpaceBlock = mid.compare("paper_space", Qt::CaseInsensitive) == 0;
 // Prevent special blocks (paper_space, model_space) from being added:
     if (mid.toLower() != "paper_space" && mid.toLower() != "model_space") {
 
@@ -353,10 +365,16 @@ void RS_FilterDXFRW::addBlock(const DRW_Block& data) {
             blockHash.insert(data.parentHandle, graphic);
         } else {
             blockHash.insert(data.parentHandle, dummyContainer);
+            if (data.parentHandle != 0) paperSpaceOwners.insert(data.parentHandle);
         }
     }
 }
 
+
+void RS_FilterDXFRW::addEntity(const DRW_Entity& data) {
+    if (inPaperSpaceBlock || data.space == DRW::PaperSpace || paperSpaceOwners.contains(data.parentHandle))
+        unsupportedPaperSpace = true;
+}
 
 void RS_FilterDXFRW::setBlock(const int handle){
     if (blockHash.contains(handle)) {
@@ -369,6 +387,7 @@ void RS_FilterDXFRW::setBlock(const int handle){
  * Implementation of the method which closes blocks.
  */
 void RS_FilterDXFRW::endBlock() {
+    inPaperSpaceBlock = false;
     if (currentContainer->rtti() == RS2::EntityBlock) {
         RS_Block *bk = (RS_Block *)currentContainer;
         //remove unnamed blocks *D only if version != R12
@@ -3035,6 +3054,8 @@ void RS_FilterDXFRW::writeImage(RS_Image * i) {
  */
 void RS_FilterDXFRW::setEntityAttributes(RS_Entity* entity,
                                        const DRW_Entity* attrib) {
+    if (attrib->space == DRW::PaperSpace || paperSpaceOwners.contains(attrib->parentHandle))
+        unsupportedPaperSpace = true;
     RS_DEBUG->print("RS_FilterDXF::setEntityAttributes");
 
     RS_Pen pen;
