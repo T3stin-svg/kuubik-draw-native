@@ -2,8 +2,8 @@
 
 ## Jälgitav tööplaan
 
-**Uuendatud:** 2026-09-05 23:11 EEST. **Vastutaja:** Codex, integratsiooniomanik.
-**Hetkel:** P1-03a MSVC CI; settings-tõrke diagnostika regressioon ja F-01 uurimine.
+**Uuendatud:** 2026-09-05 23:29 EEST. **Vastutaja:** Codex, integratsiooniomanik.
+**Hetkel:** F-01 lõppkontroll ja commit; järgneb ühine MSVC settings-diagnostikaga.
 **Tööaken:** 5.09 kell 19:10 kuni 6.09 kell 00:10 EEST; Reio kinnitas 5 h arendust.
 **Viimane sündmus:** P0 lähtepunkt `3cefc819` läbis Windows MSVC CI
 [33977714231](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33977714231).
@@ -59,7 +59,7 @@ Katkestus toimus isoleeritud settings-proovis enne UI loomist; kaks sihitud 125%
 kordust läbivad. P1-03a lõplik 36 kontrolli, täis-GUI ja failiregressioon läbivad.
 PDF-i kontroll keeldub kuuest moonutatud väljundist, sh tühi clip ja topelt UserUnit.
 Transformi commit `15eed2e2` on Gitleaks-kontrolli järel push'itud;
-[MSVC CI 33988991011](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33988991011) käib.
+[MSVC CI 33988991011](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33988991011) läbitud.
 Settings-tõrke diagnoos jääb eraldi nähtavaks.
 Crash dump kinnitab: mõlemad settings-proovi lugemissuunad olid õiged, kuid Qt
 tagastas pärast sync'i vea. See käivitas kaitse enne raporti avamist ja UI loomist.
@@ -72,6 +72,16 @@ Lõppülevaatuse kolmas juht (mõlemad tõrked korraga) läbib samuti. Vahetest 
 et eraldi qCritical teade ei jõudnud stderr'i; veainfo on nüüd igas fatal-teates endas.
 F-01 RED on uuesti kinnitatud: binaarse päise group 290 üleliigne bait tekitab
 järgmisele väljale koodi 2304. Kõigi 17 vale bool-kutse parandus ja versioonikorpus on järgmine töö.
+Settings-diagnostika kohalik commit on `a11c6633`. F-01 laiendatud RED kinnitab vea
+ka versioonikorpuses; 17 kutset kasutavad nüüd olemasolevat writeBool'i.
+Kaheksa binaarse faili (DXF 2004/2007/2013/2018 × false/true) GREEN kontroll käib.
+F-01 kaheksa binaarset faili läbivad native taasavamise ja sõltumatu auditi 0/0.
+Teisenduse `15eed2e2` MSVC kontroll läbis ka 36 native kontrolli ja PDF-i kuus negatiivset proovi.
+F-01 lõplik korpus: 15 binaarset faili koos vaikeväärtuste ja DXF2000-ga; kõik
+läbivad native reread'i ja auditi 0/0. Neli ASCII ning ülejäänud faililepingu
+regressioonid läbivad. Native täis-GUI kontroll läbis enne uut MSVC checkpoint'i.
+Sõltumatu DXF/PDF/SVG, kuus negatiivset PDF-proovi ja neli ribboni kontrolli
+läbivad ka viimase build'iga. Salvestuskaitse 22 juhtumi kordus läbis.
 [Selle tööakna plaan](../tasks/plan.md).
 
 ```mermaid
@@ -80,7 +90,7 @@ flowchart TD
     A["P0-A · Properties<br/>Teostus ✓ · 9 olekut ✓<br/>Kohalik commit d4280f9b"]
     B["P0-B · DXF ownership<br/>Teostus ✓ · 14 väljundit audit 0/0 ✓<br/>Kohalik commit 4e40a43c"]
     G["G-01 · MSVC CI 33977714231 ✓<br/>Source 3cefc819 · portable-kordus ✓<br/>Omaniku vastuvõtt ootel"]
-    P["1 · Native paperspace<br/>Failileping + salvestuskaitse: kohalik ✓ · MSVC ✓<br/>Metadata/Undo: 54 kontrolli ✓ · MSVC ✓<br/>Transform töös · Native UI ootel"]
+    P["1 · Native paperspace<br/>Failileping + salvestuskaitse: kohalik ✓ · MSVC ✓<br/>Metadata/Undo: 54 kontrolli ✓ · MSVC ✓<br/>Qt transform: 36 kontrolli ✓ · MSVC ✓<br/>Native UI ootel"]
     C["2 · Igapäevased CAD-töövood<br/>MOVE/COPY elutsükkel · Modify<br/>Layers · Annotation · Blocks · Properties"]
     R["3 · Töökindlus ja failitugi<br/>Taaste · suured DXF-id · päris Windows DPI<br/>Laiem failikorpus ja omaniku töövood"]
     UI --> A
@@ -167,7 +177,7 @@ flowchart TD
     G["G-01 · P0 üleandmise värav"] --> A["P1-01 · DXF objektileping ja testkorpus"]
     A --> S["P1-02a · Native salvestuskaitse<br/>Kohalik ✓ · MSVC ✓"]
     S --> B["P1-02b · Layout metadata ja Undo<br/>54 kontrolli ✓ · MSVC 33987457900 ✓<br/>Impordiadapter/paper entities ootel"]
-    B --> C["P1-03a · Qt transform ja clip katse töös<br/>Native renderdus / hit-test / snap ühendamine ootel"]
+    B --> C["P1-03a · Qt transform ja clip katse<br/>36 kontrolli + PDF ✓ · MSVC 33988991011 ✓<br/>Native renderdus / hit-test / snap ühendamine ootel"]
     C --> D["P1-04 · DXF save / close / reopen"]
     D --> E["P1-05 · Model/Layout, scale ja lock"]
     E --> F["P1-06 · LINE läbi viewport'i, mõlemad vaated"]
@@ -231,7 +241,7 @@ tõendite järgi; terve käsurühm ei saa ühe juhtumi põhjal rohelist staatust
 
 | ID | Töö | Praegune seis | Vastuvõtuvärav |
 |---|---|---|---|
-| F-01 | Binary-DXF päise viga | Leitud uurivas katses; native reopen exit 3, sõltumatu parseri tag 2304 | Eraldi red/green regressioon; binary open/save/reopen ja 0/0 audit määratletud korpusel |
+| F-01 | Binary-DXF tõeväärtuse baidilaius | 17 parandatud kutset; 15 binaarset väljundit native reread ja audit 0/0; MSVC ootel | Määratletud korpuse täpse source'i MSVC; ei lisa native binary Save As'i ega üldist binary sertifikaati |
 | F-02 | Tundmatute/puudulikult toetatud DXF objektide ohutus | Täielik kadudeta säilimine tõendamata | Objekte ei kaotata vaikselt; toetatud säilitamine või selge ohutu piirang, sõltumatu korpus |
 | R-01 | Autosave ja recovery | Pärandatud aluse töökindlus vajab eraldi tõendit | Katkestus/crash → taastamine säilitab lubatud töö; originaalfaili ei rikuta |
 | R-02 | Suured DXF-id ja mälu | Suure korpuse benchmark puudub | Lepitakse kokku realistlikud joonised ja piirid; mõõdetakse open, edit, Undo, save ja mälu |

@@ -193,3 +193,10 @@ F-01 has been reproduced with the current library: a two-byte boolean payload
 after $LWDISPLAY shifts the next group code to2304. Reuse writeBool at all17
 identified header/DIMSTYLE sites and verify binary false/true across supported
 modern DXF versions, while retaining ASCII and file-ownership regression gates.
+
+The reviewed F-01 matrix now includes defaults and the first affected version:
+15 outputs across AC1015/1018/1021/1027/1032, all native reread and independent
+audit 0/0. Four ASCII outputs and recompiled camera/layout/owner/context regressions
+pass. Full GUI, 36 transform/54 metadata checks, independent files, six PDF negative
+probes and four ribbon checks pass. Native application Save As remains ASCII;
+this is a bounded codec repair, not a new binary save UI or compatibility claim.

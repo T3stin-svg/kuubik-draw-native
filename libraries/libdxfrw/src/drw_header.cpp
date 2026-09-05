@@ -1402,11 +1402,11 @@ void DRW_Header::write(dxfWriter *writer, DRW::Version ver){
             writer->writeInt16(280, varInt);
         else
             writer->writeInt16(280, 0);
-        writer->writeString(9, "$LWDISPLAY"); //RLZ bool flag, verify in bin version
+        writer->writeString(9, "$LWDISPLAY");
         if (getInt("$LWDISPLAY", &varInt))
-            writer->writeInt16(290, varInt);
+            writer->writeBool(290, varInt != 0);
         else
-            writer->writeInt16(290, 0);
+            writer->writeBool(290, false);
         if (ver > DRW::AC1014) {
             writer->writeString(9, "$INSUNITS");
             writer->writeInt16(70, insunits);       // already fetched above for $MEASUREMENT
@@ -1427,37 +1427,37 @@ void DRW_Header::write(dxfWriter *writer, DRW::Version ver){
                 writer->writeUtf8String(1, varStr);
         else
             writer->writeString(1, "");
-        writer->writeString(9, "$XEDIT"); //RLZ bool flag, verify in bin version
+        writer->writeString(9, "$XEDIT");
         if (getInt("$XEDIT", &varInt))
-            writer->writeInt16(290, varInt);
+            writer->writeBool(290, varInt != 0);
         else
-            writer->writeInt16(290, 1);
+            writer->writeBool(290, true);
         writer->writeString(9, "$CEPSNTYPE");
         if (getInt("$CEPSNTYPE", &varInt))
             writer->writeInt16(380, varInt);
         else
             writer->writeInt16(380, 0);
-        writer->writeString(9, "$PSTYLEMODE"); //RLZ bool flag, verify in bin version
+        writer->writeString(9, "$PSTYLEMODE");
         if (getInt("$PSTYLEMODE", &varInt))
-            writer->writeInt16(290, varInt);
+            writer->writeBool(290, varInt != 0);
         else
-            writer->writeInt16(290, 1);
+            writer->writeBool(290, true);
 //RLZ: here $FINGERPRINTGUID and $VERSIONGUID, do not add?
-        writer->writeString(9, "$EXTNAMES"); //RLZ bool flag, verify in bin version
+        writer->writeString(9, "$EXTNAMES");
         if (getInt("$EXTNAMES", &varInt))
-            writer->writeInt16(290, varInt);
+            writer->writeBool(290, varInt != 0);
         else
-            writer->writeInt16(290, 1);
+            writer->writeBool(290, true);
         writer->writeString(9, "$PSVPSCALE");
         if (getDouble("$PSVPSCALE", &varDouble))
             writer->writeDouble(40, varDouble);
         else
             writer->writeDouble(40, 0.0);
-        writer->writeString(9, "$OLESTARTUP"); //RLZ bool flag, verify in bin version
+        writer->writeString(9, "$OLESTARTUP");
         if (getInt("$OLESTARTUP", &varInt))
-            writer->writeInt16(290, varInt);
+            writer->writeBool(290, varInt != 0);
         else
-            writer->writeInt16(290, 0);
+            writer->writeBool(290, false);
     }
     if (ver > DRW::AC1015) {// and post v2004 vars
         writer->writeString(9, "$SORTENTS");
@@ -1475,7 +1475,7 @@ void DRW_Header::write(dxfWriter *writer, DRW::Version ver){
             writer->writeInt16(280, varInt);
         else
             writer->writeInt16(280, 1);
-        writer->writeString(9, "$XCLIPFRAME"); //RLZ bool flag, verify in bin version
+        writer->writeString(9, "$XCLIPFRAME");
         if (ver > DRW::AC1021) {
             if (getInt("$XCLIPFRAME", &varInt))
                 writer->writeInt16(280, varInt);
@@ -1483,9 +1483,9 @@ void DRW_Header::write(dxfWriter *writer, DRW::Version ver){
                 writer->writeInt16(280, 0);
         } else {
             if (getInt("$XCLIPFRAME", &varInt))
-                writer->writeInt16(290, varInt);
+                writer->writeBool(290, varInt != 0);
             else
-                writer->writeInt16(290, 0);
+                writer->writeBool(290, false);
         }
         writer->writeString(9, "$HALOGAP");
         if (getInt("$HALOGAP", &varInt))
@@ -1524,11 +1524,11 @@ void DRW_Header::write(dxfWriter *writer, DRW::Version ver){
             writer->writeString(1, "");
     }
     if (ver > DRW::AC1018) {// and post v2007 vars
-        writer->writeString(9, "$CAMERADISPLAY"); //RLZ bool flag, verify in bin version
+        writer->writeString(9, "$CAMERADISPLAY");
         if (getInt("$CAMERADISPLAY", &varInt))
-            writer->writeInt16(290, varInt);
+            writer->writeBool(290, varInt != 0);
         else
-            writer->writeInt16(290, 0);
+            writer->writeBool(290, false);
         writer->writeString(9, "$LENSLENGTH");
         if (getDouble("$LENSLENGTH", &varDouble))
             writer->writeDouble(40, varDouble);
@@ -1645,11 +1645,11 @@ void DRW_Header::write(dxfWriter *writer, DRW::Version ver){
             writer->writeInt16(280, varInt);
         else
             writer->writeInt16(280, 0);
-        writer->writeString(9, "$REALWORLDSCALE"); //RLZ bool flag, verify in bin version
+        writer->writeString(9, "$REALWORLDSCALE");
         if (getInt("$REALWORLDSCALE", &varInt))
-            writer->writeInt16(290, varInt);
+            writer->writeBool(290, varInt != 0);
         else
-            writer->writeInt16(290, 1);
+            writer->writeBool(290, true);
         writer->writeString(9, "$INTERFERECOLOR");
         if (getInt("$INTERFERECOLOR", &varInt))
             writer->writeInt16(62, varInt);

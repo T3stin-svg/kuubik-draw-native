@@ -1,6 +1,6 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. **P1 file foundation, save guard and native metadata/Undo pass MSVC; Qt camera foundation is under local verification.**
+Status date: **2026-09-05**. **P1 file foundation, save guard, native metadata/Undo and Qt camera foundation pass MSVC; settings diagnostics and binary Boolean fix pass locally.**
 
 The current correction session starts at `8a5f7ae0` on the existing integration
 branch. P0-A uses native modification notifications and counts active entities.
@@ -33,7 +33,10 @@ matches the source manifest and SHA-256 `9ae9675a920d9a80266ee13f6fb7ccd7d1ab78f
 local packaged replay now passes after an initial isolated QSettings sync failure.
 The original failure is retained and diagnosed; no environmental cause is asserted.
 P1-03a source `15eed2e2` adds one validated Qt camera shared with
-native metadata validation and a bounded raster/vector probe. DXF adapter, paper entities, renderer and UI integration
+native metadata validation and a bounded raster/vector probe; MSVC `33988991011`
+passes 36 camera checks and independent PDF measurements/negative oracles. F-01
+corrects 17 Boolean payload writes, with 15 binary and 4 ASCII outputs passing native
+reread and independent audit 0/0. Native Save As remains ASCII. DXF adapter, paper entities, renderer and UI integration
 remain unfinished.
 Owner acceptance, release and remote merge are not implied by these checks.
 

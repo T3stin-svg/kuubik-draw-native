@@ -1,6 +1,31 @@
 # Kuubik Draw Native — verified test checkpoint
 
-## P1-03a — Qt camera, exact rectangle clip and vector probe (local)
+## F-01 — binary Boolean payload width (local)
+
+Both the original optional binary probe and the expanded corpus failed native
+reread before the fix. Independent parsing found header tag 2304 immediately after
+$LWDISPLAY: its group 290 payload incorrectly occupied two bytes, shifting the
+following group 9. All 16 header calls and the DIMSTYLE DIMFXLON call now use the
+existing writeBool; group 280 behavior and the byte writer itself are unchanged.
+
+The final corpus has 15 binary files: AC1015/1018/1021/1027/1032, each with defaults,
+false and true. Native reread checks header flags, DIMFXLON and entity counts;
+independent parsing checks full tags/EOF, exact version, flags, geometry, units,
+PLOTSETTINGS ownership and audit 0/0. Four ASCII regressions pass, as do recompiled
+camera/layout/read/write/common-entity tests. Full native GUI passes with 8 isolated
+profiles and unchanged registry. CI now invokes `test-dxf-plotsettings.py --binary`
+and uploads the binary corpus; exact-source MSVC is pending.
+The same final application also passes all 22 native save-guard cases, independent
+DXF/PDF/SVG, six negative PDF oracles and four ribbon geometry checks.
+
+This closes the reproduced Boolean-width defect only. The native application's
+Save As still uses ASCII; arbitrary binary compatibility, application chunks,
+legacy pre-R13 encoding and full paperspace roundtrip are not certified.
+Evidence: `binary-header-red`, `binary-matrix-red`, `binary-matrix-reviewed`,
+`binary-ascii-regression`, `native-binary-final` and `*-binary-regression` under the
+ignored wave root. Format rule: [Autodesk binary DXF](https://help.autodesk.com/cloudhelp/2023/ENU/AutoCAD-DXF/files/GUID-FC1C3C69-DBC2-49E4-893A-000D6538C0FE.htm).
+
+## P1-03a — Qt camera, exact rectangle clip and vector probe
 
 The minimal Qt implementation first failed three real numeric cases: collapsed
 paper frame, lost paper-center translation at WCS 1e20, and determinant overflow
@@ -23,8 +48,9 @@ page extent allows half-point rounding. Geometry tolerance was not relaxed.
 Evidence: ignored `native-transform-red`, `native-transform-green`,
 `native-transform-reviewed`, `transform-probe-verifier-negatives.log` under the
 wave root. These are camera/Qt painter probes, not native layout-renderer or plot
-acceptance. This transform source has no MSVC proof yet. The Windows workflow
-runs/uploads the new probe and independent negative oracle checks.
+acceptance. Transform source `15eed2e2` passes MSVC run `33988991011`, including
+the native probe and independent negative oracle checks. Later settings/F-01
+source changes need their own MSVC checkpoint.
 
 ## P1-02b — native layout metadata and shared Undo
 

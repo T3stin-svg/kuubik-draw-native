@@ -15,8 +15,11 @@ Updated 2026-09-05. Reproducible owner-found failures always take priority.
   `3cefc819`, downloaded package hash/manifest and full local portable replay.
 - [ ] Obtain owner acceptance. Reio approved work-branch pushes and Windows CI
   for the current five-hour development wave; release/remote merge remain separate.
-- [ ] Investigate the inherited binary-DXF header failure reproduced by the
-  optional standalone binary probe. No binary compatibility claim from P0-B.
+- [x] F-01 local: correct all 17 two-byte Boolean writes; fifteen binary outputs
+  cover AC1015/1018/1021/1027/1032, defaults and explicit false/true, native reread
+  and independent audit 0/0. Existing ASCII/file contracts pass again.
+- [ ] F-01: verify exact-source MSVC. This does not certify arbitrary binary DXF
+  or add binary Save As to the native application (its exporter remains ASCII).
 - [x] Diagnose the isolated-settings startup fatal from the local MSVC replay;
   retain per-sync status and native stderr, test locked INI/report/combined failures.
 - [ ] Verify that diagnostic change in exact-source MSVC CI; original environmental
@@ -78,7 +81,8 @@ native dialog are not identical AutoCAD command lifecycles.
   GUI/file/guard regressions pass.
 - [x] P1-02b: exact-source MSVC `33987457900` at `a601e807`.
 - [ ] P1-02b: connect staged DXF import and paper entities; keep save protection.
-- [ ] P1-03a: finish verified Qt camera/clip/vector probe checkpoint and its MSVC gate.
+- [x] P1-03a: Qt camera/clip/vector probe; 36 native checks, independent vector
+  measurements and six negative PDF oracles; MSVC `33988991011` at `15eed2e2`.
 - [ ] P1-03: connect the camera to native render, hit/snap and command contexts.
 
 - [ ] Implement the single-document architecture in PAPERSPACE_PLAN.

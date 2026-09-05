@@ -120,7 +120,9 @@ P1-02a native save protection passes its 22-process local corpus and full GUI/fi
 regression and MSVC run `33986140500` at `fcad4372`. P1-02b native metadata and
 shared Undo pass 54 checks and MSVC run `33987457900` at `a601e807`.
 P1-03a adds a validated Qt WCS-to-paper camera and raster/vector probe; current
-local results are in TEST_REPORT, and its own MSVC gate is still pending. DXF adapter, paper
+36 native checks and independent vector/clip tests pass MSVC `33988991011` at
+`15eed2e2`. F-01 corrects binary bool payload width with a 15-output local corpus;
+the follow-up settings diagnostics and F-01 MSVC gate are pending. DXF adapter, paper
 entities, rendering and UI remain unfinished. Follow `tasks/plan.md`, `docs/ROADMAP.md` and
 PROJECT_STATE for current evidence. No release or remote merge is authorized.
 

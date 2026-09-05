@@ -772,7 +772,7 @@ bool dxfRW::writeDimstyle(DRW_Dimstyle *ent){
         writer->writeInt16(289, ent->dimatfit);
     }
     if ( version > DRW::AC1018 && ent->dimfxlon !=0 )
-        writer->writeInt16(290, ent->dimfxlon);
+        writer->writeBool(290, ent->dimfxlon != 0);
     if (version > DRW::AC1009) {
         std::string txstyname = ent->dimtxsty;
         std::transform(txstyname.begin(), txstyname.end(), txstyname.begin(),::toupper);

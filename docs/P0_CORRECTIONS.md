@@ -109,6 +109,9 @@ The optional exploratory binary case failed before the fix: native reopen exit 3
 and ezdxf invalid header tag 2304. Reproduce by supplying a fourth adapter argument
 (`binary`) and an existing fresh output directory. This inherited header defect
 is tracked separately; the passing P0 contract is ASCII, not arbitrary DXF fidelity.
+The later F-01 wave corrects all 17 Boolean-width call sites and verifies 15 modern
+binary outputs, including defaults and both flag values; see TEST_REPORT for its
+separate local/MSVC state. That narrow fix does not broaden the original P0 claim.
 
 ## Combined local verification and handoff
 
