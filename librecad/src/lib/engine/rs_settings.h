@@ -34,6 +34,7 @@
 #include <QString>
 
 class QVariant;
+class QSettings;
 
 
 // ---------------------------------------------------------------------------
@@ -89,6 +90,10 @@ public:
      */
     void init(const QString& companyKey, const QString& appKey);
 
+    // Must run before any QSettings construction. Empty path preserves the
+    // normal platform profile; a non-empty path isolates GUI and CLI tests.
+    static bool useIsolatedProfile(const QString& directory);
+
     // RAII style group guard: endGroup() is called automatically at the end of lifetime of the returned object
     std::unique_ptr<GroupGuard> beginGroupGuard(QString group);
     void beginGroup(QString group);
@@ -110,6 +115,8 @@ public:
     static bool save_is_allowed;
 
 private:
+    QSettings createSettings() const;
+    void verifyIsolatedProfile();
     RS_Settings();
 	RS_Settings(RS_Settings const&) = delete;
 	RS_Settings& operator = (RS_Settings const&) = delete;

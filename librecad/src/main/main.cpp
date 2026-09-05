@@ -111,16 +111,18 @@ int main(int argc, char** argv)
     const bool kuubikAutomationRun = !uiContractPath.isEmpty()
                                      || !guiSmokeDirectory.isEmpty()
                                      || !toolOptionsSmokeDirectory.isEmpty();
+    QString settingsRoot = qEnvironmentVariable("KUUBIK_SETTINGS_DIR");
     if (kuubikAutomationRun) {
         const QString outputRoot = !guiSmokeDirectory.isEmpty()
                                        ? guiSmokeDirectory
                                        : (!toolOptionsSmokeDirectory.isEmpty()
                                               ? toolOptionsSmokeDirectory
                                               : QFileInfo(uiContractPath).absolutePath());
-        const QString settingsRoot = QDir(outputRoot).filePath(QStringLiteral("settings"));
-        QDir().mkpath(settingsRoot);
-        QSettings::setDefaultFormat(QSettings::IniFormat);
-        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settingsRoot);
+        settingsRoot = QDir(outputRoot).absoluteFilePath(QStringLiteral("settings"));
+    }
+    if (!RS_Settings::useIsolatedProfile(settingsRoot)) {
+        qCritical("Cannot create isolated Kuubik settings profile (absolute path required)");
+        return EXIT_FAILURE;
     }
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 7, 0))

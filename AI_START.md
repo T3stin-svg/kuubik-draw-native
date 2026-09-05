@@ -19,20 +19,24 @@ its own product branch, release, design layer, tests and roadmap.
 ## New computer bootstrap
 
 ```powershell
-git clone https://github.com/T3stin-svg/kuubik-draw-native.git
+git clone --branch codex/autocad-visual-integration-root https://github.com/T3stin-svg/kuubik-draw-native.git
 Set-Location kuubik-draw-native
 git status --short --branch
 git remote -v
 git rev-parse HEAD
 ```
 
-The GitHub default branch must be `kuubik/visual-v0.2`. If a pre-existing clone
-opens another branch, run:
+The GitHub default/product branch remains `kuubik/visual-v0.2`; it has not been
+remotely merged with the current development work. The latest approved SARibbon
+work is on `codex/autocad-visual-integration-root`, so a plain default-branch clone
+does not contain this wave. On an existing clone, inspect and preserve its work
+first; do not automatically switch away from a dirty or active checkout. On a
+clean checkout that Reio wants to update to this development branch:
 
 ```powershell
 git fetch origin --tags
-git switch kuubik/visual-v0.2
-git pull --ff-only origin kuubik/visual-v0.2
+git switch codex/autocad-visual-integration-root
+git pull --ff-only origin codex/autocad-visual-integration-root
 ```
 
 Never use `git reset --hard`, `git clean`, `git add -A`, force-push, or merge to
@@ -55,7 +59,7 @@ Read these files completely before editing:
 9. `FORK_NOTICE.md`, `LICENSE`, and `THIRD_PARTY_NOTICES.md` — provenance and
    licensing.
 
-## Current certified checkpoint
+## Published checkpoint — limited tested scope
 
 - Product: `Kuubik Draw Native 0.2.0-preview.2`
 - Release tag: `v0.2.0-preview.2`

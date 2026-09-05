@@ -53,6 +53,10 @@ int console_dxf2pdf(int argc, char* argv[])
     QCoreApplication::setOrganizationDomain("kuubik3d.ee");
     QCoreApplication::setApplicationName(KUUBIK_DRAW_PRODUCT_NAME);
     QCoreApplication::setApplicationVersion(KUUBIK_DRAW_VERSION);
+    if (!RS_Settings::useIsolatedProfile(qEnvironmentVariable("KUUBIK_SETTINGS_DIR"))) {
+        qCritical("Cannot create isolated Kuubik settings profile (absolute path required)");
+        return EXIT_FAILURE;
+    }
 
     QFileInfo prgInfo(QFile::decodeName(argv[0]));
     RS_SETTINGS->init(app.organizationName(), app.applicationName());

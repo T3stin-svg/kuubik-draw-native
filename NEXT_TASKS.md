@@ -57,6 +57,8 @@ native dialog are not identical AutoCAD command lifecycles.
 - [ ] Owner acceptance of Kuubik icons and native fallback artwork.
 - [ ] Actual Windows Settings DPI and multi-monitor checks.
 - [ ] Larger DXFs, autosave/recovery, missing fonts/linetypes and crash fixtures.
+- [ ] Fix inherited SVG CLI absolute `--outfile` handling and failure exit status;
+  retain independent file-presence/content checks (RESEARCH_NOTES).
 - [ ] Broader free file-adapter evaluation before any DWG compatibility promise.
 
 No web-engine restart, 3D, paid CAD SDK, client-data publication, release or

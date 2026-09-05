@@ -26,9 +26,91 @@
 
 // RVT_PORT changed QSettings s(QSettings::Ini) to QSettings s("./qcad.ini", QSettings::IniFormat);
 #include <QSettings>
+#include <QDir>
+#include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
+#include <QUuid>
 
 #include "rs_debug.h"
 #include "rs_settings.h"
+
+namespace {
+QString isolatedProfileRoot;
+}
+
+bool RS_Settings::useIsolatedProfile(const QString& directory)
+{
+    if (directory.isEmpty()) {
+        return true;
+    }
+    if (!QDir::isAbsolutePath(directory) || !QDir().mkpath(directory)) {
+        return false;
+    }
+    isolatedProfileRoot = QFileInfo(directory).canonicalFilePath();
+    if (isolatedProfileRoot.isEmpty()) {
+        return false;
+    }
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, isolatedProfileRoot);
+    QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope,
+                       QDir(isolatedProfileRoot).filePath(QStringLiteral("system")));
+    return true;
+}
+
+QSettings RS_Settings::createSettings() const
+{
+    // The organization/application-only overload always uses NativeFormat,
+    // even after setDefaultFormat(IniFormat). Specify the format explicitly.
+    return QSettings(QSettings::defaultFormat(), QSettings::UserScope,
+                     companyKey, appKey);
+}
+
+void RS_Settings::verifyIsolatedProfile()
+{
+    if (isolatedProfileRoot.isEmpty()) {
+        return;
+    }
+    auto native = createSettings();
+    QSettings direct;
+    const QString nativeFile = QFileInfo(native.fileName()).absoluteFilePath();
+    const QString relative = QDir(isolatedProfileRoot).relativeFilePath(nativeFile);
+    const bool sameBackend = native.format() == QSettings::IniFormat
+        && direct.format() == QSettings::IniFormat
+        && nativeFile == QFileInfo(direct.fileName()).absoluteFilePath()
+        && !QDir::isAbsolutePath(relative) && relative != QStringLiteral("..")
+        && !relative.startsWith(QStringLiteral("../"));
+    // Fail before either interface writes anything if isolation has regressed.
+    if (!sameBackend) {
+        qFatal("Kuubik isolated settings backend mismatch");
+    }
+    const QString probe = QStringLiteral("KuubikIsolationProbe/")
+                          + QUuid::createUuid().toString(QUuid::WithoutBraces);
+    writeEntry(probe + QStringLiteral("/native"), QStringLiteral("native-value"));
+    direct.sync();
+    const bool nativeToQt = direct.value(probe + QStringLiteral("/native")).toString()
+                            == QStringLiteral("native-value");
+    direct.setValue(probe + QStringLiteral("/qt"), QStringLiteral("qt-value"));
+    direct.sync();
+    const bool qtToNative = readEntry(probe + QStringLiteral("/qt"))
+                            == QStringLiteral("qt-value");
+    direct.remove(probe);
+    direct.sync();
+    const bool passed = nativeToQt && qtToNative && direct.status() == QSettings::NoError;
+    QJsonObject report;
+    report.insert(QStringLiteral("sameIsolatedIniBackend"), sameBackend);
+    report.insert(QStringLiteral("nativeWriteQtRead"), nativeToQt);
+    report.insert(QStringLiteral("qtWriteNativeRead"), qtToNative);
+    report.insert(QStringLiteral("passed"), passed);
+    QSaveFile evidence(QDir(isolatedProfileRoot).filePath(
+        QStringLiteral("settings-isolation.json")));
+    const QByteArray data = QJsonDocument(report).toJson();
+    if (!passed || !evidence.open(QIODevice::WriteOnly)
+        || evidence.write(data) != data.size() || !evidence.commit()) {
+        qFatal("Kuubik isolated settings read/write verification failed");
+    }
+}
 
 RS_Settings::GroupGuard::GroupGuard(QString group)
     : m_group{std::move(group)}
@@ -76,6 +158,7 @@ void RS_Settings::init(const QString &companyKey, const QString &appKey)
     //insertSearchPath(QSettings::Windows, companyKey + appKey);
     //insertSearchPath(QSettings::Unix, "/usr/share/");
     initialized = true;
+    verifyIsolatedProfile();
 }
 
 void RS_Settings::beginGroup(QString group)
@@ -119,7 +202,7 @@ bool RS_Settings::writeEntry(const QString &key, const QVariant &value)
         return true;
     }
 
-    QSettings s(companyKey, appKey);
+    auto s = createSettings();
     // RVT_PORT not supported anymore s.insertSearchPath(QSettings::Windows, companyKey);
 
     s.setValue(QString("%1%2").arg(m_group, key), value);
@@ -133,7 +216,7 @@ QString RS_Settings::readEntry(const QString &key, const QString &def, bool *ok)
     // lookup:
     QVariant ret = readEntryCache(key);
     if (!ret.isValid()) {
-        QSettings s(companyKey, appKey);
+        auto s = createSettings();
         // RVT_PORT not supported anymore s.insertSearchPath(QSettings::Windows, companyKey);
 
         if (ok) {
@@ -151,7 +234,7 @@ QByteArray RS_Settings::readByteArrayEntry(const QString &key, const QString &de
 {
     QVariant ret = readEntryCache(key);
     if (!ret.isValid()) {
-        QSettings s(companyKey, appKey);
+        auto s = createSettings();
         // RVT_PORT not supported anymore s.insertSearchPath(QSettings::Windows, companyKey);
 
         if (ok != nullptr) {
@@ -169,7 +252,7 @@ int RS_Settings::readNumEntry(const QString &key, int def)
 {
     QVariant value = readEntryCache(key);
     if (!value.isValid()) {
-        QSettings s(companyKey, appKey);
+        auto s = createSettings();
         QString str = QString("%1%2").arg(m_group, key);
         // qDebug() << str;
         value = s.value(str, QVariant(def));
@@ -194,14 +277,14 @@ void RS_Settings::addToCache(const QString &key, const QVariant &value)
 
 void RS_Settings::clear_all()
 {
-    QSettings s(companyKey, appKey);
+    auto s = createSettings();
     s.clear();
     save_is_allowed = false;
 }
 
 void RS_Settings::clear_geometry()
 {
-    QSettings s(companyKey, appKey);
+    auto s = createSettings();
     s.remove("/Geometry");
     save_is_allowed = false;
 }

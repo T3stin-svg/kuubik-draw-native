@@ -6,6 +6,26 @@ eeldata ehitamisel ega tavalise kasutaja arvutis.
 
 ## Põhiotsus
 
+### Kohaliku Windowsi seadistuste isolatsioon
+
+`18d3f734` läbis puhta Windowsi CI 33964068198, kuid kohalik sõltumatu DXF-parser
+leidis PLINE-ist kaks kattuvat punkti. `RS_Settings` kasutas explicit organization/
+application konstruktorit, mis ignoreerib `setDefaultFormat(IniFormat)` valikut ja
+loeb Windowsis NativeFormat-registrit. Seda käitumist kinnitab
+[Qt 5.15 QSettings dokumentatsioon](https://doc.qt.io/archives/qt-5.15/qsettings.html#setDefaultFormat).
+
+Parandus valib native-kihis formaadi selgelt, isoleerib ka SystemScope'i fallback'i
+ja valikuinfo eraldi seadistused. GUI automaatika kasutab väljundkausta profiili;
+CLI ja käsitsi arenduse vaatamiseks on absoluutne `KUUBIK_SETTINGS_DIR`. Tavaline
+käivitus jääb sama registriprofiili juurde. Käivituse tõend kontrollib enne kirjutamist
+ühist INI-faili ja seejärel mõlemasuunalist väärtuse lugemist. Testikomplekt võrdleb
+registrit mälus enne/pärast; raport sisaldab vaid tõeväärtusi ja protsesside arvu.
+PLINE-i producer kontrollib nüüd ka nullpikkusi/kattuvaid punkte, lisaks sõltumatule
+ezdxf-kontrollile. Varasemate testikäivituste võimalikku registrimõju ei lähtestata
+oletuslikult, sest kasutaja eelnevaid väärtusi ei ole salvestatud.
+
+Selle paranduse lõplik build/tulemus kantakse `TEST_REPORT.md` faili pärast kontrolli.
+
 Jätkame LibreCAD v2.2.1.5 C++/Qt native-fork'i Windowsis. Ei vii toodet tagasi
 Reacti, ei vaheta Open CAD Studio vastu ega lisa litsentsitasulist CAD SDK-d.
 Tasuta failiteek ei lahenda dokumendimudelis puuduvaid layout'e/viewport'e.
@@ -95,3 +115,17 @@ Paperspace, redigeeritav Properties-palett, täielik AutoCADi käsu-elutsükkel,
 lai DWG/DWT/XREF failikorpus, taastumine ja suured joonised vajavad eraldi etappe.
 Täpse visuaali väide vajab sama oleku, keele, DPI ja aknamõõdu võrdlust, mitte
 ainult värvi või paneelipiiride testi. Eesmärgi täitmise protsenti ei oletata.
+
+## Arenduse käigus leitud eraldi piirangud
+
+- Windowsi `qoffscreen` diagnostikapildil puudusid lokaalselt UI fondiglüüfid ja
+  fontide asendusmõõdud suurendasid paneele; sama binaari `qwindows` pilt sisaldab
+  õiget teksti. Seetõttu ei kasutata offscreen-pilte visuaalse referentsi tõendina.
+  Offscreen jääb native geomeetria/Undo regressiooni keskkonnaks; visuaalsed piirid
+  ja 100/125/150% pildid kontrollitakse qwindows-iga.
+- Päritud `console_dxf2png.cpp` liidab SVG `--outfile` argumendi alati sisend-DXF-i
+  kausta külge. Absoluutne väljundtee andis lokaalses 6ef7f74e katses puuduva SVG,
+  kuid protsess tagastas 0. Olemasolev CI kasutab samas kaustas ainult failinime ja
+  kontrollib tegelikku SVG-d sõltumatult. Absoluutsete teede ning ebaõnnestunud
+  ekspordi veakoodi parandus jääb eraldi failiekspordi ülesandeks; PDF-i CLI tee
+  selles katses töötas. Seda viga ei peideta nõrgema failitesti taha.

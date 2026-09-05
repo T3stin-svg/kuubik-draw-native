@@ -5738,6 +5738,17 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const int polylineSegmentCount = createdPolyline == nullptr
                                              ? 0
                                              : createdPolyline->count();
+        bool polylineNondegenerate = createdPolyline != nullptr
+                                    && polylineSegmentCount == 2;
+        if (polylineNondegenerate) {
+            for (RS_Entity* segment : createdPolyline->getEntityList()) {
+                polylineNondegenerate = polylineNondegenerate && segment != nullptr
+                    && segment->getStartpoint().distanceTo(segment->getEndpoint()) > 1.0e-6;
+            }
+            polylineNondegenerate = polylineNondegenerate
+                && createdPolyline->getStartpoint().distanceTo(
+                       createdPolyline->getEndpoint()) > 1.0e-6;
+        }
         const bool polylineUndoneBeforeUndo = createdPolyline == nullptr
                                               || createdPolyline->isUndone();
         const int activePolylinesBeforeUndo = activePolylineCount(graphic);
@@ -5817,6 +5828,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                     && createdPolyline != nullptr
                                     && !createdPolyline->isClosed()
                                     && polylineSegmentCount == 2
+                                    && polylineNondegenerate
                                     && createdPolylineLayer == smokeLayerName
                                     && !polylineUndoneBeforeUndo
                                     && activePolylinesBeforeUndo
@@ -5867,6 +5879,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         polylineEntityObject.insert(QStringLiteral("segmentCount"),
                                     polylineSegmentCount);
         polylineEntityObject.insert(QStringLiteral("verticesExpected"), 3);
+        polylineEntityObject.insert(QStringLiteral("nondegenerate"), polylineNondegenerate);
         polylineEntityObject.insert(QStringLiteral("activeCountBeforeCreate"),
                                     activePolylinesBefore);
         polylineEntityObject.insert(QStringLiteral("activeCountBeforeUndo"),

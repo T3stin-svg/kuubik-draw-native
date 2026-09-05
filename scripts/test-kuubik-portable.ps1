@@ -81,12 +81,10 @@ function Assert-RibbonMouseInvocation([object]$Invocation, [string]$Context) {
     }
 }
 
-function Run-Native(
+function New-NativeStartInfo(
     [string]$Executable,
     [string[]]$Arguments,
-    [string]$Label,
-    [hashtable]$Environment = @{},
-    [int]$TimeoutSeconds = 180
+    [hashtable]$Environment = @{}
 ) {
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $Executable
@@ -99,7 +97,8 @@ function Run-Native(
         'KUUBIK_UI_CONTRACT_PATH', 'KUUBIK_UI_SCREENSHOT_PATH', 'KUUBIK_UI_IDLE_SCREENSHOT_PATH',
         'KUUBIK_UI_CONTRACT_WIDTH', 'KUUBIK_UI_CONTRACT_HEIGHT',
         'KUUBIK_STATUS_MENU_SCREENSHOT_PATH', 'KUUBIK_STATUS_BAR_SCREENSHOT_PATH',
-        'KUUBIK_GUI_SMOKE_DIR', 'KUUBIK_GUI_SMOKE_INPUT_DXF', 'KUUBIK_TOOL_OPTIONS_SMOKE_DIR'
+        'KUUBIK_GUI_SMOKE_DIR', 'KUUBIK_GUI_SMOKE_INPUT_DXF', 'KUUBIK_TOOL_OPTIONS_SMOKE_DIR',
+        'KUUBIK_SETTINGS_DIR'
     )) {
         [void]$startInfo.Environment.Remove($name)
     }
@@ -109,6 +108,57 @@ function Run-Native(
     foreach ($argument in $Arguments) {
         $startInfo.ArgumentList.Add($argument)
     }
+    $startInfo.Environment['KUUBIK_SETTINGS_DIR'] = Join-Path $smokeRoot (
+        'isolated-cli-profiles/' + [guid]::NewGuid().ToString('N'))
+    return $startInfo
+}
+
+function Assert-IsolatedSettings([Diagnostics.ProcessStartInfo]$StartInfo) {
+    $profile = $StartInfo.Environment['KUUBIK_SETTINGS_DIR']
+    if (-not [string]::IsNullOrEmpty($StartInfo.Environment['KUUBIK_GUI_SMOKE_DIR'])) {
+        $profile = Join-Path $StartInfo.Environment['KUUBIK_GUI_SMOKE_DIR'] 'settings'
+    } elseif (-not [string]::IsNullOrEmpty($StartInfo.Environment['KUUBIK_TOOL_OPTIONS_SMOKE_DIR'])) {
+        $profile = Join-Path $StartInfo.Environment['KUUBIK_TOOL_OPTIONS_SMOKE_DIR'] 'settings'
+    } elseif (-not [string]::IsNullOrEmpty($StartInfo.Environment['KUUBIK_UI_CONTRACT_PATH'])) {
+        $profile = Join-Path (Split-Path $StartInfo.Environment['KUUBIK_UI_CONTRACT_PATH'] -Parent) 'settings'
+    }
+    $reportPath = Join-Path $profile 'settings-isolation.json'
+    Require-Path $reportPath
+    $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+    foreach ($field in @('passed', 'sameIsolatedIniBackend', 'nativeWriteQtRead', 'qtWriteNativeRead')) {
+        if (-not (Require-JsonBoolean $report $field 'settingsIsolation')) {
+            throw "Native settings isolation failed: $field"
+        }
+    }
+    $script:isolatedSettingsChecks++
+}
+
+function Get-NativeSettingsRegistrySnapshot {
+    # Read-only, kept in memory: never export user preferences into evidence.
+    $records = foreach ($root in @('HKCU:\Software\Kuubik Projekt OÜ', 'HKCU:\Software\QGDialogFactory')) {
+        if (-not (Test-Path -LiteralPath $root)) { continue }
+        $keys = @((Get-Item -LiteralPath $root)) + @(Get-ChildItem -LiteralPath $root -Recurse)
+        foreach ($key in ($keys | Sort-Object Name)) {
+            [ordered]@{ Key = $key.Name } | ConvertTo-Json -Compress
+            foreach ($name in ($key.GetValueNames() | Sort-Object)) {
+                [ordered]@{
+                    Key = $key.Name; Name = $name; Kind = [string]$key.GetValueKind($name)
+                    Value = $key.GetValue($name, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+                } | ConvertTo-Json -Depth 6 -Compress
+            }
+        }
+    }
+    return ($records -join "`n")
+}
+
+function Run-Native(
+    [string]$Executable,
+    [string[]]$Arguments,
+    [string]$Label,
+    [hashtable]$Environment = @{},
+    [int]$TimeoutSeconds = 180
+) {
+    $startInfo = New-NativeStartInfo $Executable $Arguments $Environment
     $process = [Diagnostics.Process]::Start($startInfo)
     if ($null -eq $process) {
         throw "$Label failed to start."
@@ -122,6 +172,7 @@ function Run-Native(
     if ($process.ExitCode -ne 0) {
         throw "$Label failed with exit code $($process.ExitCode)"
     }
+    Assert-IsolatedSettings $startInfo
 }
 
 $package = (Resolve-Path -LiteralPath $PackageDirectory).Path
@@ -172,9 +223,11 @@ $tempRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
 }
 $smokeRoot = Join-Path $tempRoot 'Kuubik Draw portable smoke'
 if (Test-Path -LiteralPath $smokeRoot) {
-    Remove-Item -LiteralPath $smokeRoot -Recurse -Force
+    throw 'Smoke output already exists. Use a fresh RUNNER_TEMP; existing evidence is never deleted.'
 }
 New-Item -ItemType Directory -Path $smokeRoot | Out-Null
+$registryBefore = Get-NativeSettingsRegistrySnapshot
+$script:isolatedSettingsChecks = 0
 $portableCopy = Join-Path $smokeRoot 'Program Files'
 Copy-Item -LiteralPath $package -Destination $portableCopy -Recurse -Force
 $portableExe = Join-Path $portableCopy 'KuubikDraw.exe'
@@ -1030,6 +1083,7 @@ if ((Require-JsonString $polylineRibbon 'actionKey' 'guiSmoke.polylineUndoRedo.r
 Assert-RibbonMouseInvocation $polylineRibbon 'guiSmoke.polylineUndoRedo.ribbon'
 $polylineEntity = Require-JsonProperty $polylineUndoRedo 'polyline' 'guiSmoke.polylineUndoRedo'
 if (-not (Require-JsonBoolean $polylineEntity 'created' 'guiSmoke.polylineUndoRedo.polyline') -or
+    -not (Require-JsonBoolean $polylineEntity 'nondegenerate' 'guiSmoke.polylineUndoRedo.polyline') -or
     (Require-JsonBoolean $polylineEntity 'entityUndoneBeforeUndo' 'guiSmoke.polylineUndoRedo.polyline') -or
     -not (Require-JsonBoolean $polylineEntity 'entityUndoneAfterUndo' 'guiSmoke.polylineUndoRedo.polyline') -or
     (Require-JsonBoolean $polylineEntity 'entityUndoneAfterRedo' 'guiSmoke.polylineUndoRedo.polyline') -or
@@ -1266,12 +1320,23 @@ if ((Get-Item -LiteralPath $guiActiveImagePath).Length -lt 10000 -or
     throw 'Ribbon LINE evidence output is unexpectedly small.'
 }
 
-$guiProcess = Start-Process -FilePath $portableExe -PassThru
+$startupInfo = New-NativeStartInfo $portableExe @() $portableQtEnvironment
+$guiProcess = [Diagnostics.Process]::Start($startupInfo)
 Start-Sleep -Seconds 8
 if ($guiProcess.HasExited) {
     throw "GUI startup smoke exited early with code $($guiProcess.ExitCode)"
 }
 Stop-Process -Id $guiProcess.Id -Force
+Assert-IsolatedSettings $startupInfo
+$registryUnchanged = $registryBefore -ceq (Get-NativeSettingsRegistrySnapshot)
+[ordered]@{
+    passed = $registryUnchanged -and $script:isolatedSettingsChecks -eq 10
+    nativeRegistryUnchanged = $registryUnchanged
+    isolatedProcessChecks = $script:isolatedSettingsChecks
+} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $smokeRoot 'settings-isolation.json') -Encoding utf8
+if (-not $registryUnchanged -or $script:isolatedSettingsChecks -ne 10) {
+    throw 'Native registry changed during the isolated smoke suite, or an isolation check was missed.'
+}
 
 Write-Host "Portable native smoke passed from a path containing spaces: $portableCopy"
 Write-Host "PDF: $pdf"

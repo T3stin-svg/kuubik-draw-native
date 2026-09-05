@@ -205,6 +205,7 @@ jobs:
             ${{ runner.temp }}/Kuubik Draw portable smoke/preview-smoke.svg
             ${{ runner.temp }}/Kuubik Draw portable smoke/status-bar.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/status-bar-customization.png
+            ${{ runner.temp }}/Kuubik Draw portable smoke/settings-isolation.json
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-active.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-committed.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.json

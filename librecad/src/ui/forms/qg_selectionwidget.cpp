@@ -71,7 +71,8 @@ void QG_SelectionWidget::setNumber(int n)
 {
     if (auxDataMode)
     {
-        QSettings settings("QGDialogFactory", "QGSelectionWidget");
+        QSettings settings(QSettings::defaultFormat(), QSettings::UserScope,
+                           "QGDialogFactory", "QGSelectionWidget");
         settings.setValue("lEntities_text", n);
     }
     else /* if (!auxDataMode) */
@@ -96,7 +97,8 @@ void QG_SelectionWidget::flashAuxData( const QString& header,
 {
     if (flash)
     {
-        QSettings settings("QGDialogFactory", "QGSelectionWidget");
+        QSettings settings(QSettings::defaultFormat(), QSettings::UserScope,
+                           "QGDialogFactory", "QGSelectionWidget");
 
         if (!auxDataMode)
         {
@@ -146,7 +148,8 @@ void QG_SelectionWidget::removeAuxData()
 {
     auxDataMode = false;
 
-    QSettings settings("QGDialogFactory", "QGSelectionWidget");
+    QSettings settings(QSettings::defaultFormat(), QSettings::UserScope,
+                       "QGDialogFactory", "QGSelectionWidget");
 
     lLabelLength->setMinimumSize( settings.value("lLabelLength_minWidth").toInt(), 
                                   settings.value("lLabelLength_minHeight").toInt());

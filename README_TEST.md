@@ -113,7 +113,7 @@ display-scale check on owner-controlled hardware.
   Properties/`ModifyEntity` workflow rather than a second editor.
 - The compact ribbon covers the everyday tools only. Every other inherited
   LibreCAD function remains available from the menus or Classic workspace.
-- 66 direct ribbon/Quick Access action keys use the repository's mapped Kuubik
+- 71 direct ribbon/Quick Access action keys use the repository's mapped Kuubik
   technical-line SVGs. Five direct Annotate/Lines keys and all menus, Classic,
   and native status/pen/options toolbars retain inherited LibreCAD fallback
   icons under their existing repository licences. Kuubik icon provenance and
@@ -122,3 +122,17 @@ display-scale check on owner-controlled hardware.
 
 Report a problem with the exact command, input values, smallest non-confidential
 DXF that reproduces it, and a screenshot. Do not upload client drawings.
+
+## Development handoff archive
+
+The development `exe-source-AI.zip` contains separate BINARY, SOURCE and EVIDENCE
+folders and `HANDOFF_MANIFEST.json`. It identifies the executable's source commit
+separately from the newer documentation/source snapshot. `checkpointKind` is
+`development-preview` and `releaseTag` is null; it is not a new public release.
+Archive generation verifies both input ZIP checksums and the executable build
+manifest, refuses to overwrite an earlier handoff, and extracts the handoff
+documents from the same immutable Git snapshot as its SOURCE archive.
+
+Maintainer checks: `scripts/test-ai-handoff.ps1` covers synthetic development
+and release modes, uncommitted-prose exclusion and checksum/source/version/
+overwrite rejection. Release mode still requires the matching existing tag.
