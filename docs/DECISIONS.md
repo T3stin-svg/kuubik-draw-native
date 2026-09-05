@@ -33,6 +33,23 @@ DEVELOPMENT_PLAN owns the bounded scope; RESEARCH_NOTES preserves investigation;
 PAPERSPACE_PLAN prepares the next engine stage. These decisions supersede older
 roadmap ordering, not safety or file-integrity requirements.
 
+## D-025 — Development tests must not read or alter the user's native profile
+
+The 2026-09-05 local independent PLINE read-back exposed that the organization/
+application QSettings overload bypassed the intended INI test profile. All native
+settings construction now honors the explicit default format. Automated GUI cases
+own separate profile directories, and developer/CLI runs can opt into an absolute
+`KUUBIK_SETTINGS_DIR`. UserScope and SystemScope fallbacks are isolated together.
+Normal launches retain the existing native profile; there is no guessed reset or
+migration of the user's preferences.
+
+Before writing, the isolated startup verifies that direct Qt and RS_Settings
+resolve to the same INI file; bidirectional sentinel reads then verify access.
+The portable suite requires all ten process checks and an unchanged in-memory
+snapshot of the two native registry trees. Public evidence contains booleans,
+not preference contents or local profile paths. Existing test evidence is not
+recursively deleted for a replay; use a fresh RUNNER_TEMP.
+
 ## D-001 — Native LibreCAD fork is the active product
 
 The earlier React/Canvas Kuubik Draw direction exposed critical wiring gaps in

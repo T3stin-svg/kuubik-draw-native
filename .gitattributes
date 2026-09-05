@@ -2,3 +2,8 @@
 # whitespace). Kuubik-owned code retains the normal diff --check policy.
 libraries/saribbon/SARibbon.h -text whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof
 libraries/saribbon/SARibbon.cpp -text whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof
+
+# Keep generated CI evidence byte-exact across Windows checkout and git archive.
+evidence/development/2026-09-05-saribbon/**/*.json -text whitespace=cr-at-eol
+evidence/development/2026-09-05-saribbon/**/*.svg -text whitespace=cr-at-eol
+evidence/development/2026-09-05-saribbon/**/*.dxf -text -diff

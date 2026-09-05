@@ -8,8 +8,18 @@ The current target is the portable prerelease `0.2.0-preview.2`: extract the ZIP
 and run `KuubikDraw.exe` without an installer, Node.js, Python, or internet.
 It adds a compact, action-bound Kuubik ribbon, dark 2D workspace, right-side
 Layers/Blocks, bottom command line, and classic LibreCAD fallback. DXF
-open/save and vector PDF export are the guaranteed v0.2 file workflows;
-DWG roundtrip is explicitly not certified.
+open/save for the tested 2D model-space subset and vector PDF export are the
+v0.2 file workflows; DWG roundtrip is explicitly not certified. Real paperspace
+is not implemented: do not overwrite production DXFs containing layouts/viewports.
+
+The 2026-09-05 SARibbon UI milestone lives on
+`codex/autocad-visual-integration-root`, not the unchanged product default branch.
+See the exact-source [test report](docs/TEST_REPORT.md),
+[Estonian review checklist](docs/OWNER_REVIEW.md),
+[development plan](docs/DEVELOPMENT_PLAN.md),
+[free-component research](docs/RESEARCH_NOTES.md) and
+[next paperspace stage](docs/PAPERSPACE_PLAN.md). CI artifacts are development
+checkpoints, not replacements for the immutable public release.
 
 - [Fork and license notice](FORK_NOTICE.md)
 - [AI start and cross-computer handoff](AI_START.md)

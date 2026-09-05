@@ -21,6 +21,15 @@ commit and workflow run.
 Settings are isolated under `Kuubik Projekt OÜ / Kuubik Draw`; they do not use
 LibreCAD's settings or the old React Kuubik Draw data.
 
+For an isolated developer review, set `KUUBIK_SETTINGS_DIR` to an absolute fresh
+directory before launching this build; GUI and CLI exports then share a separate
+INI profile without changing the normal Kuubik registry profile. Without that
+variable, normal preferences remain authoritative. Automated smoke cases choose
+their own profiles and verify bidirectional native/Qt access plus an unchanged
+registry. Replays require a fresh `RUNNER_TEMP`; old evidence is not deleted.
+
+An Estonian owner checklist is in `docs/OWNER_REVIEW.md` in the source/handoff.
+
 ## Kuubik workspace
 
 ### SARibbon development milestone (2026-09-05)
@@ -38,6 +47,11 @@ must remain usable. Save a synthetic DXF under a new name and reopen it. Report
 the exact source commit with any failure; do not upload client drawings.
 
 ### Layout-bearing drawings: use copies only
+
+The stricter object audit also identifies one inherited orphan PLOTSETTINGS record
+in saved synthetic model-space DXFs (ezdxf repair 202). Tested geometry survives;
+zero-repair whole-file preservation is not claimed. The read-only Properties
+document summary may lag drawing/save changes until another native refresh.
 
 This UI preview does not implement true paperspace or lossless layout roundtrips.
 Do not overwrite a production DXF containing layouts/viewports with this preview.

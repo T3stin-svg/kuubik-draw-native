@@ -1,0 +1,3853 @@
+{
+    "bindingMismatches": [
+    ],
+    "bindings": [
+        {
+            "buttonActionKey": "BlocksCreate",
+            "defaultActionObjectName": "BlocksCreate",
+            "key": "BlocksCreate",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "BlocksEdit",
+            "defaultActionObjectName": "BlocksEdit",
+            "key": "BlocksEdit",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "BlocksExplode",
+            "defaultActionObjectName": "BlocksExplode",
+            "key": "BlocksExplode",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "BlocksImport",
+            "defaultActionObjectName": "BlocksImport",
+            "key": "BlocksImport",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "BlocksInsert",
+            "defaultActionObjectName": "BlocksInsert",
+            "key": "BlocksInsert",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DimAligned",
+            "defaultActionObjectName": "DimAligned",
+            "key": "DimAligned",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DimAngular",
+            "defaultActionObjectName": "DimAngular",
+            "key": "DimAngular",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DimDiametric",
+            "defaultActionObjectName": "DimDiametric",
+            "key": "DimDiametric",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DimLeader",
+            "defaultActionObjectName": "DimLeader",
+            "key": "DimLeader",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DimLinear",
+            "defaultActionObjectName": "DimLinear",
+            "key": "DimLinear",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DimLinearHor",
+            "defaultActionObjectName": "DimLinearHor",
+            "key": "DimLinearHor",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DimLinearVer",
+            "defaultActionObjectName": "DimLinearVer",
+            "key": "DimLinearVer",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DimRadial",
+            "defaultActionObjectName": "DimRadial",
+            "key": "DimRadial",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawArc",
+            "defaultActionObjectName": "DrawArc",
+            "key": "DrawArc",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawCircle",
+            "defaultActionObjectName": "DrawCircle",
+            "key": "DrawCircle",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawHatch",
+            "defaultActionObjectName": "DrawHatch",
+            "key": "DrawHatch",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawLine",
+            "defaultActionObjectName": "DrawLine",
+            "key": "DrawLine",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawLineAngle",
+            "defaultActionObjectName": "DrawLineAngle",
+            "key": "DrawLineAngle",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawLineHorizontal",
+            "defaultActionObjectName": "DrawLineHorizontal",
+            "key": "DrawLineHorizontal",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawLineOrthogonal",
+            "defaultActionObjectName": "DrawLineOrthogonal",
+            "key": "DrawLineOrthogonal",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawLineParallel",
+            "defaultActionObjectName": "DrawLineParallel",
+            "key": "DrawLineParallel",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawLineRectangle",
+            "defaultActionObjectName": "DrawLineRectangle",
+            "key": "DrawLineRectangle",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawLineVertical",
+            "defaultActionObjectName": "DrawLineVertical",
+            "key": "DrawLineVertical",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawMText",
+            "defaultActionObjectName": "DrawMText",
+            "key": "DrawMText",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawPolyline",
+            "defaultActionObjectName": "DrawPolyline",
+            "key": "DrawPolyline",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "DrawText",
+            "defaultActionObjectName": "DrawText",
+            "key": "DrawText",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "EditCopy",
+            "defaultActionObjectName": "EditCopy",
+            "key": "EditCopy",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "EditCut",
+            "defaultActionObjectName": "EditCut",
+            "key": "EditCut",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "EditPaste",
+            "defaultActionObjectName": "EditPaste",
+            "key": "EditPaste",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "EditRedo",
+            "defaultActionObjectName": "EditRedo",
+            "key": "EditRedo",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "EditUndo",
+            "defaultActionObjectName": "EditUndo",
+            "key": "EditUndo",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "FileExport",
+            "defaultActionObjectName": "FileExport",
+            "key": "FileExport",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "FileNew",
+            "defaultActionObjectName": "FileNew",
+            "key": "FileNew",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "FileOpen",
+            "defaultActionObjectName": "FileOpen",
+            "key": "FileOpen",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "FilePrint",
+            "defaultActionObjectName": "FilePrint",
+            "key": "FilePrint",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "FilePrintPDF",
+            "defaultActionObjectName": "FilePrintPDF",
+            "key": "FilePrintPDF",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "FilePrintPreview",
+            "defaultActionObjectName": "FilePrintPreview",
+            "key": "FilePrintPreview",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "FileSave",
+            "defaultActionObjectName": "FileSave",
+            "key": "FileSave",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "FileSaveAs",
+            "defaultActionObjectName": "FileSaveAs",
+            "key": "FileSaveAs",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "InfoAngle",
+            "defaultActionObjectName": "InfoAngle",
+            "key": "InfoAngle",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "InfoArea",
+            "defaultActionObjectName": "InfoArea",
+            "key": "InfoArea",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "InfoDist",
+            "defaultActionObjectName": "InfoDist",
+            "key": "InfoDist",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "InfoTotalLength",
+            "defaultActionObjectName": "InfoTotalLength",
+            "key": "InfoTotalLength",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "LayersAdd",
+            "defaultActionObjectName": "LayersAdd",
+            "key": "LayersAdd",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "LayersEdit",
+            "defaultActionObjectName": "LayersEdit",
+            "key": "LayersEdit",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "LayersToggleLock",
+            "defaultActionObjectName": "LayersToggleLock",
+            "key": "LayersToggleLock",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "LayersToggleView",
+            "defaultActionObjectName": "LayersToggleView",
+            "key": "LayersToggleView",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyCut",
+            "defaultActionObjectName": "ModifyCut",
+            "key": "ModifyCut",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyDeleteQuick",
+            "defaultActionObjectName": "ModifyDeleteQuick",
+            "key": "ModifyDeleteQuick",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyDuplicate",
+            "defaultActionObjectName": "ModifyDuplicate",
+            "key": "ModifyDuplicate",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyEntity",
+            "defaultActionObjectName": "ModifyEntity",
+            "key": "ModifyEntity",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyMirror",
+            "defaultActionObjectName": "ModifyMirror",
+            "key": "ModifyMirror",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyMove",
+            "defaultActionObjectName": "ModifyMove",
+            "key": "ModifyMove",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyOffset",
+            "defaultActionObjectName": "ModifyOffset",
+            "key": "ModifyOffset",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyRotate",
+            "defaultActionObjectName": "ModifyRotate",
+            "key": "ModifyRotate",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyRound",
+            "defaultActionObjectName": "ModifyRound",
+            "key": "ModifyRound",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyScale",
+            "defaultActionObjectName": "ModifyScale",
+            "key": "ModifyScale",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyTrim",
+            "defaultActionObjectName": "ModifyTrim",
+            "key": "ModifyTrim",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ModifyTrim2",
+            "defaultActionObjectName": "ModifyTrim2",
+            "key": "ModifyTrim2",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "PenApply",
+            "defaultActionObjectName": "PenApply",
+            "key": "PenApply",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "PenCopy",
+            "defaultActionObjectName": "PenCopy",
+            "key": "PenCopy",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "PenPick",
+            "defaultActionObjectName": "PenPick",
+            "key": "PenPick",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "PenPickResolved",
+            "defaultActionObjectName": "PenPickResolved",
+            "key": "PenPickResolved",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "PenSyncFromLayer",
+            "defaultActionObjectName": "PenSyncFromLayer",
+            "key": "PenSyncFromLayer",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "RestrictOrthogonal",
+            "defaultActionObjectName": "RestrictOrthogonal",
+            "key": "RestrictOrthogonal",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "SnapCenter",
+            "defaultActionObjectName": "SnapCenter",
+            "key": "SnapCenter",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "SnapEnd",
+            "defaultActionObjectName": "SnapEnd",
+            "key": "SnapEnd",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "SnapIntersection",
+            "defaultActionObjectName": "SnapIntersection",
+            "key": "SnapIntersection",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "SnapMiddle",
+            "defaultActionObjectName": "SnapMiddle",
+            "key": "SnapMiddle",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ViewGrid",
+            "defaultActionObjectName": "ViewGrid",
+            "key": "ViewGrid",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ZoomAuto",
+            "defaultActionObjectName": "ZoomAuto",
+            "key": "ZoomAuto",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ZoomIn",
+            "defaultActionObjectName": "ZoomIn",
+            "key": "ZoomIn",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ZoomOut",
+            "defaultActionObjectName": "ZoomOut",
+            "key": "ZoomOut",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ZoomPan",
+            "defaultActionObjectName": "ZoomPan",
+            "key": "ZoomPan",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ZoomPrevious",
+            "defaultActionObjectName": "ZoomPrevious",
+            "key": "ZoomPrevious",
+            "valid": true
+        },
+        {
+            "buttonActionKey": "ZoomWindow",
+            "defaultActionObjectName": "ZoomWindow",
+            "key": "ZoomWindow",
+            "valid": true
+        }
+    ],
+    "boundActionKeys": [
+        "BlocksCreate",
+        "BlocksEdit",
+        "BlocksExplode",
+        "BlocksImport",
+        "BlocksInsert",
+        "DimAligned",
+        "DimAngular",
+        "DimDiametric",
+        "DimLeader",
+        "DimLinear",
+        "DimLinearHor",
+        "DimLinearVer",
+        "DimRadial",
+        "DrawArc",
+        "DrawCircle",
+        "DrawHatch",
+        "DrawLine",
+        "DrawLineAngle",
+        "DrawLineHorizontal",
+        "DrawLineOrthogonal",
+        "DrawLineParallel",
+        "DrawLineRectangle",
+        "DrawLineVertical",
+        "DrawMText",
+        "DrawPolyline",
+        "DrawText",
+        "EditCopy",
+        "EditCut",
+        "EditPaste",
+        "EditRedo",
+        "EditUndo",
+        "FileExport",
+        "FileNew",
+        "FileOpen",
+        "FilePrint",
+        "FilePrintPDF",
+        "FilePrintPreview",
+        "FileSave",
+        "FileSaveAs",
+        "InfoAngle",
+        "InfoArea",
+        "InfoDist",
+        "InfoTotalLength",
+        "LayersAdd",
+        "LayersEdit",
+        "LayersToggleLock",
+        "LayersToggleView",
+        "ModifyCut",
+        "ModifyDeleteQuick",
+        "ModifyDuplicate",
+        "ModifyEntity",
+        "ModifyMirror",
+        "ModifyMove",
+        "ModifyOffset",
+        "ModifyRotate",
+        "ModifyRound",
+        "ModifyScale",
+        "ModifyTrim",
+        "ModifyTrim2",
+        "PenApply",
+        "PenCopy",
+        "PenPick",
+        "PenPickResolved",
+        "PenSyncFromLayer",
+        "RestrictOrthogonal",
+        "SnapCenter",
+        "SnapEnd",
+        "SnapIntersection",
+        "SnapMiddle",
+        "ViewGrid",
+        "ZoomAuto",
+        "ZoomIn",
+        "ZoomOut",
+        "ZoomPan",
+        "ZoomPrevious",
+        "ZoomWindow"
+    ],
+    "classicMenuBarVisible": true,
+    "classicNativeToolbarsRestored": true,
+    "classicPenActionsRestored": true,
+    "classicSampleAction": {
+        "key": "DrawLineBisector",
+        "presentInMenu": true
+    },
+    "colors": {
+        "accent": "#168DCE",
+        "active": "#176F9F",
+        "canvas": "#1E2225",
+        "control": "#4E5A6E",
+        "highlight": "#4CC2FF",
+        "mutedText": "#A7B0B7",
+        "primaryText": "#E8EBEF",
+        "ribbon": "#3B4453",
+        "shell": "#222933",
+        "statusActive": "#608FBF",
+        "statusBase": "#3B4453",
+        "statusEdge": "#252D37",
+        "statusHover": "#4E5A6E",
+        "statusPressed": "#334052",
+        "statusTop": "#526174"
+    },
+    "commandLine": {
+        "nativeBinding": true,
+        "present": true
+    },
+    "docks": [
+        {
+            "area": "right",
+            "objectName": "pen_wiz",
+            "visible": false
+        },
+        {
+            "area": "left",
+            "objectName": "dock_curve",
+            "visible": false
+        },
+        {
+            "area": "left",
+            "objectName": "dock_ellipse",
+            "visible": false
+        },
+        {
+            "area": "left",
+            "objectName": "dock_polyline",
+            "visible": false
+        },
+        {
+            "area": "left",
+            "objectName": "dock_select",
+            "visible": false
+        },
+        {
+            "area": "left",
+            "objectName": "dock_modify",
+            "visible": false
+        },
+        {
+            "area": "left",
+            "objectName": "dock_info",
+            "visible": false
+        },
+        {
+            "area": "left",
+            "objectName": "dock_order",
+            "visible": false
+        },
+        {
+            "area": "left",
+            "objectName": "dock_line",
+            "visible": false
+        },
+        {
+            "area": "left",
+            "objectName": "dock_circle",
+            "visible": false
+        },
+        {
+            "area": "left",
+            "objectName": "dock_dimension",
+            "visible": false
+        },
+        {
+            "area": "right",
+            "objectName": "pen_palette_dockwidget",
+            "visible": false
+        },
+        {
+            "area": "right",
+            "objectName": "layer_tree_dockwidget",
+            "visible": false
+        },
+        {
+            "area": "right",
+            "objectName": "block_dockwidget",
+            "visible": true
+        },
+        {
+            "area": "right",
+            "objectName": "library_dockwidget",
+            "visible": false
+        },
+        {
+            "area": "bottom",
+            "objectName": "command_dockwidget",
+            "visible": true
+        },
+        {
+            "area": "right",
+            "objectName": "layer_dockwidget",
+            "visible": true
+        },
+        {
+            "area": "right",
+            "objectName": "kuubikPropertiesDock",
+            "visible": true
+        }
+    ],
+    "dpi": {
+        "devicePixelRatio": 1,
+        "logicalDpiX": 96,
+        "logicalDpiY": 96,
+        "requestedScaleFactor": 1,
+        "screenshotDevicePixelRatio": 1,
+        "screenshotPixelHeight": 1080,
+        "screenshotPixelWidth": 1920,
+        "screenshotSaved": true,
+        "windowLogicalHeight": 1080,
+        "windowLogicalWidth": 1920
+    },
+    "idleScreenshotSaved": true,
+    "kuubikCurrentLayerSelector": {
+        "currentLayer": "0",
+        "embeddedInRibbon": true,
+        "enabled": true,
+        "minimumWidth": 180,
+        "nativeCurrentLayer": "0",
+        "present": true,
+        "width": 201
+    },
+    "kuubikPropertiesDock": {
+        "activeTabObjectName": "kuubikPropertiesDock",
+        "area": "right",
+        "minimumWidth": 280,
+        "modifyEntityNativeBinding": true,
+        "present": true,
+        "tabGroupObjectNames": [
+            "block_dockwidget",
+            "kuubikPropertiesDock",
+            "layer_dockwidget"
+        ],
+        "width": 320
+    },
+    "menuBarVisible": false,
+    "missingActionKeys": [
+    ],
+    "paletteSide": "right",
+    "product": "Kuubik Draw",
+    "ribbonInteraction": {
+        "gridAvailable": true,
+        "gridTriggerCount": 2,
+        "keyboardFocusReached": true,
+        "nativeEnabledMirroredAndRestored": true,
+        "nativePresentationChangesPreserveKuubik": true,
+        "nativeVisibilityPreserved": true,
+        "spaceRestoredNativeGrid": true,
+        "spaceToggledNativeGrid": true,
+        "status": "PASS",
+        "tabRestored": true,
+        "tabs": [
+            {
+                "activatedByMouse": true,
+                "hitRectContained": true,
+                "hitRectHeight": 26,
+                "hitRectWidth": 70,
+                "name": "Home",
+                "tabBarHeight": 26,
+                "tabBarWidth": 1915
+            },
+            {
+                "activatedByMouse": true,
+                "hitRectContained": true,
+                "hitRectHeight": 26,
+                "hitRectWidth": 69,
+                "name": "Insert",
+                "tabBarHeight": 26,
+                "tabBarWidth": 1915
+            },
+            {
+                "activatedByMouse": true,
+                "hitRectContained": true,
+                "hitRectHeight": 26,
+                "hitRectWidth": 86,
+                "name": "Annotate",
+                "tabBarHeight": 26,
+                "tabBarWidth": 1915
+            },
+            {
+                "activatedByMouse": true,
+                "hitRectContained": true,
+                "hitRectHeight": 26,
+                "hitRectWidth": 69,
+                "name": "View",
+                "tabBarHeight": 26,
+                "tabBarWidth": 1915
+            },
+            {
+                "activatedByMouse": true,
+                "hitRectContained": true,
+                "hitRectHeight": 26,
+                "hitRectWidth": 80,
+                "name": "Manage",
+                "tabBarHeight": 26,
+                "tabBarWidth": 1915
+            },
+            {
+                "activatedByMouse": true,
+                "hitRectContained": true,
+                "hitRectHeight": 26,
+                "hitRectWidth": 75,
+                "name": "Output",
+                "tabBarHeight": 26,
+                "tabBarWidth": 1915
+            }
+        ],
+        "tabsPassed": true
+    },
+    "ribbonLayout": {
+        "barContained": true,
+        "currentLayerInLayers": true,
+        "frameless": false,
+        "height": 151,
+        "implementation": "SARibbon",
+        "panels": [
+            {
+                "collapsed": false,
+                "contained": true,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "DrawLine",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 40,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "DrawPolyline",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 50,
+                        "x": 44,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "DrawCircle",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 40,
+                        "x": 95,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "DrawArc",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 40,
+                        "x": 136,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawLineRectangle",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 177,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawHatch",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 177,
+                        "y": 28
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 225,
+                "tab": "Home",
+                "title": "Draw",
+                "titleFits": true,
+                "titleVisible": true,
+                "unavailable": false,
+                "visible": true,
+                "width": 225,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": true,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "ModifyMove",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 40,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "ModifyDuplicate",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 40,
+                        "x": 44,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "ModifyTrim",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 40,
+                        "x": 85,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyTrim2",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 126,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyCut",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 126,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyOffset",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 153,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyRotate",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 153,
+                        "y": 45
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyMirror",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 180,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyScale",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 180,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyRound",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 180,
+                        "y": 54
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyDeleteQuick",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 207,
+                        "y": 2
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 250,
+                "tab": "Home",
+                "title": "Modify",
+                "titleFits": true,
+                "titleVisible": true,
+                "unavailable": false,
+                "visible": true,
+                "width": 250,
+                "x": 225,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": true,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawText",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 3,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawMText",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 3,
+                        "y": 45
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimLinear",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 30,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimAligned",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 30,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimLinearHor",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 30,
+                        "y": 54
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimLinearVer",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 57,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimRadial",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 57,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimDiametric",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 57,
+                        "y": 54
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimAngular",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 84,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimLeader",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 84,
+                        "y": 28
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 189,
+                "tab": "Home",
+                "title": "Annotation",
+                "titleFits": true,
+                "titleVisible": true,
+                "unavailable": false,
+                "visible": true,
+                "width": 189,
+                "x": 475,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": true,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "LayersAdd",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 213,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "LayersEdit",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 213,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "LayersToggleView",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 213,
+                        "y": 54
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "LayersToggleLock",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 240,
+                        "y": 2
+                    }
+                ],
+                "embeddedControls": [
+                    {
+                        "contained": true,
+                        "height": 26,
+                        "name": "kuubikCurrentLayerSelector",
+                        "visible": true,
+                        "width": 201
+                    }
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 273,
+                "tab": "Home",
+                "title": "Layers",
+                "titleFits": true,
+                "titleVisible": true,
+                "unavailable": false,
+                "visible": true,
+                "width": 273,
+                "x": 664,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": true,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "BlocksInsert",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 69,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksCreate",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 73,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksEdit",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 73,
+                        "y": 45
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksExplode",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 100,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksImport",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 100,
+                        "y": 28
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 161,
+                "tab": "Home",
+                "title": "Block",
+                "titleFits": true,
+                "titleVisible": true,
+                "unavailable": false,
+                "visible": true,
+                "width": 161,
+                "x": 937,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": true,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyEntity",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 206,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "PenSyncFromLayer",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 206,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "PenPick",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 206,
+                        "y": 54
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "PenPickResolved",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 233,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "PenApply",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 233,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "PenCopy",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 233,
+                        "y": 54
+                    }
+                ],
+                "embeddedControls": [
+                    {
+                        "contained": true,
+                        "height": 21,
+                        "name": "colorbox",
+                        "visible": true,
+                        "width": 202
+                    },
+                    {
+                        "contained": true,
+                        "height": 21,
+                        "name": "widthbox",
+                        "visible": true,
+                        "width": 202
+                    },
+                    {
+                        "contained": true,
+                        "height": 21,
+                        "name": "lineTypebox",
+                        "visible": true,
+                        "width": 202
+                    }
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 262,
+                "tab": "Home",
+                "title": "Properties",
+                "titleFits": true,
+                "titleVisible": true,
+                "unavailable": false,
+                "visible": true,
+                "width": 262,
+                "x": 1098,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": true,
+                "controls": [
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 72,
+                "tab": "Home",
+                "title": "Groups",
+                "titleFits": true,
+                "titleVisible": true,
+                "unavailable": true,
+                "unavailableEnabled": false,
+                "unavailableTooltip": "Groups are unavailable in Kuubik Draw. Blocks are not groups.",
+                "visible": true,
+                "width": 72,
+                "x": 1360,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": true,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "InfoDist",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "InfoAngle",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 3,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "InfoArea",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 3,
+                        "y": 54
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "InfoTotalLength",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 30,
+                        "y": 2
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 97,
+                "tab": "Home",
+                "title": "Utilities",
+                "titleFits": true,
+                "titleVisible": true,
+                "unavailable": false,
+                "visible": true,
+                "width": 97,
+                "x": 1432,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": true,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "EditCut",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 54,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "EditCopy",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 63,
+                        "x": 3,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "EditPaste",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 63,
+                        "x": 3,
+                        "y": 54
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 91,
+                "tab": "Home",
+                "title": "Clipboard",
+                "titleFits": true,
+                "titleVisible": true,
+                "unavailable": false,
+                "visible": true,
+                "width": 91,
+                "x": 1529,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": true,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ZoomAuto",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ZoomWindow",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 3,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ZoomPan",
+                        "nativeIdentity": true,
+                        "visible": true,
+                        "width": 26,
+                        "x": 3,
+                        "y": 54
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 53,
+                "tab": "Home",
+                "title": "View",
+                "titleFits": true,
+                "titleVisible": true,
+                "unavailable": false,
+                "visible": true,
+                "width": 53,
+                "x": 1620,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "BlocksInsert",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 69,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksCreate",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 105,
+                        "x": 73,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksEdit",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 87,
+                        "x": 73,
+                        "y": 45
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksExplode",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 77,
+                        "x": 179,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksImport",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 64,
+                        "x": 179,
+                        "y": 28
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "Insert",
+                "title": "Blocks",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 259,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "DrawText",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 40,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawMText",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 71,
+                        "x": 44,
+                        "y": 11
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "Annotate",
+                "title": "Text",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 118,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "DimLinear",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 40,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimAligned",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 80,
+                        "x": 44,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimLinearHor",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 90,
+                        "x": 44,
+                        "y": 45
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimLinearVer",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 73,
+                        "x": 135,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimRadial",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 67,
+                        "x": 135,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimDiametric",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 86,
+                        "x": 135,
+                        "y": 54
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimAngular",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 77,
+                        "x": 222,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimLeader",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 70,
+                        "x": 222,
+                        "y": 28
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "Annotate",
+                "title": "Dimensions",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 302,
+                "x": 118,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "DrawLine",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 40,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawLineAngle",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 66,
+                        "x": 44,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawLineHorizontal",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 90,
+                        "x": 44,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawLineVertical",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 73,
+                        "x": 44,
+                        "y": 54
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawLineParallel",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 73,
+                        "x": 135,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawLineOrthogonal",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 96,
+                        "x": 135,
+                        "y": 28
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "Annotate",
+                "title": "Lines",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 234,
+                "x": 420,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "DrawHatch",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 40,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyOffset",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 71,
+                        "x": 44,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyTrim",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 62,
+                        "x": 44,
+                        "y": 45
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyCut",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 68,
+                        "x": 116,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawText",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 56,
+                        "x": 116,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DrawMText",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 67,
+                        "x": 116,
+                        "y": 54
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimLinear",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 67,
+                        "x": 185,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "DimLeader",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 70,
+                        "x": 185,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksInsert",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 96,
+                        "x": 185,
+                        "y": 54
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "Annotate",
+                "title": "Cuts & Details",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 284,
+                "x": 654,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "ZoomAuto",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 69,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ZoomIn",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 84,
+                        "x": 73,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ZoomOut",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 94,
+                        "x": 73,
+                        "y": 45
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ZoomPrevious",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 108,
+                        "x": 168,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ZoomWindow",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 114,
+                        "x": 168,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ZoomPan",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 114,
+                        "x": 168,
+                        "y": 54
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "View",
+                "title": "Navigate",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 285,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ViewGrid",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 61,
+                        "x": 3,
+                        "y": 11
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "View",
+                "title": "Display",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 67,
+                "x": 285,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "SnapEnd",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 134,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "SnapMiddle",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 101,
+                        "x": 3,
+                        "y": 28
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "SnapCenter",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 99,
+                        "x": 3,
+                        "y": 54
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "SnapIntersection",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 126,
+                        "x": 138,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "RestrictOrthogonal",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 138,
+                        "x": 138,
+                        "y": 28
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "View",
+                "title": "Snaps",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 279,
+                "x": 352,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 77,
+                        "key": "LayersAdd",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 61,
+                        "x": 3,
+                        "y": 2
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "LayersEdit",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 90,
+                        "x": 65,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "LayersToggleView",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 148,
+                        "x": 65,
+                        "y": 45
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "LayersToggleLock",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 129,
+                        "x": 214,
+                        "y": 2
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "Manage",
+                "title": "Layers",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 346,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksCreate",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 105,
+                        "x": 3,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksEdit",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 87,
+                        "x": 3,
+                        "y": 45
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "BlocksExplode",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 77,
+                        "x": 109,
+                        "y": 2
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "Manage",
+                "title": "Blocks",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 189,
+                "x": 346,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "ModifyEntity",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 92,
+                        "x": 3,
+                        "y": 11
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "Manage",
+                "title": "Properties",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 98,
+                "x": 535,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "FileSaveAs",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 86,
+                        "x": 3,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "FileExport",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 123,
+                        "x": 3,
+                        "y": 45
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "Output",
+                "title": "File",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 129,
+                "x": 0,
+                "y": 0
+            },
+            {
+                "collapsed": false,
+                "contained": false,
+                "controls": [
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "FilePrintPreview",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 108,
+                        "x": 3,
+                        "y": 11
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "FilePrintPDF",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 111,
+                        "x": 3,
+                        "y": 45
+                    },
+                    {
+                        "contained": true,
+                        "enabledMatchesNative": true,
+                        "height": 25,
+                        "key": "FilePrint",
+                        "nativeIdentity": true,
+                        "visible": false,
+                        "width": 69,
+                        "x": 115,
+                        "y": 2
+                    }
+                ],
+                "embeddedControls": [
+                ],
+                "height": 96,
+                "pageWidth": 1920,
+                "referenceWidth": 0,
+                "tab": "Output",
+                "title": "Plot",
+                "titleFits": true,
+                "titleVisible": false,
+                "unavailable": false,
+                "visible": false,
+                "width": 187,
+                "x": 129,
+                "y": 0
+            }
+        ],
+        "penInProperties": true,
+        "tabs": [
+            "Home",
+            "Insert",
+            "Annotate",
+            "View",
+            "Manage",
+            "Output"
+        ],
+        "version": "2.9.0",
+        "width": 1920
+    },
+    "ribbonPanels": [
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "BlocksInsert",
+                "BlocksCreate",
+                "BlocksEdit",
+                "BlocksExplode",
+                "BlocksImport"
+            ],
+            "collapsed": false,
+            "tab": "Insert",
+            "title": "Blocks",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "DrawText",
+                "DrawMText"
+            ],
+            "collapsed": false,
+            "tab": "Annotate",
+            "title": "Text",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "DimLinear",
+                "DimAligned",
+                "DimLinearHor",
+                "DimLinearVer",
+                "DimRadial",
+                "DimDiametric",
+                "DimAngular",
+                "DimLeader"
+            ],
+            "collapsed": false,
+            "tab": "Annotate",
+            "title": "Dimensions",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "DrawLine",
+                "DrawLineAngle",
+                "DrawLineHorizontal",
+                "DrawLineVertical",
+                "DrawLineParallel",
+                "DrawLineOrthogonal"
+            ],
+            "collapsed": false,
+            "tab": "Annotate",
+            "title": "Lines",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "DrawHatch",
+                "ModifyOffset",
+                "ModifyTrim",
+                "ModifyCut",
+                "DrawText",
+                "DrawMText",
+                "DimLinear",
+                "DimLeader",
+                "BlocksInsert"
+            ],
+            "collapsed": false,
+            "tab": "Annotate",
+            "title": "Cuts & Details",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "LayersAdd",
+                "LayersEdit",
+                "LayersToggleView",
+                "LayersToggleLock"
+            ],
+            "collapsed": false,
+            "tab": "Manage",
+            "title": "Layers",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "BlocksCreate",
+                "BlocksEdit",
+                "BlocksExplode"
+            ],
+            "collapsed": false,
+            "tab": "Manage",
+            "title": "Blocks",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "ModifyEntity"
+            ],
+            "collapsed": false,
+            "tab": "Manage",
+            "title": "Properties",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "FileSaveAs",
+                "FileExport"
+            ],
+            "collapsed": false,
+            "tab": "Output",
+            "title": "File",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "FilePrintPreview",
+                "FilePrintPDF",
+                "FilePrint"
+            ],
+            "collapsed": false,
+            "tab": "Output",
+            "title": "Plot",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "ZoomAuto",
+                "ZoomIn",
+                "ZoomOut",
+                "ZoomPrevious",
+                "ZoomWindow",
+                "ZoomPan"
+            ],
+            "collapsed": false,
+            "tab": "View",
+            "title": "Navigate",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "ViewGrid"
+            ],
+            "collapsed": false,
+            "tab": "View",
+            "title": "Display",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "SnapEnd",
+                "SnapMiddle",
+                "SnapCenter",
+                "SnapIntersection",
+                "RestrictOrthogonal"
+            ],
+            "collapsed": false,
+            "tab": "View",
+            "title": "Snaps",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "DrawLine",
+                "DrawPolyline",
+                "DrawCircle",
+                "DrawArc",
+                "DrawLineRectangle",
+                "DrawHatch"
+            ],
+            "collapsed": false,
+            "tab": "Home",
+            "title": "Draw",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "ModifyMove",
+                "ModifyDuplicate",
+                "ModifyTrim",
+                "ModifyTrim2",
+                "ModifyCut",
+                "ModifyOffset",
+                "ModifyRotate",
+                "ModifyMirror",
+                "ModifyScale",
+                "ModifyRound",
+                "ModifyDeleteQuick"
+            ],
+            "collapsed": false,
+            "tab": "Home",
+            "title": "Modify",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "DrawText",
+                "DrawMText",
+                "DimLinear",
+                "DimAligned",
+                "DimLinearHor",
+                "DimLinearVer",
+                "DimRadial",
+                "DimDiametric",
+                "DimAngular",
+                "DimLeader"
+            ],
+            "collapsed": false,
+            "tab": "Home",
+            "title": "Annotation",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "LayersAdd",
+                "LayersEdit",
+                "LayersToggleView",
+                "LayersToggleLock"
+            ],
+            "collapsed": false,
+            "tab": "Home",
+            "title": "Layers",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "BlocksInsert",
+                "BlocksCreate",
+                "BlocksEdit",
+                "BlocksExplode",
+                "BlocksImport"
+            ],
+            "collapsed": false,
+            "tab": "Home",
+            "title": "Block",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "ModifyEntity",
+                "PenSyncFromLayer",
+                "PenPick",
+                "PenPickResolved",
+                "PenApply",
+                "PenCopy"
+            ],
+            "collapsed": false,
+            "tab": "Home",
+            "title": "Properties",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": false,
+            "actionKeys": [
+            ],
+            "collapsed": false,
+            "tab": "Home",
+            "title": "Groups",
+            "unavailable": true
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "InfoDist",
+                "InfoAngle",
+                "InfoArea",
+                "InfoTotalLength"
+            ],
+            "collapsed": false,
+            "tab": "Home",
+            "title": "Utilities",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "EditCut",
+                "EditCopy",
+                "EditPaste"
+            ],
+            "collapsed": false,
+            "tab": "Home",
+            "title": "Clipboard",
+            "unavailable": false
+        },
+        {
+            "actionIdentityValid": true,
+            "actionKeys": [
+                "ZoomAuto",
+                "ZoomWindow",
+                "ZoomPan"
+            ],
+            "collapsed": false,
+            "tab": "Home",
+            "title": "View",
+            "unavailable": false
+        }
+    ],
+    "ribbonVisible": true,
+    "schemaVersion": 2,
+    "statusBar": {
+        "coordinateDisplayPresent": true,
+        "coordinateModeCount": 4,
+        "customIconClickTests": 3,
+        "customIconsStableAfterClick": true,
+        "customizationButtonPresent": true,
+        "customizationEntries": [
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "Coordinates",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "ModelSpace",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "Grid",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "SnapMode",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "InferConstraints",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "DynamicInput",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "OrthoMode",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "SnapAngle",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "IsometricDrafting",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "SnapTracking",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "ObjectSnap",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "Lineweight",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "ViewportMaximize",
+                "unavailable": true
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "AnnotationVisibility",
+                "unavailable": true
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "AnnotationAutoScale",
+                "unavailable": true
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "AnnotationScale",
+                "unavailable": true
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "ViewportLock",
+                "unavailable": true
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "ViewportScale",
+                "unavailable": true
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "ViewportScaleSync",
+                "unavailable": true
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "AnnotationMonitor",
+                "unavailable": true
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "QuickProperties",
+                "unavailable": false
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "GraphicsPerformance",
+                "unavailable": true
+            },
+            {
+                "checkable": true,
+                "checked": true,
+                "controlPresent": true,
+                "enabled": true,
+                "key": "CleanScreen",
+                "unavailable": false
+            }
+        ],
+        "customizationMenuPresent": true,
+        "customizationToggleRoundTrip": true,
+        "m2StatusVisual": {
+            "allPlaceholdersVisibleAtNormalWidth": true,
+            "customizationBoundary": {
+                "adjacent": true,
+                "afterColor": "#3B4453",
+                "beforeColor": "#3B4453",
+                "cleanScreenHeight": 24,
+                "cleanScreenPresent": true,
+                "cleanScreenRight": 1889,
+                "cleanScreenWidth": 29,
+                "customizeHeight": 24,
+                "customizeIconHeight": 18,
+                "customizeIconWidth": 18,
+                "customizeLeft": 1890,
+                "customizePresent": true,
+                "customizeReferencePage": 32,
+                "customizeWidth": 30,
+                "dividerColor": "#252D37",
+                "geometryExact": true,
+                "passed": true,
+                "renderedDividerLogicalPixels": 1
+            },
+            "customizationBoundaryPassed": true,
+            "fixedGeometryExact": true,
+            "logicalHeight": 28,
+            "menuGlyphResourcesNonNull": true,
+            "narrowActualWidth": 1500,
+            "narrowHiddenPlaceholders": [
+            ],
+            "narrowItemsUnclipped": true,
+            "narrowTargetWidth": 1500,
+            "nativeControlsPreservedWhenNarrow": true,
+            "normalWidth": 1920,
+            "overflowHidePriority": [
+                "GraphicsPerformance",
+                "AnnotationMonitor",
+                "ViewportScaleSync",
+                "ViewportScale",
+                "ViewportLock",
+                "AnnotationScale",
+                "AnnotationAutoScale",
+                "AnnotationVisibility",
+                "ViewportMaximize"
+            ],
+            "overflowPriorityCorrect": false,
+            "placeholderCount": 9,
+            "placeholderIconsAvailable": true,
+            "placeholderSemanticsPassed": true,
+            "placeholders": [
+                {
+                    "accessibleName": "Viewport Maximize - unavailable in Kuubik Draw",
+                    "checkable": false,
+                    "checked": false,
+                    "enabled": false,
+                    "hasFakeMenu": false,
+                    "iconPath": ":/icons/kuubik/view/status-viewport-maximize.svg",
+                    "iconResourceNonNull": true,
+                    "key": "ViewportMaximize",
+                    "noFocus": true,
+                    "present": true,
+                    "referencePage": 17,
+                    "tooltip": "Viewport Maximize is unavailable in Kuubik Draw.",
+                    "visibilityActionEnabled": true,
+                    "visibleAtNormalWidth": true
+                },
+                {
+                    "accessibleName": "Annotation Visibility - unavailable in Kuubik Draw",
+                    "checkable": false,
+                    "checked": false,
+                    "enabled": false,
+                    "hasFakeMenu": false,
+                    "iconPath": ":/icons/kuubik/view/status-annotation-visibility.svg",
+                    "iconResourceNonNull": true,
+                    "key": "AnnotationVisibility",
+                    "noFocus": true,
+                    "present": true,
+                    "referencePage": 18,
+                    "tooltip": "Annotation Visibility is unavailable in Kuubik Draw.",
+                    "visibilityActionEnabled": true,
+                    "visibleAtNormalWidth": true
+                },
+                {
+                    "accessibleName": "Annotation AutoScale - unavailable in Kuubik Draw",
+                    "checkable": false,
+                    "checked": false,
+                    "enabled": false,
+                    "hasFakeMenu": false,
+                    "iconPath": ":/icons/kuubik/view/status-annotation-auto-scale.svg",
+                    "iconResourceNonNull": true,
+                    "key": "AnnotationAutoScale",
+                    "noFocus": true,
+                    "present": true,
+                    "referencePage": 19,
+                    "tooltip": "Annotation AutoScale is unavailable in Kuubik Draw.",
+                    "visibilityActionEnabled": true,
+                    "visibleAtNormalWidth": true
+                },
+                {
+                    "accessibleName": "Annotation Scale - unavailable in Kuubik Draw",
+                    "checkable": false,
+                    "checked": false,
+                    "enabled": false,
+                    "hasFakeMenu": false,
+                    "iconPath": ":/icons/kuubik/view/status-annotation-scale.svg",
+                    "iconResourceNonNull": true,
+                    "key": "AnnotationScale",
+                    "noFocus": true,
+                    "present": true,
+                    "referencePage": 20,
+                    "tooltip": "Annotation Scale is unavailable in Kuubik Draw.",
+                    "visibilityActionEnabled": true,
+                    "visibleAtNormalWidth": true
+                },
+                {
+                    "accessibleName": "Viewport Lock - unavailable in Kuubik Draw",
+                    "checkable": false,
+                    "checked": false,
+                    "enabled": false,
+                    "hasFakeMenu": false,
+                    "iconPath": ":/icons/kuubik/view/status-viewport-lock.svg",
+                    "iconResourceNonNull": true,
+                    "key": "ViewportLock",
+                    "noFocus": true,
+                    "present": true,
+                    "referencePage": 21,
+                    "tooltip": "Viewport Lock is unavailable in Kuubik Draw.",
+                    "visibilityActionEnabled": true,
+                    "visibleAtNormalWidth": true
+                },
+                {
+                    "accessibleName": "Viewport Scale - unavailable in Kuubik Draw",
+                    "checkable": false,
+                    "checked": false,
+                    "enabled": false,
+                    "hasFakeMenu": false,
+                    "iconPath": ":/icons/kuubik/view/status-viewport-scale.svg",
+                    "iconResourceNonNull": true,
+                    "key": "ViewportScale",
+                    "noFocus": true,
+                    "present": true,
+                    "referencePage": 22,
+                    "tooltip": "Viewport Scale is unavailable in Kuubik Draw.",
+                    "visibilityActionEnabled": true,
+                    "visibleAtNormalWidth": true
+                },
+                {
+                    "accessibleName": "Viewport Scale Sync - unavailable in Kuubik Draw",
+                    "checkable": false,
+                    "checked": false,
+                    "enabled": false,
+                    "hasFakeMenu": false,
+                    "iconPath": ":/icons/kuubik/view/status-viewport-scale-sync.svg",
+                    "iconResourceNonNull": true,
+                    "key": "ViewportScaleSync",
+                    "noFocus": true,
+                    "present": true,
+                    "referencePage": 23,
+                    "tooltip": "Viewport Scale Sync is unavailable in Kuubik Draw.",
+                    "visibilityActionEnabled": true,
+                    "visibleAtNormalWidth": true
+                },
+                {
+                    "accessibleName": "Annotation Monitor - unavailable in Kuubik Draw",
+                    "checkable": false,
+                    "checked": false,
+                    "enabled": false,
+                    "hasFakeMenu": false,
+                    "iconPath": ":/icons/kuubik/view/status-annotation-monitor.svg",
+                    "iconResourceNonNull": true,
+                    "key": "AnnotationMonitor",
+                    "noFocus": true,
+                    "present": true,
+                    "referencePage": 25,
+                    "tooltip": "Annotation Monitor is unavailable in Kuubik Draw.",
+                    "visibilityActionEnabled": true,
+                    "visibleAtNormalWidth": true
+                },
+                {
+                    "accessibleName": "Graphics Performance - unavailable in Kuubik Draw",
+                    "checkable": false,
+                    "checked": false,
+                    "enabled": false,
+                    "hasFakeMenu": false,
+                    "iconPath": ":/icons/kuubik/view/status-graphics-performance.svg",
+                    "iconResourceNonNull": true,
+                    "key": "GraphicsPerformance",
+                    "noFocus": true,
+                    "present": true,
+                    "referencePage": 29,
+                    "tooltip": "Graphics Performance is unavailable in Kuubik Draw.",
+                    "visibilityActionEnabled": true,
+                    "visibleAtNormalWidth": true
+                }
+            ],
+            "referenceEndPage": 32,
+            "referenceOrderExact": true,
+            "referenceStartPage": 14,
+            "resizeOverflowCoalescing": {
+                "burstResizeEvents": 65,
+                "dispatchedUpdates": 1,
+                "intervalMilliseconds": 0,
+                "passed": true,
+                "pendingBeforeDispatch": true,
+                "singleShot": true,
+                "timerPresent": true
+            },
+            "resizeOverflowCoalescingPassed": true,
+            "restoredAfterNarrow": true,
+            "rowItems": [
+                {
+                    "height": 24,
+                    "key": "Coordinates",
+                    "left": 1002,
+                    "placeholder": false,
+                    "referencePage": 3,
+                    "top": 3,
+                    "visible": true,
+                    "width": 184
+                },
+                {
+                    "height": 24,
+                    "key": "ModelSpace",
+                    "left": 1186,
+                    "placeholder": false,
+                    "referencePage": 4,
+                    "top": 3,
+                    "visible": true,
+                    "width": 51
+                },
+                {
+                    "height": 24,
+                    "key": "Grid",
+                    "left": 1237,
+                    "placeholder": false,
+                    "referencePage": 5,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "SnapMode",
+                    "left": 1266,
+                    "placeholder": false,
+                    "referencePage": 6,
+                    "top": 3,
+                    "visible": true,
+                    "width": 38
+                },
+                {
+                    "height": 24,
+                    "key": "InferConstraints",
+                    "left": 1304,
+                    "placeholder": false,
+                    "referencePage": 7,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "DynamicInput",
+                    "left": 1333,
+                    "placeholder": false,
+                    "referencePage": 8,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "OrthoMode",
+                    "left": 1362,
+                    "placeholder": false,
+                    "referencePage": 9,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "SnapAngle",
+                    "left": 1391,
+                    "placeholder": false,
+                    "referencePage": 10,
+                    "top": 3,
+                    "visible": true,
+                    "width": 38
+                },
+                {
+                    "height": 24,
+                    "key": "IsometricDrafting",
+                    "left": 1429,
+                    "placeholder": false,
+                    "referencePage": 11,
+                    "top": 3,
+                    "visible": true,
+                    "width": 42
+                },
+                {
+                    "height": 24,
+                    "key": "SnapTracking",
+                    "left": 1471,
+                    "placeholder": false,
+                    "referencePage": 12,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "ObjectSnap",
+                    "left": 1500,
+                    "placeholder": false,
+                    "referencePage": 13,
+                    "top": 3,
+                    "visible": true,
+                    "width": 42
+                },
+                {
+                    "height": 24,
+                    "key": "Lineweight",
+                    "left": 1542,
+                    "placeholder": false,
+                    "referencePage": 14,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "ViewportMaximize",
+                    "left": 1571,
+                    "placeholder": true,
+                    "referencePage": 17,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "AnnotationVisibility",
+                    "left": 1600,
+                    "placeholder": true,
+                    "referencePage": 18,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "AnnotationAutoScale",
+                    "left": 1629,
+                    "placeholder": true,
+                    "referencePage": 19,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "AnnotationScale",
+                    "left": 1658,
+                    "placeholder": true,
+                    "referencePage": 20,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "ViewportLock",
+                    "left": 1687,
+                    "placeholder": true,
+                    "referencePage": 21,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "ViewportScale",
+                    "left": 1716,
+                    "placeholder": true,
+                    "referencePage": 22,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "ViewportScaleSync",
+                    "left": 1745,
+                    "placeholder": true,
+                    "referencePage": 23,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "AnnotationMonitor",
+                    "left": 1774,
+                    "placeholder": true,
+                    "referencePage": 25,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "QuickProperties",
+                    "left": 1803,
+                    "placeholder": false,
+                    "referencePage": 27,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "GraphicsPerformance",
+                    "left": 1832,
+                    "placeholder": true,
+                    "referencePage": 29,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                },
+                {
+                    "height": 24,
+                    "key": "CleanScreen",
+                    "left": 1861,
+                    "placeholder": false,
+                    "referencePage": 30,
+                    "top": 3,
+                    "visible": true,
+                    "width": 29
+                }
+            ],
+            "rowItemsUnclipped": true,
+            "rowKeys": [
+                "Coordinates",
+                "ModelSpace",
+                "Grid",
+                "SnapMode",
+                "InferConstraints",
+                "DynamicInput",
+                "OrthoMode",
+                "SnapAngle",
+                "IsometricDrafting",
+                "SnapTracking",
+                "ObjectSnap",
+                "Lineweight",
+                "ViewportMaximize",
+                "AnnotationVisibility",
+                "AnnotationAutoScale",
+                "AnnotationScale",
+                "ViewportLock",
+                "ViewportScale",
+                "ViewportScaleSync",
+                "AnnotationMonitor",
+                "QuickProperties",
+                "GraphicsPerformance",
+                "CleanScreen"
+            ],
+            "sampledColors": {
+                "active": "#608FBF",
+                "base": "#3B4453",
+                "bottom": "#252D37",
+                "coordinateSurface": "#3B4453",
+                "disabledSurface": "#3B4453",
+                "divider": "#252D37",
+                "hover": "#4E5A6E",
+                "modelSurface": "#3B4453",
+                "pressed": "#334052",
+                "top": "#526174"
+            },
+            "splitCellWidth": 38,
+            "standardCellHeight": 24,
+            "standardCellWidth": 29,
+            "statusBarScreenshotDevicePixelRatio": 1,
+            "statusBarScreenshotFile": "status-bar.png",
+            "statusBarScreenshotPixelHeight": 28,
+            "statusBarScreenshotPixelWidth": 1920,
+            "statusBarScreenshotSaved": true,
+            "userHiddenPreferencePreserved": true,
+            "visibilityActionsEnabled": true,
+            "wideSplitCellWidth": 42,
+            "zeroInterCellGaps": true
+        },
+        "menuScreenshotHeight": 0,
+        "menuScreenshotSaved": true,
+        "menuScreenshotWidth": 0,
+        "menuWithinScreen": false,
+        "osnapModeCount": 14,
+        "referencePdfFirstFive": {
+            "classicCoordinateSlotRestored": true,
+            "coordinateCompactWidth": 184,
+            "coordinateDisplaysZ": true,
+            "coordinateModelGridOrdered": true,
+            "coordinateModelGridSingleRow": true,
+            "coordinatesVisibleByDefault": true,
+            "gridSettingsMenuPresent": true,
+            "gridStateSynchronized": true,
+            "gridTooltipMatchesReference": true,
+            "modelIndicatorText": "MODEL",
+            "referencePageCount": 5,
+            "statusBarHeight": 28
+        },
+        "referencePdfPageThirtyThreeShortcuts": {
+            "f11ActualKeyEvents": true,
+            "f11Registered": true,
+            "f11UsesTrackingToggle": true,
+            "f3ActualKeyEvents": true,
+            "f3PreservesNonObjectSnapBits": true,
+            "f3Registered": true,
+            "f3UsesOsnapMainToggle": true,
+            "fullscreenF11Removed": true,
+            "passed": true
+        },
+        "referencePdfPagesSixToEleven": {
+            "dynamicF12Shortcut": true,
+            "dynamicSettingsPresent": true,
+            "inferenceIsHonestlyNonPersistent": true,
+            "inferenceUsesNativeSnapBundle": true,
+            "isometricCtrlEShortcut": true,
+            "isometricF5Shortcut": true,
+            "isometricPlanesRoundTrip": true,
+            "isoplaneCount": 3,
+            "orthoF8Shortcut": true,
+            "orthoNativeBinding": true,
+            "pageControlsOrdered": true,
+            "pageControlsVisible": true,
+            "polarF10Shortcut": true,
+            "polarPresetCount": 8,
+            "polarSnapEngineQuantizes": true,
+            "referenceEndPage": 11,
+            "referencePageCount": 6,
+            "referenceStartPage": 6,
+            "snapF9Shortcut": true,
+            "snapModeChoiceCount": 2,
+            "snapSettingsOnRightClick": true
+        },
+        "referencePdfPagesTwelveToThirteen": {
+            "f11ActualKeyEvents": true,
+            "f3ActualKeyEvents": true,
+            "osnapControlVisible": true,
+            "osnapMouseKeyboardSynchronized": true,
+            "osnapNonObjectBitsPreserved": true,
+            "osnapPriorSetPersisted": true,
+            "osnapReferencePage": 13,
+            "osnapStateRoundTrip": true,
+            "passed": true,
+            "phaseThreeDefaultsMissingVisible": true,
+            "phaseThreePreservesExplicitHidden": true,
+            "referenceEndPage": 13,
+            "referencePageCount": 2,
+            "referenceStartPage": 12,
+            "snapFamilies": {
+                "allFamiliesViaSnapPoint": true,
+                "apparentIntersection": {
+                    "actualX": 76,
+                    "actualY": 0,
+                    "error": 0,
+                    "expectedX": 76,
+                    "expectedY": 0,
+                    "passed": true
+                },
+                "center": {
+                    "actualX": 20,
+                    "actualY": 0,
+                    "error": 0,
+                    "expectedX": 20,
+                    "expectedY": 0,
+                    "passed": true
+                },
+                "dispatchPath": "RS_Snapper::snapPoint(QMouseEvent*)",
+                "distance": {
+                    "actualX": 1,
+                    "actualY": 0,
+                    "error": 0,
+                    "expectedX": 1,
+                    "expectedY": 0,
+                    "passed": true
+                },
+                "endpoint": {
+                    "actualX": 0,
+                    "actualY": 0,
+                    "error": 0,
+                    "expectedX": 0,
+                    "expectedY": 0,
+                    "passed": true
+                },
+                "extension": {
+                    "actualX": 12,
+                    "actualY": 0,
+                    "error": 0,
+                    "expectedX": 12,
+                    "expectedY": 0,
+                    "passed": true
+                },
+                "geometricCenter": {
+                    "actualX": 55,
+                    "actualY": 5,
+                    "error": 0,
+                    "expectedX": 55,
+                    "expectedY": 5,
+                    "passed": true
+                },
+                "helperOnlyFamilies": [
+                ],
+                "insertion": {
+                    "actualX": 40,
+                    "actualY": 5,
+                    "error": 0,
+                    "expectedX": 40,
+                    "expectedY": 5,
+                    "passed": true
+                },
+                "intersection": {
+                    "actualX": 5,
+                    "actualY": 0,
+                    "error": 0,
+                    "expectedX": 5,
+                    "expectedY": 0,
+                    "passed": true
+                },
+                "midpoint": {
+                    "actualX": 5,
+                    "actualY": 0,
+                    "error": 0,
+                    "expectedX": 5,
+                    "expectedY": 0,
+                    "passed": true
+                },
+                "nearest": {
+                    "actualX": 2,
+                    "actualY": 0,
+                    "error": 0,
+                    "expectedX": 2,
+                    "expectedY": 0,
+                    "passed": true
+                },
+                "node": {
+                    "actualX": 30,
+                    "actualY": 5,
+                    "error": 0,
+                    "expectedX": 30,
+                    "expectedY": 5,
+                    "passed": true
+                },
+                "parallel": {
+                    "actualX": 9.219544457292887,
+                    "actualY": 9.999999999999998,
+                    "error": 1.7763568394002505e-15,
+                    "expectedX": 9.219544457292887,
+                    "expectedY": 10,
+                    "passed": true
+                },
+                "passed": true,
+                "perpendicular": {
+                    "actualX": 3,
+                    "actualY": 0,
+                    "error": 0,
+                    "expectedX": 3,
+                    "expectedY": 0,
+                    "passed": true
+                },
+                "quadrant": {
+                    "actualX": 25,
+                    "actualY": 0,
+                    "error": 0,
+                    "expectedX": 25,
+                    "expectedY": 0,
+                    "passed": true
+                },
+                "tangent": {
+                    "actualX": 22.5,
+                    "actualY": 4.3301270189221945,
+                    "error": 1.7763568394002505e-15,
+                    "expectedX": 22.5,
+                    "expectedY": 4.330127018922193,
+                    "passed": true
+                }
+            },
+            "trackingControlVisible": true,
+            "trackingGeometry": {
+                "acquisitionKeyEntityPresent": true,
+                "candidateAcquired": true,
+                "disabledClearsAcquisition": true,
+                "documentEntitiesUnchanged": true,
+                "documentEntityCountAfter": 2,
+                "documentEntityCountBefore": 2,
+                "gridSnapPrecedence": true,
+                "keyEntityNullForTracking": true,
+                "objectSnapPrecedence": true,
+                "orthoRestrictionPrecedence": true,
+                "orthogonalGuideVisible": true,
+                "orthogonalOverlayLine": {
+                    "end": {
+                        "actualX": 876,
+                        "actualY": 390,
+                        "error": 0,
+                        "expectedX": 876,
+                        "expectedY": 390,
+                        "passed": true
+                    },
+                    "entityType": "RS_OverlayLine",
+                    "lineFound": true,
+                    "overlayContainer": "RS2::Snapper",
+                    "overlayLineCount": 1,
+                    "passed": true,
+                    "start": {
+                        "actualX": 796,
+                        "actualY": 390,
+                        "error": 0,
+                        "expectedX": 796,
+                        "expectedY": 390,
+                        "passed": true
+                    }
+                },
+                "orthogonalProjection": {
+                    "actualX": 206.5,
+                    "actualY": 82.25,
+                    "error": 0,
+                    "expectedX": 206.5,
+                    "expectedY": 82.25,
+                    "passed": true
+                },
+                "orthogonalProjectionWithSnapFreeDisabled": true,
+                "overlayOnly": true,
+                "passed": true,
+                "polarGuideVisible": true,
+                "polarOverlayLine": {
+                    "end": {
+                        "actualX": 873,
+                        "actualY": 313,
+                        "error": 0,
+                        "expectedX": 873,
+                        "expectedY": 313,
+                        "passed": true
+                    },
+                    "entityType": "RS_OverlayLine",
+                    "lineFound": true,
+                    "overlayContainer": "RS2::Snapper",
+                    "overlayLineCount": 1,
+                    "passed": true,
+                    "start": {
+                        "actualX": 796,
+                        "actualY": 390,
+                        "error": 0,
+                        "expectedX": 796,
+                        "expectedY": 390,
+                        "passed": true
+                    }
+                },
+                "polarProjection": {
+                    "actualX": 205.75,
+                    "actualY": 101.5,
+                    "error": 0,
+                    "expectedX": 205.75,
+                    "expectedY": 101.5,
+                    "passed": true
+                },
+                "polarProjectionWithSnapFreeDisabled": true,
+                "snapFreeDisabled": true,
+                "suspendClearsDrawnOverlayImmediately": true,
+                "undoCycleCountAfter": 0,
+                "undoCycleCountBefore": 0,
+                "undoStateUnchanged": true
+            },
+            "trackingMouseKeyboardSynchronized": true,
+            "trackingReferencePage": 12,
+            "trackingSerializationRoundTrip": true,
+            "trackingStateRoundTrip": true
+        },
+        "sizeGripDisabled": true
+    },
+    "statusControls": [
+        {
+            "actionKey": "ViewGrid",
+            "bindingType": "direct-action",
+            "customIconOwned": true,
+            "customIconStableAfterClick": true,
+            "nativeBinding": true,
+            "nativeStateRestoredAfterClickTest": true,
+            "objectName": "kuubikStatusToggle",
+            "visibilityKey": "Grid"
+        },
+        {
+            "actionKey": "SnapGrid",
+            "bindingType": "direct-action",
+            "customIconOwned": true,
+            "customIconStableAfterClick": true,
+            "nativeBinding": true,
+            "nativeStateRestoredAfterClickTest": true,
+            "objectName": "kuubikStatusSplitToggle",
+            "visibilityKey": "SnapMode"
+        },
+        {
+            "actionKey": "RestrictOrthogonal",
+            "bindingType": "direct-action",
+            "customIconOwned": true,
+            "customIconStableAfterClick": true,
+            "nativeBinding": true,
+            "nativeStateRestoredAfterClickTest": true,
+            "objectName": "kuubikStatusToggle",
+            "visibilityKey": "OrthoMode"
+        },
+        {
+            "actionKey": "SnapAngle",
+            "bindingType": "snap-mode",
+            "nativeBinding": true,
+            "objectName": "kuubikStatusSplitToggle",
+            "visibilityKey": "SnapAngle"
+        },
+        {
+            "actionKey": "IsometricDrafting",
+            "bindingType": "document-setting",
+            "nativeBinding": true,
+            "objectName": "kuubikIsometricButton",
+            "visibilityKey": "IsometricDrafting"
+        },
+        {
+            "actionKey": "ObjectSnapMenu",
+            "bindingType": "object-snap-menu",
+            "nativeBinding": true,
+            "objectName": "kuubikOsnapButton",
+            "visibilityKey": "ObjectSnap"
+        },
+        {
+            "actionKey": "InferConstraints",
+            "bindingType": "inference-bundle",
+            "nativeBinding": true,
+            "objectName": "kuubikStatusToggle",
+            "visibilityKey": "InferConstraints"
+        },
+        {
+            "actionKey": "SnapTracking",
+            "bindingType": "snap-mode",
+            "nativeBinding": true,
+            "objectName": "kuubikStatusToggle",
+            "visibilityKey": "SnapTracking"
+        },
+        {
+            "actionKey": "DynamicInput",
+            "bindingType": "application-setting",
+            "nativeBinding": true,
+            "objectName": "kuubikStatusToggle",
+            "visibilityKey": "DynamicInput"
+        },
+        {
+            "actionKey": "ViewDraft",
+            "bindingType": "inverse-action",
+            "nativeBinding": true,
+            "objectName": "kuubikStatusToggle",
+            "visibilityKey": "Lineweight"
+        },
+        {
+            "actionKey": "QuickProperties",
+            "bindingType": "dock-visibility",
+            "nativeBinding": true,
+            "objectName": "kuubikStatusToggle",
+            "visibilityKey": "QuickProperties"
+        },
+        {
+            "actionKey": "Fullscreen",
+            "bindingType": "direct-action",
+            "customIconOwned": true,
+            "nativeBinding": true,
+            "objectName": "kuubikStatusToggle",
+            "visibilityKey": "CleanScreen"
+        }
+    ],
+    "theme": "kuubik-dark",
+    "version": "0.2.0-preview.2",
+    "visibleToolbars": [
+        "kuubikRibbonToolbar",
+        "options_toolbar",
+        "pen_toolbar",
+        "objSARibbonRightButtonGroup"
+    ],
+    "workspaceMode": "kuubik",
+    "workspaceVersion": 2
+}

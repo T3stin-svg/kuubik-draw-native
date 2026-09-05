@@ -6,6 +6,12 @@ eeldata ehitamisel ega tavalise kasutaja arvutis.
 
 ## Põhiotsus
 
+Jätkame LibreCAD v2.2.1.5 C++/Qt native-fork'i Windowsis. Ei vii toodet tagasi
+Reacti, ei vaheta Open CAD Studio vastu ega lisa litsentsitasulist CAD SDK-d.
+Tasuta failiteek ei lahenda dokumendimudelis puuduvaid layout'e/viewport'e.
+Sama nimega nupp ei tõenda AutoCADiga sama kasutusjada: praegune COPY-test tõendab
+kohapealset native duplikaati ja MOVE sisaldab LibreCADi dialoogi.
+
 ### Kohaliku Windowsi seadistuste isolatsioon
 
 `18d3f734` läbis puhta Windowsi CI 33964068198, kuid kohalik sõltumatu DXF-parser
@@ -24,13 +30,22 @@ PLINE-i producer kontrollib nüüd ka nullpikkusi/kattuvaid punkte, lisaks sõlt
 ezdxf-kontrollile. Varasemate testikäivituste võimalikku registrimõju ei lähtestata
 oletuslikult, sest kasutaja eelnevaid väärtusi ei ole salvestatud.
 
-Selle paranduse lõplik build/tulemus kantakse `TEST_REPORT.md` faili pärast kontrolli.
+Paranduse `d35ec354` CI 33966232573 ja kohalik täiskordus läbisid; mõlemas tõendati
+kümne protsessi isolatsioon ja muutumatu register. Täpne pakett on TEST_REPORT-is.
 
-Jätkame LibreCAD v2.2.1.5 C++/Qt native-fork'i Windowsis. Ei vii toodet tagasi
-Reacti, ei vaheta Open CAD Studio vastu ega lisa litsentsitasulist CAD SDK-d.
-Tasuta failiteek ei lahenda dokumendimudelis puuduvaid layout'e/viewport'e.
-Sama nimega nupp ei tõenda AutoCADiga sama kasutusjada: praegune COPY-test tõendab
-kohapealset native duplikaati ja MOVE sisaldab LibreCADi dialoogi.
+### Native eelvaate rangema kontrolli lahtised leiud
+
+Ka meie praegune libdxfrw väljund pole kogu objekti-struktuuri mõttes kadudeta:
+`writePlotSettings` jätab owner 330 kirjutamata ja `writeObjects` ei loo
+ACAD_PLOTSETTINGS dictionary't. Käsitsi ning CI-s salvestatud sünteetilisel DXF-il
+annab ezdxf audit null viga, kuid ühe paranduse 202 (omanikuta PLOTSETTINGS kustutati
+parseri mälus). Algne väike fixture sisaldab ka kahte table-handle parandust 110.
+Geomeetria tagasilugemine läbib; nullparandustega faili ei väideta ega varjata
+samal ajal Open CAD Studio auditivigu. See parandustee eelneb paperspace'i väravale.
+
+Properties-i read-only dokumendikokkuvõte värskendub praegu selection/layer/MDI
+callback'idega; LINE-i ja save'i järel võib entity/Modified näit jääda vanaks.
+Vajalik on sama native dokumendi muutmisteavitus, mitte polling või teine mudel.
 
 ## Open CAD Studio — päriselt katsetatud
 
@@ -67,7 +82,8 @@ AutoCADis tagasilugemist ja üldist DWG-ühilduvust ei kontrollitud.
 - Säilitada native kiirklahvid, Kuubiku teksti/ikooni stabiilsus, toolbari ja
   kihivalija omand ning Classic-vaatesse taastamine.
 - Varasem hinnang oli **lähtekoodipõhine, mitte kompileeritud integratsioon**.
-  Selle etapi Windowsi tulemused lisatakse TEST_REPORT-i alles pärast kontrolli.
+  Nüüd on olemas päris MSVC/Qt integratsioon: d35ec354 / CI 33966232573 ning
+  kohalik native/independent kordus. Piirid ja tõend on TEST_REPORT-is.
 - SARibbon ei paku CAD-i, paperspace'i ega automaatselt meie nelja otsese Draw-nupu
   kitsas aknas nähtavuse garantiid; need vastutused jäävad native-adapterisse.
 

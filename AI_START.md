@@ -80,11 +80,11 @@ does not certify DWG/DWT/XREF or full AutoCAD parity.
 
 - Integration branch: `codex/autocad-visual-integration-root`
 - Tested source commit:
-  `9968198bbe72165e28c48f8e37109fa3eb103212`
+  `d35ec35486912e4bca1fdc2a7125ecc6d53580eb`
 - Successful Windows MSVC x64 / Qt 5.15 run:
-  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33919335101>
+  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33966232573>
 - Tested portable ZIP SHA-256:
-  `60bf9445fdc6206e8f1b21a392d72dece93714a56feabc435bf7cb66cca27550`
+  `4c3a2d8c2e36918e3fa77b0c106a174d1ea01bf27b6ecb0ea8d3400fa1c382d0`
 
 This development artifact verifies the native current-layer selector,
 Properties callbacks, Classic restoration, visible responsive-ribbon LINE and
@@ -92,6 +92,13 @@ PLINE activation, visible responsive-ribbon native COPY with quick-access
 Undo/Redo, native Tool Options at 1280 logical pixels, and independent
 DXF/PDF/SVG read-back. It is an expiring workflow artifact and
 must not replace the immutable release without Reio's explicit approval.
+
+It adds the pinned SARibbon UI, ten exact Home panel boundaries, native Pen in
+Properties, qwindows narrow/DPI containment and isolated native/Qt settings.
+Local replay and independent files passed. Read TEST_REPORT's explicit limits:
+one inherited orphan PLOTSETTINGS audit repair and a lagging Properties document
+summary remain next tasks. The UI checkpoint does not implement paperspace.
+Persistent evidence and an Estonian owner checklist are included in the source.
 
 This newer baseline additionally verifies the native MOVE selection, modal
 workflow and atomic Undo/Redo, LINE/PLINE Enter completion, direct Home Draw,

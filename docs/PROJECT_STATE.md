@@ -1,6 +1,6 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. Current work: **SARibbon integration in progress**.
+Status date: **2026-09-05**. **SARibbon UI development checkpoint ready for owner review.**
 
 ## Product and authority
 
@@ -17,7 +17,18 @@ The single native document/entity/layer/selection/undo engine is retained.
 - Reio approved work-branch pushes and Windows CI for the current UI milestone.
   No remote merge, release, default-branch change, paid SDK or paid service is approved.
 
-## Last verified native Windows checkpoint — before SARibbon
+## Latest tested Windows development checkpoint
+
+- Source: `d35ec35486912e4bca1fdc2a7125ecc6d53580eb`.
+- [Windows run 33966232573](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33966232573), all gates passed.
+- Portable ZIP: 43,773,937 bytes; SHA-256
+  `4c3a2d8c2e36918e3fa77b0c106a174d1ea01bf27b6ecb0ea8d3400fa1c382d0`.
+- Full local portable replay, independent files, strict ribbon geometry and ten
+  isolated-profile checks passed; Windows registry unchanged.
+- [Persistent CI evidence](../evidence/development/2026-09-05-saribbon/README.md)
+  and [owner review](OWNER_REVIEW.md). This is not a release or full parity certificate.
+
+## Historical verified checkpoint — before SARibbon
 
 - Source: `9968198bbe72165e28c48f8e37109fa3eb103212`.
 - [Windows run 33919335101](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33919335101).
@@ -36,7 +47,7 @@ The historical public release is still `v0.2.0-preview.2`, executable source
 `6af290c178dbd9cd21ef3d9968c6972430cf031a2b4ad4262281b2715c280492`.
 Do not replace its tag or conflate newer CI artifacts with a release.
 
-## Current implementation wave — not yet verified
+## Implemented SARibbon UI wave
 
 SARibbon v2.9.0 MIT source is pinned, compiled through qmake, and hosted inside
 the existing KuubikRibbon QWidget/QMainWindow. No QWindowKit or frameless helper
@@ -51,15 +62,23 @@ Groups is explicitly unavailable, not an alias for blocks.
 The existing Application/Quick Access, six tabs, Tool Options, right palettes,
 command line, status controls and Classic fallback remain in scope.
 
-First integration source: `b694b5d8d9385b8b51d487d8c16138a0e0278024`.
-[Initial CI](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33960243802)
-built and packaged successfully but failed UI startup at the unused minimum-mode
-action. The adapter fix and interaction checks are in `6ef7f74e`, with
-[second CI](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33961402868)
-failed at the full-size reference (Windows clamped 1920x1080 client to 1920x1061).
-Captured evidence identified title-row clipping and default button styling;
-adapter fixes are being verified, with the exact client-size request retained.
-Do not use the preceding checkpoint as proof of this new ribbon.
+Source `18d3f7342f4902ac5d103c06ab661744447fa1c4` passed the complete
+[Windows CI 33964068198](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33964068198):
+exact 1920x1080 qwindows client, all ten measured Home boundaries, narrow/DPI
+containment, native interaction and independent file checks. However, the local
+independent parser rejected duplicate PLINE vertices: RS_Settings still read
+Windows registry snap preferences despite the intended INI test profile.
+That package is not the final handoff.
+
+Source `d35ec35486912e4bca1fdc2a7125ecc6d53580eb` corrects native and CLI profile
+isolation, verifies both directions of Qt/native settings access before the UI
+starts, and requires an unchanged registry across ten smoke processes. It also
+rejects degenerate PLINE geometry in the producer. Its
+[Windows CI 33966232573](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33966232573)
+and full local replay/read-back passed. A separate Windows pointer LINE/Enter/save
+review produced the expected 62.5 mm native LINE in a synthetic DXF.
+Normal user preferences are retained, not reset. Failure/correction history is
+in DEVELOPMENT_PLAN and TEST_REPORT; no preceding source proves a later binary.
 
 ## Current limitations and next work
 
@@ -67,6 +86,10 @@ Do not use the preceding checkpoint as proof of this new ribbon.
 - Real paperspace, Model/Layout tabs, viewport cameras/locks and layout DXF
   persistence are not implemented; see [PAPERSPACE_PLAN](PAPERSPACE_PLAN.md).
 - The Properties palette is read-only and delegates editing to ModifyEntity.
+- Its document entity/Modified summary can lag drawing/save changes until a
+  native selection/layer/activation refresh; add a document-change notification path.
+- A stricter ezdxf audit finds one orphan PLOTSETTINGS record (repair 202) in
+  saved synthetic DXFs. Geometry passes, but whole-file zero-repair DXF is not claimed.
 - DWG/DWT/XREF and lossless handling of arbitrary unknown objects are not certified.
 - Automated 125/150% captures use QT_SCALE_FACTOR, not Windows Settings changes.
 - Broader Modify/annotation/blocks, large drawings, recovery and real owner

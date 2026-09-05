@@ -2,24 +2,37 @@
 
 Updated 2026-09-05. Reproducible owner-found failures always take priority.
 
-## P0 — approved SARibbon UI milestone
+## P0 — next correction slice after owner review
+
+- [ ] Reio reviews the delivered SARibbon checkpoint using `docs/OWNER_REVIEW.md`.
+- [ ] Add native document-change notification for the Properties entity/Modified
+  summary after drawing, Undo/Redo and save; count active entities, not undone
+  retained objects. Keep selection callbacks and no polling/duplicate model.
+- [ ] Fix the inherited PLOTSETTINGS ownership/dictionary writer and add an
+  audit-clean model-space fixture plus zero-repair output tests. Current saved
+  synthetic files retain geometry but produce ezdxf repair 202; input fixture
+  also has two table-handle repairs 110. See `docs/TEST_REPORT.md`.
+
+## Completed — approved SARibbon UI milestone
 
 - [x] Verify clean baseline 9968198b and product-branch ancestry.
 - [x] Persist DEVELOPMENT_PLAN, RESEARCH_NOTES and PAPERSPACE_PLAN.
 - [x] Pin SARibbon v2.9.0 and MIT attribution; qmake integration, no QWindowKit.
 - [x] Implement shared-QAction ribbon and Home Layers/Properties consolidation.
-- [x] Dispatch initial work-branch Windows CI; this is not yet a passed checkpoint.
-- [ ] Pass MSVC/Qt build and existing native GUI/file/package regressions.
-- [ ] Pass all ten Home panels, measured full-width boundaries and label containment.
-- [ ] Pass four directly visible Draw buttons at 1200/1280 logical widths.
-- [ ] Pass keyboard focus, enabled/checked states and stable Kuubik presentation.
-- [ ] Verify native current-layer and pen/options ownership through Classic roundtrip.
-- [ ] Review qwindows screenshots and run the delivered EXE locally.
-- [ ] Record exact source/run/ZIP hash and give Reio a short owner checklist.
+- [x] Pass work-branch Windows CI 33966232573 / source d35ec354.
+- [x] Pass MSVC/Qt build and existing native GUI/file/package regressions.
+- [x] Pass all ten Home panels, measured full-width boundaries and label containment.
+- [x] Pass four directly visible Draw buttons at 1200/1280 logical widths.
+- [x] Pass focused Space activation, enabled/checked states and stable presentation;
+  full physical Tab-order audit remains distinct.
+- [x] Verify native current-layer and pen/options ownership through Classic roundtrip.
+- [x] Review qwindows screenshots and run the delivered EXE locally.
+- [x] Record exact source/run/ZIP hash and give Reio a short owner checklist.
+- [x] Fix native/CLI settings isolation; ten process checks and unchanged registry.
 
 [DEVELOPMENT_PLAN](docs/DEVELOPMENT_PLAN.md) is the five-hour execution log.
-Changes after the initial integration commit remain unverified until their own
-Windows gate passes. No release or merge is authorized.
+Executable source is d35ec354; later handoff/docs/evidence commits are not separate
+binary claims. Full local independent replay passed. No release or merge is authorized.
 
 ## Existing verified Windows baseline, not new SARibbon evidence
 

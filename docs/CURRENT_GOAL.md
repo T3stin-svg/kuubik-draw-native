@@ -18,6 +18,11 @@ the next engine stage in [PAPERSPACE_PLAN](PAPERSPACE_PLAN.md). Older evidence
 sections below are historical; [PROJECT_STATE](PROJECT_STATE.md) names the latest
 verified source. Current sidebar/UI work does not imply the whole goal is complete.
 
+The SARibbon checkpoint now has Windows and local proof for source d35ec354
+(run 33966232573). Owner acceptance, the two explicit NEXT_TASKS corrections and
+the true paperspace stage remain open. The five-hour milestone does not claim
+all phases or the overall goal completed.
+
 The target user is a building or civil engineer. The primary information
 architecture therefore prioritizes:
 

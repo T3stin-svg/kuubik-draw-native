@@ -3,7 +3,10 @@
 Copy this prompt exactly:
 
 > Open the public GitHub repository
-> `https://github.com/T3stin-svg/kuubik-draw-native`. Clone its default branch,
+> `https://github.com/T3stin-svg/kuubik-draw-native`. For a fresh checkout clone
+> branch `codex/autocad-visual-integration-root`; the current UI work has not been
+> merged into the product default branch. For an existing checkout inspect its
+> state first and do not switch away from dirty work. Then
 > read `AI_START.md` and every file in its required reading order completely,
 > verify the real branch/worktree/release state, and continue the first
 > unfinished P0 in `NEXT_TASKS.md`. Do not restart from official LibreCAD, do

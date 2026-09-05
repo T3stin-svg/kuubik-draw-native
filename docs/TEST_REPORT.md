@@ -2,40 +2,103 @@
 
 ## Current checkpoint summary — 2026-09-05
 
-Latest verified pre-SARibbon Windows source:
-`9968198bbe72165e28c48f8e37109fa3eb103212`,
-[run 33919335101](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33919335101),
-ZIP SHA-256 `60bf9445fdc6206e8f1b21a392d72dece93714a56feabc435bf7cb66cca27550`.
-This supersedes d17e8b2 as the tested development baseline, not the immutable release.
+Latest tested SARibbon development source:
+`d35ec35486912e4bca1fdc2a7125ecc6d53580eb`.
+[Windows CI 33966232573](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33966232573)
+passed all gates, 12:30:33–12:44:15 UTC (13m42s). Portable ZIP
+`KuubikDraw-0.2.0-preview.2-win64.zip`: **43,773,937 bytes**, SHA-256
+`4c3a2d8c2e36918e3fa77b0c106a174d1ea01bf27b6ecb0ea8d3400fa1c382d0`.
+The downloaded manifest/source/run and sidecar checksum were independently checked.
+Later documentation/evidence commits do not change this executable source.
 
-That exact-source run passed MSVC/Qt build and portable isolation, native
-LINE/PLINE/Enter, COPY/MOVE/Undo/Redo, current-layer and Properties wiring,
-precision/status contracts, direct Draw layout, Qt-scale captures and independent
-DXF/PDF/SVG read-back. Native command automation uses offscreen Qt; qwindows is
-used for DPI/Tool Options visuals. Full AutoCAD-equivalent MOVE/COPY interactions
-and real Windows Settings DPI are not certified.
+### Passed gates for this exact binary
 
-SARibbon integration `b694b5d8` was dispatched to
-[run 33960243802](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33960243802).
-Its MSVC/Qt build and packaging **passed**, but UI startup **failed** with an
-access violation in `QAction::setVisible`. Upstream 2.9.0's unused
-`showMinimumModeButton(false)` dereferenced an uncreated action. The adapter call
-was removed in `6ef7f74e`; [run 33961402868](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33961402868)
-passed startup/primary contracts but failed the new full-size reference request:
-Windows clamped its client area to 1920x1061 on a 1920x1080 desktop. The captured
-image also exposed the reserved title row, clipped panel footers, per-widget
-Fusion button styling, and the interaction report rejected tab hit rectangles.
-The next adapter iteration addresses these measured defects; the CI desktop is
-expanded to 2560x1440 so a native-framed 1920x1080 client can be tested unchanged.
-Neither run is a verified SARibbon preview yet.
+- MSVC x64, Qt 5.15.2, qmake and pinned Qt jom 1.1.7; portable runtime/license/payload checks.
+- Byte-exact MIT SARibbon v2.9.0, no QWindowKit/frameless dependency.
+- 71 original/native icon mappings and 105 referenced SVGs; vendor checks and
+  independent ribbon-verifier negative tests; handoff positive/negative tests.
+- All six visible tab hit targets; native QAction identity, presentation,
+  enabled/checked state preservation; focused GRID Space activation and restoration.
+  The latter sets focus programmatically, not a complete physical Tab-order audit.
+- All ten Home panels have **0 px boundary delta** at the 1920x1080 reference.
+  Current layer and three native pen selectors are contained with their full
+  ancestor chain. Four direct Draw buttons remain visible at narrow widths.
+- Classic restores native toolbar ownership/orientation and all five Pen actions.
+- Native LINE/PLINE Enter, COPY/MOVE and quick-access Undo/Redo, layer and selection
+  Properties callbacks, status/precision contracts, open/save/native reopen.
+- Independent ezdxf geometry/undo read-back, one A4 PDF page with vector operators
+  and zero images, valid SVG vectors without raster image elements.
+- Ten test processes verify an isolated shared Qt/native INI backend; native
+  registry contents are unchanged. Public report exposes booleans/count only.
+- Local full portable smoke from a path with spaces, independent DXF/PDF/SVG,
+  reference/narrow geometry and all ten profile checks repeated successfully.
 
-Local checks passed: pinned source hashes
-and MIT notice, icon registry (66 mappings / 100 referenced SVGs), PowerShell
-syntax, diff whitespace and Gitleaks (zero findings). The independent ribbon
-verifier's negative tests also pass; they do not prove the application's layout.
+qwindows captures: reference 1920x1080 logical/physical; 100% 1280x600;
+125% 1280x600 logical / 1600x750 physical; 150% 1200x600 logical / 1800x900 physical.
+The reference test bounds Qt's maximum client height to avoid Windows' default
+1920x1061 clamp; it retains native qwindows fonts/frame and does not crop/resize
+an image to manufacture a pass. Normal application geometry is unchanged.
+These are widget captures and Qt scale-factor tests, not a whole-desktop AutoCAD
+pixel comparison or proof of Windows Settings DPI changes.
 
-All dated sections below retain historical evidence. Statements such as
-"Windows verification pending" apply to their old source/date, not to 9968198b.
+The local PDF was rendered with Poppler and visually inspected: the synthetic
+rectangle, circle and diagonal line are present as thin vectors on one A4 page.
+Native qwindows reference and narrow idle screenshots were also visually reviewed.
+[Persistent CI evidence](../evidence/development/2026-09-05-saribbon/README.md)
+contains 37 byte-exact CI files and their SHA-256 list. Local desktop captures
+with profile paths or unrelated overlays are not published.
+
+### Additional Windows pointer review and honest limits
+
+A separate normal qwindows process used a fresh developer INI profile and a copy
+of the synthetic fixture. First-run Millimeter/English choices, Home/Annotate/View,
+native LINE via the visible button, two canvas points, Enter, Ctrl+S and Auto Zoom
+were exercised through Windows input. Independent read-back found the expected
+four entities: one polyline, one circle and two LINEs. The added LINE is
+`(174.75,126) -> (224.75,88.5)`, length **62.5 mm**. The app remains available for
+Reio's review. The full Classic roundtrip is automated proof, not a claimed
+completed separate physical-pointer review.
+
+Two additional findings are **not fixed in this UI checkpoint**:
+
+1. A stricter `ezdxf.audit()` gives zero errors but one repair 202: an orphan
+   PLOTSETTINGS object is discarded. This reproduces in both the manual saved DXF
+   and the CI LINE output. `dxfRW::writePlotSettings` writes no owner 330;
+   `writeObjects` creates no ACAD_PLOTSETTINGS dictionary. The source fixture itself
+   has two older table-handle repairs (110), so it is not an audit-clean oracle.
+   Existing geometry tests pass; **zero-repair/lossless whole-file DXF is not claimed**.
+2. The read-only Properties document summary can lag entity/Modified changes
+   after drawing and saving. Its tested native selection/layer callbacks work,
+   but there is no complete document-change notification path yet. Do not equate
+   the stale summary label with lost geometry or a failed save.
+
+These are explicit next tasks before the broader paperspace/file-integrity gate.
+No test was weakened to suppress either observation. True paperspace, arbitrary
+DXF preservation, DWG/DWT/XREF, editable Properties and full AutoCAD parity remain open.
+
+### Correction history
+
+The pre-SARibbon baseline was source `9968198bbe72165e28c48f8e37109fa3eb103212`,
+run 33919335101, ZIP SHA `60bf9445fdc6206e8f1b21a392d72dece93714a56feabc435bf7cb66cca27550`.
+SARibbon run 33960243802 failed an unused minimum-mode null QAction after building;
+33961402868 exposed client-height clipping, the reserved title row and Fusion
+button styling. Runs 33962558802 and 33963838013 rejected unsupported CI display
+modes. The runner supports at most 1920x1080, so inventing a larger desktop was
+not a solution. Adapter/style/geometry fixes and exact client capture are recorded
+in DEVELOPMENT_PLAN.
+
+Source `18d3f734` passed all CI gates in run 33964068198, but local independent
+read-back rejected duplicate PLINE vertices because native QSettings bypassed the
+test INI format and read registry snap preferences. Source `d35ec354` corrected
+all native/selection/CLI settings paths and added backend, registry and
+nondegenerate-PLINE gates. This is why the preceding green CI ZIP was not delivered.
+
+The first local d35 replay printed complete native PASS, then its ad-hoc outer
+command incorrectly checked stale/unset LASTEXITCODE from a PowerShell script.
+The suite's ten-process report and separately executed independent parsers all
+passed; that wrapper error was not an application failure.
+
+All sections below retain historical evidence for their stated source/date.
 
 Checkpoint: `0.2.0-preview.2`
 

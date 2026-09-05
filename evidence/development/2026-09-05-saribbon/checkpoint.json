@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "kind": "development-preview",
+  "sourceCommit": "d35ec35486912e4bca1fdc2a7125ecc6d53580eb",
+  "githubRunId": "33966232573",
+  "ciConclusion": "success",
+  "portableBytes": 43773937,
+  "portableSha256": "4c3a2d8c2e36918e3fa77b0c106a174d1ea01bf27b6ecb0ea8d3400fa1c382d0",
+  "saribbonVersion": "2.9.0",
+  "homeReferenceBoundaryDeltasPx": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  "localPortableReplay": "PASS",
+  "localIndependentDxfPdfSvg": "PASS",
+  "localQwindowsGeometry": "PASS",
+  "localIsolatedProcessChecks": 10,
+  "localNativeRegistryUnchanged": true,
+  "manualPointerLineSavedLengthMm": 62.5,
+  "manualSavedDxfEntityCount": 4,
+  "manualSavedDxfAuditErrors": 0,
+  "manualSavedDxfAuditRepairs": [202],
+  "fullAutoCadParity": false,
+  "paperspaceImplemented": false,
+  "releasePublished": false
+}

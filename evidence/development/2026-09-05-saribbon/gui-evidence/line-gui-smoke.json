@@ -1,0 +1,435 @@
+{
+    "actionActiveAfterRibbon": true,
+    "activeImageSaved": true,
+    "committedImageSaved": true,
+    "copyUndoRedo": {
+        "copy": {
+            "activeCountAfterRedo": 3,
+            "activeCountAfterUndo": 2,
+            "activeCountBeforeCreate": 2,
+            "activeCountBeforeUndo": 3,
+            "activeLayerBeforeAction": "KUUBIK-SMOKE-LAYER",
+            "candidateCount": 1,
+            "canvasPoint": {
+                "graphX": 184.375,
+                "graphY": 82.25,
+                "guiX": 788,
+                "guiY": 390,
+                "inside": true
+            },
+            "canvasPointInside": true,
+            "created": true,
+            "duplicateInPlace": true,
+            "duplicateLayer": "KUUBIK-SMOKE-LAYER",
+            "endMatches": true,
+            "entityUndoneAfterRedo": false,
+            "entityUndoneAfterUndo": true,
+            "entityUndoneBeforeUndo": false,
+            "inPlaceForcedForSmoke": true,
+            "sourceDistinct": true,
+            "sourceLayer": "KUUBIK-SMOKE-LAYER",
+            "sourceUnselectedBeforeAction": true,
+            "startMatches": true
+        },
+        "files": {
+            "afterRedo": "copy-after-redo.dxf",
+            "afterRedoSaved": true,
+            "afterUndo": "copy-after-undo.dxf",
+            "afterUndoSaved": true,
+            "beforeUndo": "copy-before-undo.dxf",
+            "beforeUndoSaved": true
+        },
+        "passed": true,
+        "redo": {
+            "actionKey": "EditRedo",
+            "actionTriggeredByMouse": true,
+            "enabledBeforeClick": true,
+            "firstLineStillActive": true,
+            "nativeIdentity": true,
+            "priorPolylineStillActive": true,
+            "quickAccessButton": true,
+            "visible": true
+        },
+        "ribbon": {
+            "actionKey": "ModifyDuplicate",
+            "actionTriggeredByMouse": true,
+            "activeActionType": 172,
+            "expectedActionType": 172,
+            "invocationSurface": "directButton",
+            "nativeActionActive": true,
+            "nativeIdentity": true,
+            "overflowActionAtPoint": false,
+            "overflowActionGeometryValid": false,
+            "overflowActionIdentity": true,
+            "overflowButtonEnabled": false,
+            "overflowButtonPresent": true,
+            "overflowButtonVisible": false,
+            "overflowMenuClosedAfterSelection": false,
+            "overflowMenuInteractionRan": false,
+            "overflowMenuPresent": true,
+            "overflowMenuVisibleAfterOpen": false,
+            "panelCollapsed": false,
+            "passed": true,
+            "sourceButtonEnabled": true,
+            "sourceButtonIdentity": true,
+            "sourceButtonVisible": true
+        },
+        "undo": {
+            "actionKey": "EditUndo",
+            "actionTriggeredByMouse": true,
+            "enabledBeforeClick": true,
+            "firstLineStillActive": true,
+            "nativeIdentity": true,
+            "priorPolylineStillActive": true,
+            "quickAccessButton": true,
+            "visible": true
+        }
+    },
+    "documentLifecycle": {
+        "originalRestoredAfterClose": true,
+        "originalRestoredAfterSwitch": true,
+        "passed": true,
+        "reopenedNativeDxf": true
+    },
+    "dxfSaved": true,
+    "dynamicInputVisible": true,
+    "entitiesAfterFirstClick": 3,
+    "entitiesAfterSecondClick": 4,
+    "entitiesBefore": 3,
+    "escapeCancelsAll": true,
+    "firstCanvasPoint": {
+        "x": 525,
+        "y": 260
+    },
+    "fullPropertiesAction": {
+        "actionKey": "ModifyEntity",
+        "nativeActionActive": true,
+        "nativeIdentity": true
+    },
+    "layerSelector": {
+        "createdLineLayer": "KUUBIK-SMOKE-LAYER",
+        "enabled": true,
+        "nativeCurrentLayer": "KUUBIK-SMOKE-LAYER",
+        "present": true,
+        "selectedLayer": "KUUBIK-SMOKE-LAYER"
+    },
+    "lineEnter": {
+        "accepted": true,
+        "finishedAction": true
+    },
+    "lineRibbonPresentationStable": true,
+    "linesAfterSecondClick": 2,
+    "linesBefore": 1,
+    "moveUndoRedo": {
+        "dialog": {
+            "acceptedByMouse": true,
+            "found": true,
+            "moveModeClickedByMouse": true,
+            "moveModeControlFound": true,
+            "moveModeSelected": true,
+            "objectName": "QG_DlgMove",
+            "okClickedByMouse": true,
+            "okFound": true,
+            "safetyTriggered": false,
+            "timerRan": true,
+            "visible": true
+        },
+        "files": {
+            "afterRedo": "move-after-redo.dxf",
+            "afterRedoSaved": true,
+            "afterUndo": "move-after-undo.dxf",
+            "afterUndoSaved": true,
+            "beforeUndo": "move-before-undo.dxf",
+            "beforeUndoSaved": true
+        },
+        "move": {
+            "activeCountAfterRedo": 4,
+            "activeCountAfterUndo": 4,
+            "activeCountBeforeMove": 4,
+            "activeCountBeforeUndo": 4,
+            "activeLayerBeforeAction": "KUUBIK-SMOKE-LAYER",
+            "candidateCount": 1,
+            "created": true,
+            "movedActiveAfterRedo": true,
+            "movedEnd": {
+                "valid": true,
+                "x": 208.25,
+                "y": 51.5
+            },
+            "movedLayer": "KUUBIK-SMOKE-LAYER",
+            "movedStart": {
+                "valid": true,
+                "x": 109.75,
+                "y": 67.75
+            },
+            "movedUndoneAfterUndo": true,
+            "movedUndoneBeforeUndo": false,
+            "offset": {
+                "valid": true,
+                "x": 24,
+                "y": 18
+            },
+            "offsetMatchesBothEndpoints": true,
+            "offsetNonZero": true,
+            "referenceCanvasPoint": {
+                "inside": true,
+                "x": 393,
+                "y": 520
+            },
+            "selectionCanvasPoint": {
+                "inside": true,
+                "x": 590,
+                "y": 553
+            },
+            "snapModeRestored": true,
+            "snapModeTemporarilyCleared": true,
+            "sourceActiveAfterUndo": true,
+            "sourceEnd": {
+                "valid": true,
+                "x": 184.25,
+                "y": 33.5
+            },
+            "sourceLayer": "KUUBIK-SMOKE-LAYER",
+            "sourceSelectedByCanvas": true,
+            "sourceStart": {
+                "valid": true,
+                "x": 85.75,
+                "y": 49.75
+            },
+            "sourceUndoneAfterRedo": true,
+            "sourceUndoneBeforeUndo": true,
+            "sourceUnselectedBeforeAction": true,
+            "targetCanvasPoint": {
+                "inside": true,
+                "x": 489,
+                "y": 448
+            }
+        },
+        "passed": true,
+        "redo": {
+            "actionKey": "EditRedo",
+            "actionTriggeredByMouse": true,
+            "copyStillActive": true,
+            "enabledBeforeClick": true,
+            "firstLineStillActive": true,
+            "nativeIdentity": true,
+            "priorPolylineStillActive": true,
+            "quickAccessButton": true,
+            "visible": true
+        },
+        "ribbon": {
+            "actionKey": "ModifyMove",
+            "actionTriggeredByMouse": true,
+            "actionTypeAfterSelection": 147,
+            "expectedMoveActionType": 147,
+            "expectedSelectionActionType": 48,
+            "initialActionType": 48,
+            "invocationSurface": "directButton",
+            "nativeActionActive": true,
+            "nativeIdentity": true,
+            "overflowActionAtPoint": false,
+            "overflowActionGeometryValid": false,
+            "overflowActionIdentity": true,
+            "overflowButtonEnabled": false,
+            "overflowButtonPresent": true,
+            "overflowButtonVisible": false,
+            "overflowMenuClosedAfterSelection": false,
+            "overflowMenuInteractionRan": false,
+            "overflowMenuPresent": true,
+            "overflowMenuVisibleAfterOpen": false,
+            "panelCollapsed": false,
+            "passed": true,
+            "selectionActionActive": true,
+            "sourceButtonEnabled": true,
+            "sourceButtonIdentity": true,
+            "sourceButtonVisible": true
+        },
+        "undo": {
+            "actionKey": "EditUndo",
+            "actionTriggeredByMouse": true,
+            "copyStillActive": true,
+            "enabledBeforeClick": true,
+            "firstLineStillActive": true,
+            "nativeIdentity": true,
+            "priorPolylineStillActive": true,
+            "quickAccessButton": true,
+            "visible": true
+        }
+    },
+    "polylineUndoRedo": {
+        "enter": {
+            "accepted": true,
+            "finishedAction": true
+        },
+        "files": {
+            "afterRedo": "pline-after-redo.dxf",
+            "afterRedoSaved": true,
+            "afterUndo": "pline-after-undo.dxf",
+            "afterUndoSaved": true,
+            "beforeUndo": "pline-before-undo.dxf",
+            "beforeUndoSaved": true
+        },
+        "passed": true,
+        "polyline": {
+            "activeCountAfterRedo": 2,
+            "activeCountAfterUndo": 1,
+            "activeCountBeforeCreate": 1,
+            "activeCountBeforeUndo": 2,
+            "closed": false,
+            "created": true,
+            "entityUndoneAfterRedo": false,
+            "entityUndoneAfterUndo": true,
+            "entityUndoneBeforeUndo": false,
+            "layer": "KUUBIK-SMOKE-LAYER",
+            "nondegenerate": true,
+            "segmentCount": 2,
+            "verticesExpected": 3
+        },
+        "redo": {
+            "actionKey": "EditRedo",
+            "actionTriggeredByMouse": true,
+            "enabledBeforeClick": true,
+            "firstLineStillActive": true,
+            "nativeIdentity": true,
+            "quickAccessButton": true,
+            "visible": true
+        },
+        "ribbon": {
+            "actionKey": "DrawPolyline",
+            "actionTriggeredByMouse": true,
+            "activeActionType": 109,
+            "invocationSurface": "directButton",
+            "nativeActionActive": true,
+            "nativeIdentity": true,
+            "overflowActionAtPoint": false,
+            "overflowActionGeometryValid": false,
+            "overflowActionIdentity": true,
+            "overflowButtonEnabled": false,
+            "overflowButtonPresent": true,
+            "overflowButtonVisible": false,
+            "overflowMenuClosedAfterSelection": false,
+            "overflowMenuInteractionRan": false,
+            "overflowMenuPresent": true,
+            "overflowMenuVisibleAfterOpen": false,
+            "panelCollapsed": false,
+            "passed": true,
+            "presentationStable": true,
+            "sourceButtonEnabled": true,
+            "sourceButtonIdentity": true,
+            "sourceButtonVisible": true
+        },
+        "undo": {
+            "actionKey": "EditUndo",
+            "actionTriggeredByMouse": true,
+            "enabledBeforeClick": true,
+            "firstLineStillActive": true,
+            "nativeIdentity": true,
+            "quickAccessButton": true,
+            "visible": true
+        }
+    },
+    "prerequisites": true,
+    "previewCanvasPoint": {
+        "x": 787,
+        "y": 390
+    },
+    "product": "Kuubik Draw",
+    "propertiesLineRibbonInvocation": {
+        "actionTriggeredByMouse": true,
+        "invocationSurface": "directButton",
+        "overflowActionAtPoint": false,
+        "overflowActionGeometryValid": false,
+        "overflowActionIdentity": true,
+        "overflowButtonEnabled": false,
+        "overflowButtonPresent": true,
+        "overflowButtonVisible": false,
+        "overflowMenuClosedAfterSelection": false,
+        "overflowMenuInteractionRan": false,
+        "overflowMenuPresent": true,
+        "overflowMenuVisibleAfterOpen": false,
+        "panelCollapsed": false,
+        "passed": true,
+        "sourceButtonEnabled": true,
+        "sourceButtonIdentity": true,
+        "sourceButtonVisible": true
+    },
+    "propertiesPassed": true,
+    "propertiesStates": {
+        "document": {
+            "count": 0,
+            "mode": "document",
+            "nativeCallback": true,
+            "summary": {
+                "color": "",
+                "currentLayer": "KUUBIK-SMOKE-LAYER",
+                "document": "copy-after-redo.dxf",
+                "layer": "",
+                "linetype": "",
+                "lineweight": "",
+                "type": ""
+            }
+        },
+        "multiple": {
+            "count": 2,
+            "mode": "multiple",
+            "nativeCallback": true,
+            "summary": {
+                "color": "",
+                "currentLayer": "KUUBIK-SMOKE-LAYER",
+                "document": "copy-after-redo.dxf",
+                "layer": "",
+                "linetype": "",
+                "lineweight": "",
+                "type": ""
+            }
+        },
+        "single": {
+            "count": 1,
+            "mode": "single",
+            "nativeCallback": true,
+            "summary": {
+                "color": "#000000",
+                "currentLayer": "KUUBIK-SMOKE-LAYER",
+                "document": "copy-after-redo.dxf",
+                "layer": "KUUBIK-SMOKE-LAYER",
+                "linetype": "Continuous",
+                "lineweight": "0.00mm",
+                "type": "Line"
+            }
+        }
+    },
+    "ribbonActionKey": "DrawLine",
+    "ribbonInvocation": {
+        "actionTriggeredByMouse": true,
+        "invocationSurface": "directButton",
+        "overflowActionAtPoint": false,
+        "overflowActionGeometryValid": false,
+        "overflowActionIdentity": true,
+        "overflowButtonEnabled": false,
+        "overflowButtonPresent": true,
+        "overflowButtonVisible": false,
+        "overflowMenuClosedAfterSelection": false,
+        "overflowMenuInteractionRan": false,
+        "overflowMenuPresent": true,
+        "overflowMenuVisibleAfterOpen": false,
+        "panelCollapsed": false,
+        "passed": true,
+        "sourceButtonEnabled": true,
+        "sourceButtonIdentity": true,
+        "sourceButtonVisible": true
+    },
+    "ribbonMouseEvent": true,
+    "schemaVersion": 5,
+    "secondCanvasPoint": {
+        "x": 1050,
+        "y": 520
+    },
+    "selectorPassed": true,
+    "sourceDxfLoaded": true,
+    "status": "PASS",
+    "version": "0.2.0-preview.2",
+    "viewportRequestedHeight": 1080,
+    "viewportRequestedWidth": 1920,
+    "windowHeight": 1080,
+    "windowWidth": 1920
+}

@@ -4,10 +4,17 @@ Updated 2026-09-05. Direction: free/open-source LibreCAD-based Windows 2D CAD,
 with AutoCAD 2024.1.2 visual placement and workflow as the target, including real
 paperspace. A staged delivery is not a reduction of that final goal.
 
-## Now — SARibbon UI milestone
+## Now — SARibbon checkpoint review and bounded corrections
 
 Owner: lead integrator. Five-hour capacity, approximately four planned hours and
 one hour of correction/handoff buffer; see [DEVELOPMENT_PLAN](DEVELOPMENT_PLAN.md).
+
+The UI checkpoint is implemented and tested: source d35ec354, Windows run
+33966232573 and full local replay. Reio's acceptance remains open. Before the
+paperspace slice, address the document-summary refresh gap and orphan PLOTSETTINGS
+audit repair documented in NEXT_TASKS; the passing UI suite is not lossless-DXF proof.
+
+Delivered scope:
 
 - Integrate pinned MIT SARibbon into the existing native action-bound workspace.
 - Use measured Home panel order/widths, a single Layers panel and native pen

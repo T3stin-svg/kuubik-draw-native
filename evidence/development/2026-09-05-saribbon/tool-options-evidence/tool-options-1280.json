@@ -1,0 +1,167 @@
+{
+    "devicePixelRatio": 1,
+    "optionsToolbar": {
+        "containedByHost": true,
+        "containedThroughWindowAncestors": true,
+        "directChildOfHost": true,
+        "geometry": {
+            "height": 25,
+            "width": 0,
+            "x": 0,
+            "y": 0
+        },
+        "hostGeometry": {
+            "height": 25,
+            "width": 0,
+            "x": 1167,
+            "y": 2
+        },
+        "hostObjectName": "kuubikOptionToolbarHost",
+        "hostPresent": true,
+        "hostVisible": true,
+        "idlePositiveSize": false,
+        "nativeToolbarInRibbon": true,
+        "objectName": "options_toolbar",
+        "present": true,
+        "visible": true
+    },
+    "platform": "windows",
+    "schemaVersion": 1,
+    "states": [
+        {
+            "actionEnabled": true,
+            "actionKey": "DrawLine",
+            "actionPresent": true,
+            "activeActionType": 87,
+            "expectedActionType": 87,
+            "nativeActionActive": true,
+            "optionsHostGeometry": {
+                "height": 25,
+                "width": 299,
+                "x": 868,
+                "y": 2
+            },
+            "optionsHostPositiveSize": true,
+            "optionsToolbarContainedByHost": true,
+            "optionsToolbarContainedThroughWindowAncestors": true,
+            "optionsToolbarGeometry": {
+                "height": 25,
+                "width": 299,
+                "x": 0,
+                "y": 0
+            },
+            "optionsToolbarPositiveSize": true,
+            "passed": true,
+            "ribbonIdentity": true,
+            "screenshot": "tool-options-line-1280.png",
+            "screenshotDevicePixelRatio": 1,
+            "screenshotPixelHeight": 600,
+            "screenshotPixelWidth": 1280,
+            "screenshotSaved": true,
+            "settledWidgetCounts": true,
+            "visibleNativeWidgetCounts": {
+                "dimLinear": 0,
+                "dimension": 0,
+                "line": 1
+            },
+            "widgets": [
+                {
+                    "containedByHost": true,
+                    "containedByToolbar": true,
+                    "containedByWindow": true,
+                    "containedThroughWindowAncestors": true,
+                    "geometry": {
+                        "height": 25,
+                        "width": 149,
+                        "x": 0,
+                        "y": 0
+                    },
+                    "nativeType": true,
+                    "objectName": "Ui_LineOptions",
+                    "passed": true,
+                    "positiveSize": true,
+                    "present": true,
+                    "visible": true
+                }
+            ]
+        },
+        {
+            "actionEnabled": true,
+            "actionKey": "DimLinear",
+            "actionPresent": true,
+            "activeActionType": 133,
+            "expectedActionType": 133,
+            "nativeActionActive": true,
+            "optionsHostGeometry": {
+                "height": 25,
+                "width": 621,
+                "x": 546,
+                "y": 2
+            },
+            "optionsHostPositiveSize": true,
+            "optionsToolbarContainedByHost": true,
+            "optionsToolbarContainedThroughWindowAncestors": true,
+            "optionsToolbarGeometry": {
+                "height": 25,
+                "width": 621,
+                "x": 0,
+                "y": 0
+            },
+            "optionsToolbarPositiveSize": true,
+            "passed": true,
+            "ribbonIdentity": true,
+            "screenshot": "tool-options-dimlinear-1280.png",
+            "screenshotDevicePixelRatio": 1,
+            "screenshotPixelHeight": 600,
+            "screenshotPixelWidth": 1280,
+            "screenshotSaved": true,
+            "settledWidgetCounts": true,
+            "visibleNativeWidgetCounts": {
+                "dimLinear": 1,
+                "dimension": 1,
+                "line": 0
+            },
+            "widgets": [
+                {
+                    "containedByHost": true,
+                    "containedByToolbar": true,
+                    "containedByWindow": true,
+                    "containedThroughWindowAncestors": true,
+                    "geometry": {
+                        "height": 22,
+                        "width": 420,
+                        "x": 0,
+                        "y": 1
+                    },
+                    "nativeType": true,
+                    "objectName": "Ui_DimOptions",
+                    "passed": true,
+                    "positiveSize": true,
+                    "present": true,
+                    "visible": true
+                },
+                {
+                    "containedByHost": true,
+                    "containedByToolbar": true,
+                    "containedByWindow": true,
+                    "containedThroughWindowAncestors": true,
+                    "geometry": {
+                        "height": 22,
+                        "width": 200,
+                        "x": 421,
+                        "y": 1
+                    },
+                    "nativeType": true,
+                    "objectName": "Ui_DimLinearOptions",
+                    "passed": true,
+                    "positiveSize": true,
+                    "present": true,
+                    "visible": true
+                }
+            ]
+        }
+    ],
+    "status": "PASS",
+    "windowHeight": 600,
+    "windowWidth": 1280
+}

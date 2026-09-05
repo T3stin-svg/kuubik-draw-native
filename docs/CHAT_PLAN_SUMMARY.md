@@ -117,3 +117,12 @@ prototype, and explicitly authorized pushes to the existing codex work branch an
 Windows CI. No merge/release/paid service was authorized. The final native 2D goal
 still includes true paperspace and AutoCAD-like workflows. DEVELOPMENT_PLAN,
 RESEARCH_NOTES and PAPERSPACE_PLAN are the persistent handoff for this direction.
+
+The implemented SARibbon checkpoint is source d35ec354, Windows run 33966232573.
+All CI gates and local portable/independent tests passed, including strict Home
+boundaries and native settings isolation. A green preceding CI build was rejected
+for final handoff after local registry snap leakage caused duplicate PLINE points;
+the corrected binary isolates both Qt and LibreCAD settings interfaces. A manual
+Windows LINE/save review also passed geometry read-back. The inherited orphan
+PLOTSETTINGS audit repair and Properties document-summary refresh gap are explicit
+next corrections; real paperspace is still a plan, not implemented functionality.

@@ -1,6 +1,7 @@
 # Kuubik Draw — SARibboni viietunnine arendusetapp
 
-Staatus: **TÖÖS**. Algus 2026-09-05 10:00 UTC. Ülevaatuse siht 15:00 UTC.
+Staatus: **UI-etapp rakendatud ja kontrollitud; omaniku ülevaatus ootel**.
+Algus 2026-09-05 10:00 UTC. Viietunnise akna ülevaatuse siht oli 15:00 UTC.
 Vastutaja: üks integratsiooniomanik; Herdr ei ole selles keskkonnas saadaval.
 
 ## Kinnitatud eesmärk
@@ -22,17 +23,17 @@ valmisfunktsioon. Kogu toote täpse AutoCADi vastavuse eesmärki ei vähendata.
 
 - [x] Kontrollida puhast Git-olekut ja product-haru põlvnemist.
 - [x] Salvestada plaan ja uuringute koond native-reposse.
-- [ ] Lisada SARibbon v2.9.0 fikseeritud lähtekood ja litsents qmake-build'i.
-- [ ] Asendada ribboni esitlus, säilitades olemasolevad QAction-id ja avaliku liidese.
-- [ ] Home: Draw, Modify, Annotation, Layers, Block, Properties, Groups, Utilities,
+- [x] Lisada SARibbon v2.9.0 fikseeritud lähtekood ja litsents qmake-build'i.
+- [x] Asendada ribboni esitlus, säilitades olemasolevad QAction-id ja avaliku liidese.
+- [x] Home: Draw, Modify, Annotation, Layers, Block, Properties, Groups, Utilities,
   Clipboard, View. Groups jääb ausalt mittetoetatuks, mitte teise käsu alias'eks.
-- [ ] Liita Layers/Layer; paigutada native pen-kontrollid Properties-paneeli.
-- [ ] Säilitada neli otsest suurt Draw-käsku 1200/1280 loogilise piksli laiuses.
-- [ ] Säilitada Application/Quick Access, kuus sakki, native Tool Options ja Classic.
-- [ ] Lisada tegeliku nähtavuse, paneeligeomeetria ja esitusolekute regressioonid.
-- [ ] Läbida Windowsi build, portable-smoke ja sõltumatu DXF/PDF/SVG tagasilugemine.
-- [ ] Viia käesolev plaan, seisund, otsused, teekaart ja testiraport kooskõlla.
-- [ ] Anda kontrollitud EXE/ZIP, SHA-256, pildid, proovimisjuhend ja piirangud.
+- [x] Liita Layers/Layer; paigutada native pen-kontrollid Properties-paneeli.
+- [x] Säilitada neli otsest suurt Draw-käsku 1200/1280 loogilise piksli laiuses.
+- [x] Säilitada Application/Quick Access, kuus sakki, native Tool Options ja Classic.
+- [x] Lisada tegeliku nähtavuse, paneeligeomeetria ja esitusolekute regressioonid.
+- [x] Läbida Windowsi build, portable-smoke ja sõltumatu DXF/PDF/SVG tagasilugemine.
+- [x] Viia käesolev plaan, seisund, otsused, teekaart ja testiraport kooskõlla.
+- [x] Koostada kontrollitud EXE/ZIP, SHA-256, pildid, proovimisjuhend ja piirangud.
 
 ## Ajakava ja otsustusväravad
 
@@ -113,6 +114,30 @@ QAction peab olema sama objekt; peidetud nupu kunstlik klikk ei ole PASS.
 - Ehitust kiirendatakse Qt ametliku jom 1.1.7 kahe paralleelse käsuga; kontrollitud
   avaldaja SHA-256. MSVC, Qt5.15 ja qmake-lähteprojekt ei muutu ning jom ei lähe
   toote portable-paketti. Nmake jääb kohalikuks alternatiivseks build-käsuks.
+
+- 2026-09-05: `18d3f734` läbis CI 33964068198 koos kõigi täpsete paneelipiiride,
+  1920×1080 kliendiala, 100/125/150% qwindows-katsete ja sõltumatu failikontrolliga.
+  Kohalik sõltumatu parser leidis siiski PLINE-i kattuvad punktid: native
+  seadistuskiht luges testiprofiili asemel Windowsi registrit. Seda paketti ei
+  valitud lõplikuks üleandmiseks. `d35ec354` isoleerib mõlemad seadistusliidesed,
+  CLI ja valikuinfo ning lisab nullpikkuse ja registri muutumatuse kontrolli.
+  [CI 33966232573](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33966232573)
+  käivitatud 12:30 UTC. Lõplikku staatust ei järeldata eelneva lähtekoodi PASS-ist.
+
+Lõpptulemus: `d35ec35486912e4bca1fdc2a7125ecc6d53580eb`, CI 33966232573
+läbis 12:44:15 UTC. ZIP 43,773,937 baiti, SHA-256
+`4c3a2d8c2e36918e3fa77b0c106a174d1ea01bf27b6ecb0ea8d3400fa1c382d0`.
+Kohalik täiskordus, sõltumatu DXF/PDF/SVG, qwindows-geomeetria ja kümne protsessi
+seadistusisolatsioon läbisid; kõigi kümne Home-paneeli piirierinevus 0 px.
+Windowsi sisendiga joonistatud LINE salvestus õigesti (62,5 mm).
+Püsitõendid ja OWNER_REVIEW on repos; arenduse AI-arhiiv seob täpse binaari hilisema
+dokumentatsiooni snapshot'iga ilma release'i loomata.
+
+Paperspace jäi plaaniks. Järgmises parandusetapis tuleb lahendada rangema DXF-auditi
+omanikuta PLOTSETTINGS-kirje ja Properties-i dokumendikokkuvõtte hilinenud refresh.
+Need leiud on avalikult eristatud läbinud ribboni/geomeetria kontrollidest.
+Omaniku lõplik visuaalne heakskiit, täielik AutoCAD-pariteet ning kogu faili
+nullparandustega säilimine ei kuulu selle etapi PASS-väitesse.
 
 ## Ribboni komponendi- ja olekuleping
 
