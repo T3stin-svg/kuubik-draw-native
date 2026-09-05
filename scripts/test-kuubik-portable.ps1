@@ -242,7 +242,7 @@ $offscreenEnvironment = @{
 }
 
 $fixture = Join-Path $smokeRoot 'preview-smoke.dxf'
-Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'tests\fixtures\preview-smoke.dxf') -Destination $fixture -Force
+Copy-Item -LiteralPath (Join-Path $RepositoryRoot 'tests\fixtures\modelspace-audit-clean.dxf') -Destination $fixture -Force
 $pdf = Join-Path $smokeRoot 'preview-smoke.pdf'
 Run-Native -Executable $portableExe -Arguments @('dxf2pdf', '--fit', '--paper', '210x297', '--outfile', $pdf, $fixture) -Label 'DXF to PDF smoke' -Environment $portableQtEnvironment
 Run-Native -Executable $portableExe -Arguments @('dxf2svg', '--outfile', 'preview-smoke.svg', $fixture) -Label 'DXF to SVG smoke' -Environment $portableQtEnvironment

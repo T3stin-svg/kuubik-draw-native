@@ -1749,6 +1749,8 @@ bool dxfRW::writeBlocks() {
 }
 
 bool dxfRW::writeObjects() {
+    plotSettingsHandles.clear();
+    plotSettingsDictHandle = ++entCount;
     writer->writeString(0, "DICTIONARY");
     std::string imgDictH;
     writer->writeString(5, "C");
@@ -1759,6 +1761,8 @@ bool dxfRW::writeObjects() {
     writer->writeInt16(281, 1);
     writer->writeString(3, "ACAD_GROUP");
     writer->writeString(350, "D");
+    writer->writeString(3, "ACAD_PLOTSETTINGS");
+    writer->writeString(350, toHexStr(plotSettingsDictHandle));
     if (imageDef.size() != 0) {
         writer->writeString(3, "ACAD_IMAGE_DICT");
         imgDictH = toHexStr(++entCount);
@@ -1824,6 +1828,18 @@ bool dxfRW::writeObjects() {
     }
 
     iface->writeObjects();
+
+    // The callback has now supplied every standalone PLOTSETTINGS handle.
+    writer->writeString(0, "DICTIONARY");
+    writer->writeString(5, toHexStr(plotSettingsDictHandle));
+    writer->writeString(330, "C");
+    writer->writeString(100, "AcDbDictionary");
+    writer->writeInt16(280, 1);
+    writer->writeInt16(281, 1);
+    for (int handle : plotSettingsHandles) {
+        writer->writeUtf8String(3, "PlotSettings" + toHexStr(handle));
+        writer->writeString(350, toHexStr(handle));
+    }
 
     return true;
 }
@@ -2952,9 +2968,16 @@ bool dxfRW::processPlotSettings() {
 }
 
 bool dxfRW::writePlotSettings(DRW_PlotSettings *ent) {
+    ent->handle = ++entCount;
+    plotSettingsHandles.push_back(ent->handle);
     writer->writeString(0, "PLOTSETTINGS");
-    writer->writeString(5, toHexStr(++entCount));
+    writer->writeString(5, toHexStr(ent->handle));
+    writer->writeString(102, "{ACAD_REACTORS");
+    writer->writeString(330, toHexStr(plotSettingsDictHandle));
+    writer->writeString(102, "}");
+    writer->writeString(330, toHexStr(plotSettingsDictHandle));
     writer->writeString(100, "AcDbPlotSettings");
+    writer->writeUtf8String(1, "PlotSettings" + toHexStr(ent->handle));
     writer->writeUtf8String(6, ent->plotViewName);
     writer->writeDouble(40, ent->marginLeft);
     writer->writeDouble(41, ent->marginBottom);

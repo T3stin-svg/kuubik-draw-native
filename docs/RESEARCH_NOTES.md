@@ -33,7 +33,13 @@ oletuslikult, sest kasutaja eelnevaid väärtusi ei ole salvestatud.
 Paranduse `d35ec354` CI 33966232573 ja kohalik täiskordus läbisid; mõlemas tõendati
 kümne protsessi isolatsioon ja muutumatu register. Täpne pakett on TEST_REPORT-is.
 
-### Native eelvaate rangema kontrolli lahtised leiud
+### Native eelvaate rangema kontrolli leiud — enne P0 parandusi
+
+Alljärgnevad kaks leidu kehtivad `d35ec354` MSVC-artifakti kohta. Hilisem P0
+parandussessioon lahendas mõlemad lähtekoodis ja kontrollis lokaalselt Qt/MinGW-ga;
+MSVC CI on veel ootel. P0-B nullparanduste tõend piirdub uue puhta sünteetilise
+ASCII modelspace-korpusega. Eraldi binary-DXF päise katse ebaõnnestus ja jääb
+lahtiseks. Täpsed red/green-tulemused: [P0_CORRECTIONS](P0_CORRECTIONS.md).
 
 Ka meie praegune libdxfrw väljund pole kogu objekti-struktuuri mõttes kadudeta:
 `writePlotSettings` jätab owner 330 kirjutamata ja `writeObjects` ei loo

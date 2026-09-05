@@ -8,9 +8,10 @@ import json
 import re
 from pathlib import Path
 
-import ezdxf
 from PIL import Image, ImageStat
 from pypdf import PdfReader
+
+from dxf_audit import require_audit_clean
 
 
 def require(condition: bool, message: object) -> None:
@@ -69,7 +70,7 @@ def main() -> None:
     tool_options_root = smoke / "tool-options-evidence"
     tool_options_report_path = tool_options_root / "tool-options-1280.json"
 
-    doc = ezdxf.readfile(dxf_path)
+    doc = require_audit_clean(dxf_path, 0)
     modelspace = list(doc.modelspace())
     types = [entity.dxftype() for entity in modelspace]
     require(types.count("LWPOLYLINE") == 1, types)
@@ -115,7 +116,7 @@ def main() -> None:
     } & {"path", "line", "polyline", "polygon", "circle", "ellipse", "rect"}
     require(vector_tags, [element.tag for element in svg_elements])
 
-    gui_doc = ezdxf.readfile(gui_dxf_path)
+    gui_doc = require_audit_clean(gui_dxf_path, 1)
     gui_entities = list(gui_doc.modelspace())
     gui_types = [entity.dxftype() for entity in gui_entities]
     require(gui_types.count("LWPOLYLINE") == 1, gui_types)
@@ -201,7 +202,7 @@ def main() -> None:
     require(single_summary["layer"], single_summary)
 
     def read_pline_state(path: Path, expect_smoke_polyline: bool):
-        state_doc = ezdxf.readfile(path)
+        state_doc = require_audit_clean(path, 1)
         state_entities = list(state_doc.modelspace())
         state_types = [entity.dxftype() for entity in state_entities]
         require(state_types.count("CIRCLE") == 1, (path.name, state_types))
@@ -324,7 +325,7 @@ def main() -> None:
     )
 
     def read_copy_state(path: Path, expect_copy: bool):
-        state_doc = ezdxf.readfile(path)
+        state_doc = require_audit_clean(path, 1)
         state_entities = list(state_doc.modelspace())
         state_types = [entity.dxftype() for entity in state_entities]
         require(state_types.count("CIRCLE") == 1, (path.name, state_types))
@@ -485,7 +486,7 @@ def main() -> None:
         )
 
     def read_move_state(path: Path):
-        state_doc = ezdxf.readfile(path)
+        state_doc = require_audit_clean(path, 1)
         state_entities = list(state_doc.modelspace())
         state_types = [entity.dxftype() for entity in state_entities]
         require(state_types.count("CIRCLE") == 1, (path.name, state_types))

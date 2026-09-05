@@ -144,6 +144,8 @@ private:
 //    int section;
     std::string nextentity;
     int entCount = 0;
+    int plotSettingsDictHandle = 0;
+    std::vector<int> plotSettingsHandles;
     bool wlayer0 = false;
     bool dimstyleStd = false;
     bool applyExt =false;

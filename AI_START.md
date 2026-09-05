@@ -95,9 +95,11 @@ must not replace the immutable release without Reio's explicit approval.
 
 It adds the pinned SARibbon UI, ten exact Home panel boundaries, native Pen in
 Properties, qwindows narrow/DPI containment and isolated native/Qt settings.
-Local replay and independent files passed. Read TEST_REPORT's explicit limits:
-one inherited orphan PLOTSETTINGS audit repair and a lagging Properties document
-summary remain next tasks. The UI checkpoint does not implement paperspace.
+Local replay and independent files passed. That MSVC artifact still has an orphan
+PLOTSETTINGS audit repair and a lagging Properties document summary. Both are now
+corrected and locally verified in the subsequent P0 session; exact-source MSVC CI
+and owner acceptance remain pending. Read `docs/P0_CORRECTIONS.md` and TEST_REPORT.
+The UI checkpoint and P0 corrections do not implement paperspace.
 Persistent evidence and an Estonian owner checklist are included in the source.
 
 This newer baseline additionally verifies the native MOVE selection, modal
@@ -106,7 +108,15 @@ expanded precision/status contracts and packaged DPI captures. The original
 command smoke uses offscreen Qt; DPI screenshots use qwindows. Real Windows
 Settings scaling and full AutoCAD command equivalence remain unproved.
 
-## Current work — approved 2026-09-05 UI milestone
+## Current work — 2026-09-05 P0 corrections
+
+Both P0 slices are implemented and locally verified with Qt/MinGW, including
+zero-error/zero-repair audits for the bounded ASCII modelspace corpus. The next
+gate is Reio's explicit approval for work-branch push and exact-source MSVC CI.
+No push, remote CI, release or merge is authorized in this correction session.
+The earlier UI permission below is historical, not continuing authorization.
+
+## Historical authorization — 2026-09-05 UI milestone
 
 Read `docs/DEVELOPMENT_PLAN.md`, `docs/RESEARCH_NOTES.md` and
 `docs/PAPERSPACE_PLAN.md` alongside the required files. Reio selected SARibbon

@@ -1,6 +1,6 @@
 # Kuubik Draw Native — verified test checkpoint
 
-## Local P0-A correction — 2026-09-05 (MSVC CI pending)
+## Local P0 corrections — 2026-09-05 (MSVC CI pending)
 
 Baseline: clean `8a5f7ae0`, product-branch ancestry confirmed. Local developer
 toolchain: Qt 5.15.2 / MinGW 8.1 x64 with Boost 1.87 headers, all outside the
@@ -19,9 +19,40 @@ Initial build invocation used unordered make targets and failed because the app
 started before libmuparser existed. The corrected ordered target compiled
 successfully. This was a local test setup failure, not an application regression.
 See [P0_CORRECTIONS](P0_CORRECTIONS.md) for mechanism, commands and remaining gate.
-P0-B is separate and remains open at this checkpoint.
 
-## Current checkpoint summary — 2026-09-05
+P0-B first failed the independent clean-input roundtrip with exit 1 and repair
+202 (orphan PLOTSETTINGS deleted). After the ownership fix, all four standalone
+ASCII cases pass: one object, no objects, two objects, and the same writer reused
+with two then one. Exact geometry/layers/units, four margins, native reopen and
+dictionary/owner/reactor/name links pass with ezdxf 1.4.4: **0 errors, 0 repairs**.
+The new input has explicit table handles and passes 0/0; the old fixture is retained
+and the strict checker still rejects its two repair 110 findings.
+
+Combined final-source local developer build: eight native process runs exit 0;
+all nine Properties states and existing LINE/PLINE/COPY/MOVE, Undo/Redo,
+selection/layer/MDI operations pass. `verify-preview-outputs.py` passes in full:
+ten GUI DXFs audit 0/0, expected geometry survives, A4 PDF contains vectors and
+no images, SVG contains vectors and no raster image elements. Four existing
+ribbon geometry checks pass, including 0 px reference panel deltas. qwindows
+captures use 100/125/150% Qt scale factors; the reference capture was inspected.
+Eight isolated profile checks pass and the in-memory registry comparison is equal.
+
+The optional binary probe failed before the ownership fix: native reopen exits 3,
+and ezdxf reports an invalid header tag (code 2304). No existing test was disabled;
+the new passing contract is explicitly ASCII (input AC1015, GUI outputs AC1021,
+standalone outputs AC1027). This inherited binary issue is tracked in NEXT_TASKS.
+Python syntax and strict audit negative checks pass. An optional PyYAML syntax
+check could not run because PyYAML is absent; the workflow was reviewed statically.
+No test-only dependency was added to the product to resolve that optional check.
+
+Local logs and generated files: `.artifacts/p0-corrections/` (ignored).
+Developer EXE SHA-256: `035142f0001211d4b3dd58420e4ec624dc04bacc18794c4267f4655e95bc1f60`.
+This is MinGW development evidence, not an approved portable build. The updated
+MSVC workflow includes the strict audits and standalone ownership/reuse adapter,
+but has not run for these corrections. Owner acceptance and Windows Settings DPI
+checks remain open. No push, remote CI, release or paperspace implementation occurred.
+
+## Last Windows MSVC checkpoint summary — 2026-09-05 (before P0 corrections)
 
 Latest tested SARibbon development source:
 `d35ec35486912e4bca1fdc2a7125ecc6d53580eb`.

@@ -1,13 +1,15 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. **Properties P0-A locally verified; MSVC CI pending.**
+Status date: **2026-09-05**. **P0-A and P0-B locally verified; MSVC CI pending.**
 
 The current correction session starts at `8a5f7ae0` on the existing integration
 branch. P0-A uses native modification notifications and counts active entities.
 Its rebuilt Qt 5.15.2 / MinGW 8.1 x64 GUI smoke passes all nine new summary states
-and the existing native workflows. See [P0_CORRECTIONS](P0_CORRECTIONS.md).
+and the existing native workflows. P0-B supplies PLOTSETTINGS dictionary/owner/
+reactor links; the clean input, four standalone outputs and ten GUI outputs pass
+ezdxf 1.4.4 with zero errors and repairs. See [P0_CORRECTIONS](P0_CORRECTIONS.md).
 This is local development evidence, not a new MSVC/portable checkpoint.
-P0-B ownership remains open. Push, remote CI and release are not authorized for
+Owner acceptance remains open. Push, remote CI and release are not authorized for
 this correction session; earlier UI-milestone authorization is historical.
 
 ## Product and authority
@@ -96,8 +98,10 @@ in DEVELOPMENT_PLAN and TEST_REPORT; no preceding source proves a later binary.
 - The Properties palette is read-only and delegates editing to ModifyEntity.
 - Its document entity/Modified summary refresh is corrected locally in P0-A;
   the last MSVC development artifact still has the old behavior.
-- A stricter ezdxf audit finds one orphan PLOTSETTINGS record (repair 202) in
-  saved synthetic DXFs. Geometry passes, but whole-file zero-repair DXF is not claimed.
+- PLOTSETTINGS repair 202 is corrected locally for the bounded ASCII modelspace
+  corpus; the last MSVC artifact still contains it. Arbitrary DXF fidelity is unproved.
+- A separate exploratory binary-DXF probe fails on an inherited malformed header.
+  It is outside the passing ASCII corpus and remains unresolved.
 - DWG/DWT/XREF and lossless handling of arbitrary unknown objects are not certified.
 - Automated 125/150% captures use QT_SCALE_FACTOR, not Windows Settings changes.
 - Broader Modify/annotation/blocks, large drawings, recovery and real owner

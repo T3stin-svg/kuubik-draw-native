@@ -2,18 +2,20 @@
 
 Updated 2026-09-05. Reproducible owner-found failures always take priority.
 
-## P0 — next correction slice after owner review
+## P0 — local corrections complete; MSVC and owner gates open
 
 - [ ] Reio reviews the delivered SARibbon checkpoint using `docs/OWNER_REVIEW.md`.
 - [x] Locally verify native document-change notification for the Properties entity/Modified
   summary after drawing, Undo/Redo and save; count active entities, not undone
   retained objects. Keep selection callbacks and no polling/duplicate model.
-- [ ] Verify P0-A with the exact-source MSVC x64 / Qt 5.15 portable CI artifact;
-  local Qt/MinGW smoke passed nine summary states. Push/CI requires new approval.
-- [ ] Fix the inherited PLOTSETTINGS ownership/dictionary writer and add an
-  audit-clean model-space fixture plus zero-repair output tests. Current saved
-  synthetic files retain geometry but produce ezdxf repair 202; input fixture
-  also has two table-handle repairs 110. See `docs/TEST_REPORT.md`.
+- [x] Fix the inherited PLOTSETTINGS ownership/dictionary writer and add an
+  audit-clean modelspace fixture. Reproduce repair 202 before the fix; require
+  zero errors/repairs for four standalone and ten GUI ASCII outputs after it.
+- [ ] Verify both P0 corrections with the exact-source MSVC x64 / Qt 5.15 portable
+  CI artifact, then obtain owner acceptance. Local Qt/MinGW checks passed;
+  push and remote CI require Reio's new explicit approval.
+- [ ] Investigate the inherited binary-DXF header failure reproduced by the
+  optional standalone binary probe. No binary compatibility claim from P0-B.
 
 ## Completed — approved SARibbon UI milestone
 

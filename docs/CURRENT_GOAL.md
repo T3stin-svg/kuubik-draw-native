@@ -10,7 +10,15 @@ AutoCAD 2024.1.2 command placement and interaction, plus true native paperspace,
 not only a familiar-looking skin. All dependencies must be free/open-source and
 compatible with the fork's licensing.
 
-## Active milestone — 2026-09-05
+## Active milestone — 2026-09-05 P0 corrections
+
+The Properties notification and PLOTSETTINGS ownership corrections are implemented
+and locally verified; see [P0_CORRECTIONS](P0_CORRECTIONS.md). Exact-source MSVC CI
+and owner acceptance remain pending. This correction session authorizes local
+commits only; push and remote CI require Reio's new explicit approval. Paperspace
+implementation has not started.
+
+## Historical UI milestone — 2026-09-05
 
 Reio selected the five-hour SARibbon UI milestone in [DEVELOPMENT_PLAN](DEVELOPMENT_PLAN.md)
 and approved work-branch pushes plus Windows CI only. Real paperspace follows as
@@ -19,8 +27,8 @@ sections below are historical; [PROJECT_STATE](PROJECT_STATE.md) names the lates
 verified source. Current sidebar/UI work does not imply the whole goal is complete.
 
 The SARibbon checkpoint now has Windows and local proof for source d35ec354
-(run 33966232573). Owner acceptance, the two explicit NEXT_TASKS corrections and
-the true paperspace stage remain open. The five-hour milestone does not claim
+(run 33966232573). Owner acceptance, MSVC proof for the two NEXT_TASKS corrections
+and the true paperspace stage remain open. The five-hour milestone does not claim
 all phases or the overall goal completed.
 
 The target user is a building or civil engineer. The primary information

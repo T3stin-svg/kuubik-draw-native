@@ -1,7 +1,9 @@
 # Kuubik Draw — native paperspace'i teostusplaan
 
 Staatus: **JÄRGMINE ETAPP, mitte valmis funktsioon**. 2026-09-05.
-Praegune viietunnine etapp muudab UI-d; alljärgnev lukustab järgneva tehnilise suuna.
+UI-etapp on lõpetatud. Järgnenud Propertiesi ja PLOTSETTINGSi P0 parandused on
+lokaalselt kontrollitud; täpse lähtekoodi MSVC CI ja omaniku kinnitus on ootel.
+Paperspace'i teostust ei alustatud. Alljärgnev lukustab järgneva tehnilise suuna.
 
 ## Vastuvõetav vertikaalne läbilõige
 
