@@ -1,0 +1,4 @@
+# Preserve the byte-exact upstream amalgamation (including its CRLF and legacy
+# whitespace). Kuubik-owned code retains the normal diff --check policy.
+libraries/saribbon/SARibbon.h -text whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof
+libraries/saribbon/SARibbon.cpp -text whitespace=cr-at-eol,-blank-at-eol,-blank-at-eof
