@@ -304,9 +304,10 @@ QToolButton* KuubikRibbon::createActionButton(const QString& key, QWidget* paren
     // Preserve those native state/enabled/trigger connections, but keep the
     // Kuubik ribbon's command identity visually stable.
     connect(action, &QAction::changed, button,
-            [button, ribbonText, icon] {
+            [button, action, ribbonText, icon] {
                 button->setText(ribbonText);
                 if (!icon.isNull()) button->setIcon(icon);
+                button->setEnabled(action->isEnabled());
             }, Qt::QueuedConnection);
     button->setAutoRaise(true);
     if (iconOnly) {
@@ -495,6 +496,12 @@ void KuubikRibbon::setPanelCollapsed(PanelInstance& panel, bool collapsed)
     panel.frame->style()->polish(panel.frame);
     for (QAction* presentation : panel.presentationActions) presentation->setVisible(!collapsed);
     panel.overflowPresentation->setVisible(collapsed);
+    // A hidden QWidgetAction reports disabled, and SARibbon mirrors that to
+    // its widget. The presentation may hide; command availability still comes
+    // from the native QAction, including while the overflow represents it.
+    for (QToolButton* button : panel.itemButtons) {
+        button->setEnabled(button->defaultAction()->isEnabled());
+    }
     panel.frame->layout()->invalidate();
     panel.frame->layout()->setGeometry(panel.frame->rect());
     panel.frame->updateGeometry();

@@ -2864,6 +2864,13 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     }
     QApplication::processEvents();
 
+    const QString idleScreenshotPath = qEnvironmentVariable("KUUBIK_UI_IDLE_SCREENSHOT_PATH");
+    if (!idleScreenshotPath.isEmpty()) {
+        // Preserve the real idle workspace before reversible contract actions
+        // exercise native snap/option widgets. The post-test image is separate.
+        contract.insert("idleScreenshotSaved", grab().save(idleScreenshotPath));
+    }
+
     contract.insert("schemaVersion", 2);
     contract.insert("product", qApp->applicationName());
     contract.insert("version", qApp->applicationVersion());

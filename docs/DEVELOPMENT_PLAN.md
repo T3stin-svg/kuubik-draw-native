@@ -91,6 +91,19 @@ QAction peab olema sama objekt; peidetud nupu kunstlik klikk ei ole PASS.
   ribbonit ja heledaid Fusion-nuppe. Tööala nõuet 1920×1080 ei vähendata; CI
   töölaud suurendatakse 2560×1440-le. Adapteri teegi-põhised suuruse/stiiili
   parandused ja tab'i hit-rect'i kontroll lähevad järgmisse ehitusse.
+- 2026-09-05 11:28 UTC: `236b2b51` build/pakett läbis; CI virtuaalne adapter ei
+  toeta 2560×1440 ja visual-smoke ei käivitunud. Kohalik qwindows näitab tumedat
+  teemat, kuut toimivat sakki, Space/GRID roundtrip'i ning kõiki kolme native Pen
+  valikut. Viie esimese Home-paneeli piirid on täpsed; Properties on 7 px liiga
+  lai. Järgmine parandus kasutab tegelikult pakutavate Windowsi ekraanirežiimide
+  loendit ning parandab ka kokkusurutud QWidgetAction'i enabled-peegelduse.
+- Kohaliku GUI diagnostika algne COPY tõrge oli puuduv sünteetiline sisend-DXF;
+  sama tõrge kordus baaspaketil. Õige fixture'iga läbisid nii 9968198b kui ka
+  6ef7f74e LINE/PLINE/COPY/MOVE ja Undo/Redo. CI fixture'i ei muudetud.
+- Lisatud arenduse AI-üleandmisarhiiv ilma release-tagi nõudeta. Arhiiv kontrollib
+  ZIP-i räsi ja binaari manifesti ning võtab juhendid samast Git-snapshot'ist,
+  mitte muudetud tööpuust. Sünteetilised positiivsed ja negatiivsed testid läbivad;
+  päris üleandmine tehakse alles kontrollitud Windowsi paketist.
 
 ## Ribboni komponendi- ja olekuleping
 

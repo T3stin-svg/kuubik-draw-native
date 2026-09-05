@@ -213,7 +213,7 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
 #kuubikPenToolbarHost QComboBox {
     min-height: 19px;
     max-height: 19px;
-    min-width: 180px;
+    min-width: 173px;
     padding: 0 3px;
 }
 #kuubikCurrentLayerPlaceholder {

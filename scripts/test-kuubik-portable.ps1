@@ -91,10 +91,15 @@ function Run-Native(
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $Executable
     $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
     foreach ($name in @(
         'QT_SCALE_FACTOR', 'QT_SCREEN_SCALE_FACTORS', 'QT_AUTO_SCREEN_SCALE_FACTOR',
         'QT_DEVICE_PIXEL_RATIO', 'QT_FONT_DPI', 'QT_USE_PHYSICAL_DPI',
-        'QT_SCALE_FACTOR_ROUNDING_POLICY'
+        'QT_SCALE_FACTOR_ROUNDING_POLICY',
+        'KUUBIK_UI_CONTRACT_PATH', 'KUUBIK_UI_SCREENSHOT_PATH', 'KUUBIK_UI_IDLE_SCREENSHOT_PATH',
+        'KUUBIK_UI_CONTRACT_WIDTH', 'KUUBIK_UI_CONTRACT_HEIGHT',
+        'KUUBIK_STATUS_MENU_SCREENSHOT_PATH', 'KUUBIK_STATUS_BAR_SCREENSHOT_PATH',
+        'KUUBIK_GUI_SMOKE_DIR', 'KUUBIK_GUI_SMOKE_INPUT_DXF', 'KUUBIK_TOOL_OPTIONS_SMOKE_DIR'
     )) {
         [void]$startInfo.Environment.Remove($name)
     }
@@ -201,12 +206,14 @@ $statusBarScreenshotPath = Join-Path $smokeRoot 'status-bar.png'
 $uiContractEnvironment = $offscreenEnvironment.Clone()
 $uiContractEnvironment['KUUBIK_UI_CONTRACT_PATH'] = $uiContractPath
 $uiContractEnvironment['KUUBIK_UI_SCREENSHOT_PATH'] = (Join-Path $smokeRoot 'workspace.png')
+$uiContractEnvironment['KUUBIK_UI_IDLE_SCREENSHOT_PATH'] = (Join-Path $smokeRoot 'workspace-idle.png')
 $uiContractEnvironment['KUUBIK_STATUS_MENU_SCREENSHOT_PATH'] = $statusMenuScreenshotPath
 $uiContractEnvironment['KUUBIK_STATUS_BAR_SCREENSHOT_PATH'] = $statusBarScreenshotPath
 $uiContractEnvironment['KUUBIK_UI_CONTRACT_WIDTH'] = '1200'
 $uiContractEnvironment['KUUBIK_UI_CONTRACT_HEIGHT'] = '700'
 Run-Native -Executable $portableExe -Arguments @() -Label 'Kuubik UI contract smoke' -Environment $uiContractEnvironment
 Require-Path $uiContractPath
+Require-Path (Join-Path $smokeRoot 'workspace-idle.png')
 Require-Path $statusMenuScreenshotPath
 Require-Path $statusBarScreenshotPath
 
@@ -767,9 +774,11 @@ foreach ($dpiCase in @(
     $dpiEnvironment['QT_SCALE_FACTOR'] = $dpiCase.Factor
     $dpiEnvironment['KUUBIK_UI_CONTRACT_PATH'] = $dpiContractPath
     $dpiEnvironment['KUUBIK_UI_SCREENSHOT_PATH'] = $dpiScreenshotPath
+    $dpiEnvironment['KUUBIK_UI_IDLE_SCREENSHOT_PATH'] = (Join-Path $dpiDirectory 'workspace-idle.png')
     $dpiEnvironment['KUUBIK_UI_CONTRACT_WIDTH'] = [string]$dpiCase.Width
     $dpiEnvironment['KUUBIK_UI_CONTRACT_HEIGHT'] = [string]$dpiCase.Height
     Run-Native -Executable $portableExe -Arguments @() -Label "Kuubik $($dpiCase.Name)% DPI contract" -Environment $dpiEnvironment
+    Require-Path (Join-Path $dpiDirectory 'workspace-idle.png')
     Require-Path $dpiContractPath
     Require-Path $dpiScreenshotPath
 

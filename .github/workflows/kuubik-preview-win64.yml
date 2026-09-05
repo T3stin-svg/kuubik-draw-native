@@ -46,6 +46,34 @@ jobs:
           git merge-base --is-ancestor 7ebab007d9eb4c68609388b835a2487648f0877b HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Preview is not based on the pinned LibreCAD commit.' }
 
+      - name: Verify handoff archive safety contracts
+        shell: pwsh
+        run: .\scripts\test-ai-handoff.ps1
+
+      - name: Set and verify Windows UI test resolution
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Get-Command Set-DisplayResolution -ErrorAction SilentlyContinue) -or
+              -not (Get-Command Get-DisplayResolution -ErrorAction SilentlyContinue)) {
+            throw 'Windows display-resolution cmdlets are unavailable on this runner.'
+          }
+          $modes = @(.\scripts\get-windows-display-modes.ps1)
+          $modes | Format-Table | Out-Host
+          # A native caption needs room around the unchanged 1920x1080 client.
+          # Select an advertised mode; this adapter rejected guessed 2560x1440.
+          $candidate = $modes | Where-Object {
+            $_.Width -ge 1920 -and $_.Height -ge 1120 -and $_.BitsPerPixel -eq 32
+          } | Sort-Object @{ Expression = { $_.Width * $_.Height } }, Width, Height |
+              Select-Object -First 1
+          if ($null -eq $candidate) { throw 'No supported display mode can contain the 1920x1080 native client reference.' }
+          Set-DisplayResolution -Width $candidate.Width -Height $candidate.Height -Force
+          Start-Sleep -Seconds 2
+          $actual = ((Get-DisplayResolution | Out-String) -replace "`0", '').Trim()
+          $expected = "$($candidate.Width)x$($candidate.Height)"
+          Write-Output "Windows display resolution for UI tests: $actual"
+          if ($actual -ne $expected) { throw "Windows UI test desktop did not become ${expected}: $actual" }
+
       - name: Setup MSVC x64 developer environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -136,26 +164,6 @@ jobs:
         shell: pwsh
         run: .\scripts\package-kuubik-portable.ps1
 
-      - name: Set and verify Windows UI test resolution
-        shell: powershell
-        run: |
-          $ErrorActionPreference = 'Stop'
-          if (-not (Get-Command Set-DisplayResolution -ErrorAction SilentlyContinue) -or
-              -not (Get-Command Get-DisplayResolution -ErrorAction SilentlyContinue)) {
-            throw 'Windows display-resolution cmdlets are unavailable on this runner.'
-          }
-          $before = ((Get-DisplayResolution | Out-String) -replace "`0", '').Trim()
-          Write-Output "Windows display resolution before UI tests: $before"
-          # Leave room for the native Windows caption around the 1920x1080
-          # client-area reference. A 1080-high desktop clamps that client height.
-          Set-DisplayResolution -Width 2560 -Height 1440 -Force
-          Start-Sleep -Seconds 2
-          $actual = ((Get-DisplayResolution | Out-String) -replace "`0", '').Trim()
-          Write-Output "Windows display resolution for UI tests: $actual"
-          if ($actual -ne '2560x1440') {
-            throw "Windows UI test desktop did not become 2560x1440: $actual"
-          }
-
       - name: Test portable folder and native file outputs
         shell: pwsh
         run: .\scripts\test-kuubik-portable.ps1 -PackageDirectory .\artifacts\KuubikDraw-0.2.0-preview.2-win64
@@ -174,6 +182,7 @@ jobs:
           path: |
             ${{ runner.temp }}/Kuubik Draw portable smoke/kuubik-ui-contract.json
             ${{ runner.temp }}/Kuubik Draw portable smoke/workspace.png
+            ${{ runner.temp }}/Kuubik Draw portable smoke/workspace-idle.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/preview-smoke.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/preview-smoke.pdf
             ${{ runner.temp }}/Kuubik Draw portable smoke/preview-smoke.svg
@@ -193,6 +202,7 @@ jobs:
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/move-after-undo.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/move-after-redo.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/dpi-evidence/**/workspace.png
+            ${{ runner.temp }}/Kuubik Draw portable smoke/dpi-evidence/**/workspace-idle.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/dpi-evidence/**/kuubik-ui-contract.json
             ${{ runner.temp }}/Kuubik Draw portable smoke/tool-options-evidence/tool-options-line-1280.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/tool-options-evidence/tool-options-dimlinear-1280.png

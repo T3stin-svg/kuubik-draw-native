@@ -95,6 +95,7 @@ def main() -> None:
     page = pdf.pages[0]
     require(float(page.mediabox.width) > 500, page.mediabox)
     require(float(page.mediabox.height) > 800, page.mediabox)
+    require(len(page.images) == 0, "Vector PDF fixture unexpectedly contains raster images")
     contents = page.get_contents()
     require(contents is not None, "PDF has no page content stream")
     pdf_stream = contents.get_data()
@@ -105,6 +106,8 @@ def main() -> None:
     root = ET.parse(svg_path).getroot()
     require(root.tag.endswith("svg"), root.tag)
     svg_elements = list(root.iter())
+    require(all(element.tag.rsplit("}", 1)[-1] != "image" for element in svg_elements),
+            "Vector SVG fixture unexpectedly contains raster images")
     require(len(svg_elements) > 3, [element.tag for element in svg_elements])
     vector_tags = {
         element.tag.rsplit("}", 1)[-1]
