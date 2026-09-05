@@ -122,9 +122,14 @@ shared Undo pass 54 checks and MSVC run `33987457900` at `a601e807`.
 P1-03a adds a validated Qt WCS-to-paper camera and raster/vector probe; current
 36 native checks and independent vector/clip tests pass MSVC `33988991011` at
 `15eed2e2`. F-01 corrects binary bool payload width with a 15-output local corpus;
-the follow-up settings diagnostics and F-01 MSVC gate are pending. DXF adapter, paper
+the combined settings/F-01 source `81103460` passes MSVC `33990304131` and full
+local packaged replay, including ten isolated processes and unchanged registry.
+The ZIP hash and exact evidence are at the start of `docs/TEST_REPORT.md`. DXF adapter, paper
 entities, rendering and UI remain unfinished. Follow `tasks/plan.md`, `docs/ROADMAP.md` and
 PROJECT_STATE for current evidence. No release or remote merge is authorized.
+The next bounded task is P1-02c: validated source membership, native identity
+bindings and proven DCS/WCS camera conversion in `docs/PAPERSPACE_PLAN.md`.
+Keep the native save guard until export/reopen is independently demonstrated.
 
 ## Historical authorization — 2026-09-05 UI milestone
 

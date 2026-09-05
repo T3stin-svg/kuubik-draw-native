@@ -1,6 +1,15 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. **P1 file foundation, save guard, native metadata/Undo and Qt camera foundation pass MSVC; settings diagnostics and binary Boolean fix pass locally.**
+Status date: **2026-09-05**. **P1 file foundation, save guard, native metadata/Undo, Qt camera foundation, settings diagnostics and binary Boolean fix pass MSVC and local packaged replay.**
+
+Latest pushed executable source: `81103460ba46f0cecb79da00764b8a7d99832e41`.
+Combined Windows verification passed in
+[33990304131](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33990304131).
+The 43,811,683-byte ZIP matches source/run and SHA-256
+`33290170ddb43cb501308a9f5e665a1dffc3da96b67cf9bdc2cbb0da9ee67854`.
+Local portable/independent replay and the three forced settings failures pass;
+ten isolated portable processes leave the native registry unchanged.
+The live ROADMAP separates current checks from historical intermediate results.
 
 The current correction session starts at `8a5f7ae0` on the existing integration
 branch. P0-A uses native modification notifications and counts active entities.

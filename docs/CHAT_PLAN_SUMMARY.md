@@ -126,3 +126,20 @@ the corrected binary isolates both Qt and LibreCAD settings interfaces. A manual
 Windows LINE/save review also passed geometry read-back. The inherited orphan
 PLOTSETTINGS audit repair and Properties document-summary refresh gap are explicit
 next corrections; real paperspace is still a plan, not implemented functionality.
+
+## 9. Follow-up five-hour native foundation
+
+Reio requested a detailed graphical roadmap that updates during work, then another
+five-hour development wave using installed plugins. The window is September 5,
+16:10:46–21:10:46 UTC. Work-branch pushes and Windows CI were explicitly approved;
+Reio chose to continue the existing read-only review and tests without an external
+cross-model CLI review. ROADMAP now keeps current status/graph above the retained
+historical intermediate results.
+
+P0 Properties and PLOTSETTINGS corrections are verified. Subsequent checkpoints
+add bounded DXF layout/camera read/write, conservative native save protection,
+document-owned metadata/shared Undo, a validated Qt camera and vector probe,
+settings-failure diagnostics and a binary Boolean-width repair. This is a native
+foundation: adapter wiring, layout entities/UI and native layout roundtrip are
+unfinished. PROJECT_STATE and TEST_REPORT contain the current exact-source proof;
+the SARibbon paragraph above records the earlier milestone, not current defects.

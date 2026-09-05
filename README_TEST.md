@@ -46,18 +46,23 @@ Kuubik → Classic → Kuubik. Native menus, Tool Options and the three pen cont
 must remain usable. Save a synthetic DXF under a new name and reopen it. Report
 the exact source commit with any failure; do not upload client drawings.
 
-### Layout-bearing drawings: use copies only
+### Current native foundation and layout-bearing drawings
 
-The stricter object audit also identifies one inherited orphan PLOTSETTINGS record
-in saved synthetic model-space DXFs (ezdxf repair 202). Tested geometry survives;
-zero-repair whole-file preservation is not claimed. The read-only Properties
-document summary may lag drawing/save changes until another native refresh.
+Development source `81103460` and its descendants include the Properties
+entity/Modified refresh and PLOTSETTINGS ownership corrections. The nine summary
+states and bounded model-space DXF corpus pass independent verification without
+audit repairs. This does not certify arbitrary whole-file preservation.
 
-This UI preview does not implement true paperspace or lossless layout roundtrips.
-Do not overwrite a production DXF containing layouts/viewports with this preview.
-The inherited adapter currently discards paper-space data, and the planned
-unsupported-record save protection is not implemented yet. Use synthetic fixtures
-or copies; see `docs/PAPERSPACE_PLAN.md` for the next engine milestone.
+These builds refuse native Save/Save As/autosave for detected paperspace because
+the native adapter does not yet preserve its full structure. The older public
+`v0.2.0-preview.2` release does not contain this guard. Use the manifest source to
+identify your build, and synthetic fixtures or copies for evaluation.
+
+Native layout metadata/shared Undo and the Qt camera foundation are tested but
+not connected to layout UI, model-through-viewport editing or native layout PDF.
+The binary Boolean fix is a libdxfrw codec repair; native Save As remains ASCII.
+See `docs/PAPERSPACE_PLAN.md` and `docs/TEST_REPORT.md` in the source/handoff for
+the next integration gate and exact tested scope.
 
 ### Shared native behavior
 

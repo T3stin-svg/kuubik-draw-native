@@ -16,8 +16,12 @@ Reio authorized continued development from 16:10:46 to 21:10:46 UTC, using the
 installed plugins, and explicitly approved work-branch pushes and Windows CI.
 The P0 corrections now pass exact-source MSVC CI `33977714231` at `3cefc819`;
 local portable replay passes and owner acceptance remains open.
-P1 starts with bounded DXF camera and layout/ownership contracts before native
-layout UI. See [the work plan](../tasks/plan.md) and the live [ROADMAP](ROADMAP.md).
+P1 file contracts, native save protection, metadata/shared Undo and Qt camera
+foundation now pass MSVC and local package replay at source `81103460`.
+Settings diagnostics and binary Boolean-width regression pass in the same build.
+Native adapter/UI and layout save/close/reopen remain unfinished. Next is P1-02c
+validated import/identity bindings and DCS/WCS conversion in PAPERSPACE_PLAN.
+See [the work plan](../tasks/plan.md) and the live [ROADMAP](ROADMAP.md).
 No release or remote merge is authorized.
 
 ## Historical UI milestone — 2026-09-05

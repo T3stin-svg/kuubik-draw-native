@@ -18,12 +18,15 @@ Updated 2026-09-05. Reproducible owner-found failures always take priority.
 - [x] F-01 local: correct all 17 two-byte Boolean writes; fifteen binary outputs
   cover AC1015/1018/1021/1027/1032, defaults and explicit false/true, native reread
   and independent audit 0/0. Existing ASCII/file contracts pass again.
-- [ ] F-01: verify exact-source MSVC. This does not certify arbitrary binary DXF
+- [x] F-01: verify source `81103460`, MSVC run `33990304131`. This does not certify arbitrary binary DXF
   or add binary Save As to the native application (its exporter remains ASCII).
 - [x] Diagnose the isolated-settings startup fatal from the local MSVC replay;
   retain per-sync status and native stderr, test locked INI/report/combined failures.
-- [ ] Verify that diagnostic change in exact-source MSVC CI; original environmental
+- [x] Verify that diagnostic change in the same exact-source MSVC CI; original environmental
   cause remains unspecified, with initial failure and successful full retry both retained.
+- [x] Verify the final `81103460` ZIP/source/SHA and full local portable replay:
+  ten isolated processes, unchanged registry, independent outputs/ribbon/negative
+  PDF checks and the three actual settings failure cases all pass.
 
 ## Completed — approved SARibbon UI milestone
 
@@ -80,7 +83,9 @@ native dialog are not identical AutoCAD command lifecycles.
   shared cycle-owned Undo, newDoc/close cleanup; 54 local checks and full native
   GUI/file/guard regressions pass.
 - [x] P1-02b: exact-source MSVC `33987457900` at `a601e807`.
-- [ ] P1-02b: connect staged DXF import and paper entities; keep save protection.
+- [ ] P1-02c: validate staged DXF membership and identity bindings before native
+  import commit; prove DCS/WCS conversion with nonzero targets and both twist signs.
+  Keep save protection until native export/reopen passes. See PAPERSPACE_PLAN.
 - [x] P1-03a: Qt camera/clip/vector probe; 36 native checks, independent vector
   measurements and six negative PDF oracles; MSVC `33988991011` at `15eed2e2`.
 - [ ] P1-03: connect the camera to native render, hit/snap and command contexts.

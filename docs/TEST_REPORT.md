@@ -1,6 +1,33 @@
 # Kuubik Draw Native — verified test checkpoint
 
-## F-01 — binary Boolean payload width (local)
+## Latest Windows development package — verified
+
+- Executable source: `81103460ba46f0cecb79da00764b8a7d99832e41`.
+- [Windows run 33990304131](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33990304131): all gates passed.
+- Portable ZIP: `KuubikDraw-0.2.0-preview.2-win64.zip`, **43,811,683 bytes**.
+- SHA-256: `33290170ddb43cb501308a9f5e665a1dffc3da96b67cf9bdc2cbb0da9ee67854`.
+- Downloaded manifest source/run and checksum sidecar match. Full local packaged
+  replay passes: native GUI, 54 metadata and 36 camera checks, independent
+  DXF/PDF/SVG, six negative PDF probes and four ribbon geometry checks.
+- Ten isolated portable processes leave the native registry unchanged. All three
+  forced settings failures also pass against this MSVC executable, retaining
+  diagnostic evidence and unchanged registry. Local qwindows 125% idle capture reviewed.
+
+The same CI verifies fifteen binary outputs, four standalone ASCII outputs,
+camera/layout/common-context read/write, twenty-two native save-guard cases,
+bounded ownership/safe replacement and archive/runtime/license gates. Downloaded
+CI evidence contains 302 synthetic output/report files and passes Gitleaks.
+Its repacked evidence ZIP SHA-256 is
+`15850d1fc42825efcab7a86ae6ab63921caa1d07853d30ee85f0c85b48723230`.
+Six byte-exact CI files and their checksums are retained in the
+[development evidence](../evidence/development/2026-09-05-paperspace-foundation/README.md).
+
+Local replay: ignored `.artifacts/paperspace-wave/final-msvc-local-replay.log`
+and the matching fresh replay/settings-failure directories. No user drawing,
+settings INI, registry contents or private crash dump is published. This is a
+development checkpoint, with owner acceptance and native layout workflow still open.
+
+## F-01 — binary Boolean payload width (local and MSVC)
 
 Both the original optional binary probe and the expanded corpus failed native
 reread before the fix. Independent parsing found header tag 2304 immediately after
@@ -14,7 +41,7 @@ independent parsing checks full tags/EOF, exact version, flags, geometry, units,
 PLOTSETTINGS ownership and audit 0/0. Four ASCII regressions pass, as do recompiled
 camera/layout/read/write/common-entity tests. Full native GUI passes with 8 isolated
 profiles and unchanged registry. CI now invokes `test-dxf-plotsettings.py --binary`
-and uploads the binary corpus; exact-source MSVC is pending.
+and uploads the binary corpus; exact-source MSVC `33990304131` passes.
 The same final application also passes all 22 native save-guard cases, independent
 DXF/PDF/SVG, six negative PDF oracles and four ribbon geometry checks.
 
@@ -81,7 +108,7 @@ The downloaded ZIP is 43,805,010 bytes with matching source/sidecar and SHA-256
 `9ae9675a920d9a80266ee13f6fb7ccd7d1ab78f2c8501611a6fed5f15b00f783`.
 Its first local packaged replay aborted at125% before UI construction, code
 0xC0000409. The isolated settings INI contains both probe keys but no completed
-isolation report; diagnosis is in progress. Two focused125% runs pass using the
+isolation report; the subsequent diagnosis and retry are recorded below. Two focused125% runs pass using the
 extracted and original copied executables with fresh profiles and unchanged registry.
 The subsequent full replay of the unchanged package passes10 isolated processes,
 unchanged registry and exact-model-source independent DXF/PDF/SVG verification.
@@ -125,7 +152,8 @@ retry/autosave gaps. Each is covered by the final corpus.
   unknown entity, nested102 and paper BLOCK content without redundant owners.
 - `test-dxf-entity-context.py`: 12 entity/unknown/block/real-POLYLINE contexts,
   12 rejected application groups and nested ASCII/binary scalar payload checks.
-  Binary payload width is not a binary-DXF interoperability claim; F-01 is open.
+  Binary payload width is not a binary-DXF interoperability claim; the later F-01
+  Boolean fix and its fifteen-file corpus are recorded above.
   Wider application integers are rejected because DRW_Variant cannot retain them.
 - All prior camera, layout-reader, bounded writer and PLOTSETTINGS tests pass.
   Full native GUI and independent DXF/PDF/SVG regression pass, including nine

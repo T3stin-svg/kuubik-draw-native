@@ -4,7 +4,8 @@ Staatus: **DXF-aluse teostus käib; native paperspace pole valmis**. 2026-09-05.
 Propertiesi ja PLOTSETTINGSi P0 parandused läbisid MSVC CI ning kohaliku portable-korduse.
 P1-01a camera väljad ja P1-01b LAYOUT/BLOCK_RECORD lugemine läbisid kohaliku ja MSVC kontrolli.
 P1-01c piiratud kirjutus säilitab tunnused/seosed ja läbib kohaliku raw/0-0 auditi;
-native dokumendi integratsioon, kasutajafaili salvestuskaitse ja allolev kasutajavoog on ootel.
+native salvestuskaitse, metadata/Undo ja Qt kaamera alus on kontrollitud.
+DXF-adapteri ühendamine, paper entities ning allolev kasutajavoog on ootel.
 Jooksev seis ja tõendid: [ROADMAP](ROADMAP.md), [TEST_REPORT](TEST_REPORT.md).
 
 ## Vastuvõetav vertikaalne läbilõige
@@ -62,7 +63,7 @@ BLOCK_RECORD, paper-space entity owner, viewport'i identiteet/status, view-heigh
 twist ja lock lipud. Kõik arvväärtused tuleb initsialiseerida ka puuduvate DXF
 väljade korral. Teegi DWG-lugejas olev samanimeline väli ei tõenda DXF-tuge.
 
-Täita senine tühi `RS_FilterDXFRW::addViewport`
+Ühendada praegu salvestuskaitset märkiv `RS_FilterDXFRW::addViewport`
 ja asendada paper-space block'i dummy-käsitlus päris layout'i seostamisega.
 LAYOUT, BLOCK_RECORD, paper-space entities ja VIEWPORT peavad säilitama owner-
 seosed, eristatavad handle'id, nime ja viewport'i lipud. Eraldada lehe üldviewport
@@ -71,10 +72,10 @@ mudelit näitavatest viewport'idest; sama ID ei või korduda kõikidel vaadetel.
 Enne write-back'i valideerida handle'ide unikaalsus ja kõik owner-seosed.
 Mittetoetatud objekti vaikne kaotamine pole lubatud: säilitada läbipaistmatu
 record/proxy, kui see on ohutult võimalik, vastasel juhul keelduda originaali
-ülekirjutamisest koos konkreetse selgitusega. Save As koopiale jääb eraldi
-teadlikult piiratud eksporditee. Selle toe puudumisel pole roundtrip sertifitseeritud.
+ülekirjutamisest koos konkreetse selgitusega. Tulevane piiratud Save As koopiale
+vajab eraldi säilivuse tõendit. Praegu keelab kaitse ka Save As'i; roundtrip pole sertifitseeritud.
 
-**Avaldatud SARibboni eelvaade ei rakenda seda kaitset. Tööharu P1-02a lisab
+**Varasem SARibboni arenduspakett ei rakenda seda kaitset. Tööharu P1-02a lisab
 native Save/Save As/autosave/eksportimise keelu tuvastatud paperspace'ile;
 source `fcad4372` läbis MSVC CI `33986140500`. See ei ole veel paperspace'i muutmise ega roundtrip'i tugi.**
 
@@ -112,6 +113,75 @@ source `fcad4372` läbis MSVC CI `33986140500`. See ei ole veel paperspace'i muu
   identiteedi; aktiivse UI-fookuse taastamise poliitika testitakse eraldi.
 
 ## Tööjärjekord ja testid
+
+### Järgmine kontrollpunkt — P1-02c valideeritud native import
+
+2026-09-05 värske lähtekoodiülevaatuse tulemus. Teostada esmalt piiratud impordi
+seostamine ning ajutine ekspordiesitus; Save-kaitse jääb alles kuni järgneva
+salvestus/close/reopen värava läbimiseni. Faili lugemine muudab praegu native
+geomeetriat jooksvalt, mistõttu metadata etapiviisiline kogumine üksi ei tõenda
+kogu impordi atomaarset käitumist.
+
+| Olemasolev koht | Minimaalne vajalik ühendus |
+|---|---|
+| `RS_FilterDXFRW::fileImport`, `addLayout`, `addViewport` | Koguda kirjed ajutiselt; kinnitada native metadata alles eduka terviklugemise ja allikavärava järel. DRW väärtused kopeerida konstruktoriga, mitte vigase shallow assignment'iga. |
+| `dxfRW::processObjects` | Praegu vahele jäetav DICTIONARY peab andma tõendi tegeliku ACAD_LAYOUT liikmesuse kohta. LAYOUT-i owner üksi ei piisa. |
+| `RS_FilterDXFRW::setEntityAttributes` | Siduda lähteline LINE-handle/owner päris native üksusega. `RS_Entity::getId()` on protsessisisene tunnus, mitte DXF-handle. |
+| `RS_Graphic::commitImportedPaperSpace` | Kasutada olemasolevat tühja registri/Undo importteed; seoste eluiga peab lõppema koos dokumendiga. |
+| `dxfRW::writeLayoutDocument` | Koostada ajutised kirjed elusast native geomeetriast ja metadatast. Püsivat teist geomeetriamudelit ei lisata. |
+
+Native metadata vajab veel Model-layout'i, ACAD_LAYOUT dictionary ja mõlema
+BLOCK_RECORD-i identiteeti ning native LINE-ide lähteseoseid. Viewport-handle
+ja group 69 number on eri tunnused; kogu paberit kirjeldav nr 1 pole kolmas
+mudelivaateaken. Uute tunnuste reserveerimine peab arvestama kõiki säilitatavaid
+kirjeid. Praegune writer genereerib süsteemitabelite, juurdictionary ning
+BLOCK/ENDBLK tunnused uuesti; kõigi DXF-handle'ide säilimist ei väideta.
+
+Kaamera lähtepiir: grupid 12/22 on DCS-is, siht 17/27/37 WCS-is
+([Autodesk VIEWPORT](https://help.autodesk.com/cloudhelp/2015/ENU/AutoCAD-DXF/files/GUID-2602B0FB-02E4-4B9A-B03C-B1D904753D34.htm)).
+Piiratud +Z pealtvaate [ezdxf 1.4.4 teisendusest](https://raw.githubusercontent.com/mozman/ezdxf/v1.4.4/src/ezdxf/entities/viewport.py)
+järeldub praeguse native tehase jaoks allolev kandidaat. See vajab geomeetrilist
+tõendit enne adapterisse kinnistamist; raw-väljade võrdsusest ei piisa.
+
+```text
+nativeTwist = -rawTwist
+nativeCenter = target + R(-rawTwist) * dcsCenter
+export: dcsCenter = R(rawTwist) * (nativeCenter - target)
+```
+
+Eraldi planeerimiskatse võrdles keskpunkti ja mõlemat 5000-ühikulist baastelge
+ezdxf 1.4.4 maatriksiga: 0/+30/−30°, mõlemad mõõtkavad, mitte-null siht/kese
+ja ekspordi pöördvalem läbivad. See ei käivitanud veel native DXF-adapterit.
+
+Säilitada WCS-siht ankruna, mitte teine iseseisvalt muudetav DCS-kaamera.
+Allikavärav kontrollib samu baite, mida imporditakse: ASCII AC1032/mm,
+Model+TEST, vastastikused layout/ploki seosed, dictionary-liikmesus, unikaalsed
+tunnused ning ainult määratletud LINE/ristkülikulise VIEWPORT-i sisu. Esimene
+etapp piirdub mudelruumi LINE-idega; paberigeomeetria vajab veel native omandit.
+Tundmatud kirjed, külmutatud viewport-kihid, clipping-kontuurid, perspektiiv,
+mittetasapinnaline kaamera ja säilitamata väljad ei saa toetatud staatust.
+Arvestada subclass'i ning pesastatud 102 ulatust; typed-writer ei näe juba
+lugejas kadunud andmeid.
+
+Vastuvõtt viie kontrolliga:
+
+1. A3 TEST import: kaks mudelivaateakent ja eraldi nr 1, täpsed tunnused/owner'id,
+   tühi Undo ning Modified=false.
+2. Mitte-null DCS-kese ja WCS-siht, 0/+30/−30°, teadaolevad kesk-/baaspunktid,
+   1:50 ja 1:100 ning sõltumatud lukud; võrrelda tegelikku paberigeomeetriat.
+3. Puuduv dictionary, vale owner/backlink, 102 võltsseos, külmutatud kiht ja
+   tundmatu objekt ei läbi toetatud impordi väravat.
+4. Hõredad/kõrged tunnused, kokkupõrked, Undo/Redo, import-failure ja newDoc
+   ei jäta vanu seoseid ega võimalda tunnuste taaskasutust.
+5. Järgnev salvestusvärav: native import → ekspordiesitus → save → dokumendi
+   hävitamine → uus import, kaks korda; raw ID/owner/viewport-numbrid enne
+   normaliseerimist, sama kaamerageomeetria ning sõltumatu audit 0/0.
+
+Enne päris Save lubamist kontrollida hetke native sisu ja sihtvormingut uuesti,
+enne backup'i või Save As'i olekumuutusi. Impordiaegne toetatud staatus ei kata
+hiljem lisatud eksportijale toetamata üksusi.
+
+### Kogu native töövoo järjekord
 
 0. libdxfrw minimaalne record-leping ja import/export korpus: tõendada, et vajalikud
    andmed üldse läbivad teegi. Alles siis siduda UI nupud uute objektidega.

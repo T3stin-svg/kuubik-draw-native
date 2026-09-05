@@ -200,3 +200,18 @@ audit 0/0. Four ASCII outputs and recompiled camera/layout/owner/context regress
 pass. Full GUI, 36 transform/54 metadata checks, independent files, six PDF negative
 probes and four ribbon checks pass. Native application Save As remains ASCII;
 this is a bounded codec repair, not a new binary save UI or compatibility claim.
+
+## Final checkpoint and next integration contract
+
+Combined source `81103460` was committed and pushed after Gitleaks/diff checks;
+MSVC run `33990304131` passes. Final artifact checksum/manifest and local portable
+replay pass, including independent outputs, ten isolated processes, unchanged
+registry and the three forced settings failures. Development handoff is being assembled.
+
+The existing read-only reviewer traced the next adapter boundary. Native geometry
+currently changes during import, DICTIONARY membership is skipped and entity DXF
+handles are not retained. The next task is bounded validated import/identity
+bindings and a geometrically proven DCS/WCS codec, followed by native export/reopen.
+Save protection remains active until that later gate passes. PAPERSPACE_PLAN lists
+concrete call sites, unsupported-input limits and five acceptance checks. No second
+geometry model, external review CLI or new product runtime was introduced.
