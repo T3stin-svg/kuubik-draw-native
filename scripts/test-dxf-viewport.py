@@ -32,6 +32,10 @@ def main():
     target = args.output / "viewport-roundtrip.dxf"
     make_fixture(source, direction_probe=True)
     subprocess.run([str(args.writer.resolve()), str(source.resolve()), str(target.resolve())], check=True)
+    for path in (source, target):
+        header = next(tags for kind, tags in read_records(path) if kind == "SECTION" and (2, "HEADER") in tags)
+        position = header.index((9, "$ACADVER"))
+        assert header[position + 1] == (1, "AC1032"), (path.name, header[position + 1])
     expected = viewport_records(source)
     actual = viewport_records(target)
     assert set(expected) == set(actual) == {1, 2, 3}, (set(expected), set(actual))

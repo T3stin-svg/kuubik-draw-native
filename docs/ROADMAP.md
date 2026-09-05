@@ -3,13 +3,15 @@
 ## Jälgitav tööplaan
 
 **Uuendatud:** 2026-09-05 20:29 EEST. **Vastutaja:** Codex, integratsiooniomanik.
-**Hetkel:** P1-01b kohalik kontroll läbitud; etapi commit ja Windows CI ettevalmistus.
+**Hetkel:** P1-01c kirjutuse leping ja DXF 2018 päise parandus.
 **Tööaken:** 5.09 kell 19:10 kuni 6.09 kell 00:10 EEST; Reio kinnitas 5 h arendust.
 **Viimane sündmus:** P0 lähtepunkt `3cefc819` läbis Windows MSVC CI
 [33977714231](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33977714231).
 P0 kohalik portable-kordus ja sõltumatu DXF/PDF/SVG kontroll läbivad.
 Viewport'i kaameraväljad ja ülevaatuse täiendused on kohalikus commit'is `04a0f55a`.
 Layout'i lugeja läbis 4 positiivset ja 7 vigase andmegrupi juhtu ning kogu native build'i.
+Commit `f2879c5b` on push'itud; [CI 33981465387](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33981465387) käib.
+Uus kirjutuse kontroll leidis AC1032 valikul vale AC1021 päise; parandus läbis red/green testi.
 [Selle tööakna plaan](../tasks/plan.md).
 
 ```mermaid

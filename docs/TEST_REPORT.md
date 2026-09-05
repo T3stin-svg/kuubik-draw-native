@@ -32,6 +32,15 @@ Local setup fixes: regenerate qmake's missing response file and relink its empty
 archive; use ezdxf's public layout-rename API and explicit viewport IDs. The true
 RED above was obtained after the fixture setup was corrected.
 
+### P1-01c prerequisite — actual DXF 2018 header
+
+The write-contract review found that `write(..., AC1032, ...)` fell through to
+the AC1021 header. A new raw `$ACADVER` assertion reproduced that failure. Adding
+the missing AC1032 switch case makes the camera roundtrip pass with an actual
+2018 header. Earlier camera results prove field values only, not a 2018 output
+header. This narrow correction is locally verified; the running reader checkpoint
+CI at `f2879c5b` predates it.
+
 ### P1-01b — layout and block-record reading
 
 The native red test failed because neither record reached the adapter. The new
