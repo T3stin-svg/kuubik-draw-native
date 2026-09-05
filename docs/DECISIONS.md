@@ -3,6 +3,19 @@
 These are current product decisions. A later AI may recommend changes, but must
 not silently reverse them.
 
+## D-026 — Graphical roadmap is updated during development
+
+2026-09-05: Reio requested a detailed graphical plan that stays current as features
+are built. `docs/ROADMAP.md` is the persistent view: stable task IDs, dependency
+graphs, current activity, explicit acceptance criteria and evidence links.
+Update it when starting a slice, receiving test results, making a local commit,
+or changing a blocker/priority; do not defer these updates to final handoff.
+Implemented, locally verified, exact-source Windows CI verified and owner
+accepted remain separate. Do not invent dates or completion percentages.
+Open the same roadmap in the Codex side panel during development. A graph in a
+chat message is a snapshot; the repository file is the maintained plan.
+This adds no runtime, second CAD model, external tracker or publishing permission.
+
 ## D-023 — Free/open-source native direction and full paperspace goal
 
 2026-09-05: Reio explicitly rejected CAD SDK license fees and retained LibreCAD.

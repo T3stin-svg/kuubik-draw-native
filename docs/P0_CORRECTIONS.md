@@ -5,6 +5,9 @@ Baseline: `8a5f7ae0d707de0a78bc9c62352221c0e8ccb479`, clean worktree on
 Last verified MSVC executable remains `d35ec354` / run `33966232573`.
 No push, remote CI, release, merge or paperspace implementation in this session.
 
+Local implementation commits: `d4280f9b` (P0-A), `4e40a43c` (P0-B).
+The maintained graphical plan and next gate are in [ROADMAP](ROADMAP.md).
+
 ## P0-A — Properties summary
 
 **Implemented and locally verified; MSVC CI and owner acceptance pending.**

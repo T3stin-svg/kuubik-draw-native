@@ -82,6 +82,16 @@ to make a release green.
 
 ## Handoff maintenance
 
+Reio requires a graphical roadmap that stays current during development.
+Keep the Mermaid overview, current activity and verification states in
+`docs/ROADMAP.md` synchronized when work starts, a test result arrives, a commit
+lands locally, or a blocker/priority changes. Update it in the same work batch,
+not only at final handoff. Add new functions/features to the roadmap immediately.
+Keep implemented, locally verified, Windows CI verified and owner accepted
+separate; do not invent progress percentages or carry old CI proof onto new code.
+Open this file in the Codex side panel when continuing development so Reio can
+follow the same plan. A graph pasted in chat is a snapshot, not an automatic feed.
+
 When a material wave finishes, update `docs/PROJECT_STATE.md`,
 `NEXT_TASKS.md`, `docs/TEST_REPORT.md`, and `docs/DECISIONS.md` if a decision
 changed. Rebuild the AI handoff archive with
