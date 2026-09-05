@@ -1,6 +1,6 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. **P0-A and P0-B locally verified; MSVC CI pending.**
+Status date: **2026-09-05**. **P0-A/B MSVC CI passed; P1 camera records locally verified.**
 
 The current correction session starts at `8a5f7ae0` on the existing integration
 branch. P0-A uses native modification notifications and counts active entities.
@@ -8,9 +8,13 @@ Its rebuilt Qt 5.15.2 / MinGW 8.1 x64 GUI smoke passes all nine new summary stat
 and the existing native workflows. P0-B supplies PLOTSETTINGS dictionary/owner/
 reactor links; the clean input, four standalone outputs and ten GUI outputs pass
 ezdxf 1.4.4 with zero errors and repairs. See [P0_CORRECTIONS](P0_CORRECTIONS.md).
-This is local development evidence, not a new MSVC/portable checkpoint.
-Owner acceptance remains open. Push, remote CI and release are not authorized for
-this correction session; earlier UI-milestone authorization is historical.
+The subsequent five-hour wave has explicit approval for work-branch push and
+Windows CI. Source `3cefc819` passed run `33977714231`; its downloaded ZIP SHA-256
+is `a38bfa6291f5bed5776f724cad6868b80c135e872cb2d30cca2717cb065f28be`
+(43,776,151 bytes). The manifest source matches; local portable replay is underway.
+P1 camera fields now pass native and raw-tag read/write checks for a bounded ASCII
+fixture. Layout ownership and application integration remain unfinished.
+Owner acceptance, release and remote merge are not implied by these checks.
 
 ## Product and authority
 
@@ -24,10 +28,10 @@ The single native document/entity/layer/selection/undo engine is retained.
 - Upstream preservation: `master`; LibreCAD base `7ebab007d9eb4c68609388b835a2487648f0877b`.
 - The old web product remains separate. Its requirements/measurements may inform
   this fork; its implementation and old PASS scores are not merged.
-- Reio approved work-branch pushes and Windows CI for the earlier UI milestone.
+- Reio approved work-branch pushes and Windows CI for this five-hour wave.
   No remote merge, release, default-branch change, paid SDK or paid service is approved.
 
-## Latest tested Windows development checkpoint
+## Previous Windows development checkpoint — SARibbon
 
 - Source: `d35ec35486912e4bca1fdc2a7125ecc6d53580eb`.
 - [Windows run 33966232573](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33966232573), all gates passed.

@@ -76,7 +76,7 @@ The release proves a native ribbon LINE mouse workflow, DXF open/save, vector
 PDF export, portable runtime completeness and independent output read-back. It
 does not certify DWG/DWT/XREF or full AutoCAD parity.
 
-## Latest development checkpoint — not a release
+## Previous development checkpoint — SARibbon, not a release
 
 - Integration branch: `codex/autocad-visual-integration-root`
 - Tested source commit:
@@ -97,8 +97,9 @@ It adds the pinned SARibbon UI, ten exact Home panel boundaries, native Pen in
 Properties, qwindows narrow/DPI containment and isolated native/Qt settings.
 Local replay and independent files passed. That MSVC artifact still has an orphan
 PLOTSETTINGS audit repair and a lagging Properties document summary. Both are now
-corrected and locally verified in the subsequent P0 session; exact-source MSVC CI
-and owner acceptance remain pending. Read `docs/P0_CORRECTIONS.md` and TEST_REPORT.
+corrected in the subsequent P0 session; exact-source MSVC CI `33977714231` now
+passes at `3cefc819`. Owner acceptance remains pending. Read `docs/P0_CORRECTIONS.md`
+and TEST_REPORT.
 The UI checkpoint and P0 corrections do not implement paperspace.
 Persistent evidence and an Estonian owner checklist are included in the source.
 
@@ -108,13 +109,14 @@ expanded precision/status contracts and packaged DPI captures. The original
 command smoke uses offscreen Qt; DPI screenshots use qwindows. Real Windows
 Settings scaling and full AutoCAD command equivalence remain unproved.
 
-## Current work — 2026-09-05 P0 corrections
+## Current work — 2026-09-05 five-hour paperspace foundation
 
-Both P0 slices are implemented and locally verified with Qt/MinGW, including
-zero-error/zero-repair audits for the bounded ASCII modelspace corpus. The next
-gate is Reio's explicit approval for work-branch push and exact-source MSVC CI.
-No push, remote CI, release or merge is authorized in this correction session.
-The earlier UI permission below is historical, not continuing authorization.
+Reio authorized continued development through 21:10:46 UTC, work-branch pushes
+and existing Windows CI. Both P0 slices pass MSVC CI at `3cefc819`; the package
+checksum and source manifest match, with local portable replay underway.
+P1-01a camera fields are locally verified; layout read/write ownership and native
+paperspace remain unfinished. Follow `tasks/plan.md`, `docs/ROADMAP.md` and
+PROJECT_STATE for current evidence. No release or remote merge is authorized.
 
 ## Historical authorization — 2026-09-05 UI milestone
 

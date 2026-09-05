@@ -2872,11 +2872,26 @@ bool DRW_Leader::parseDwg(DRW::Version version, dwgBuffer *buf, duint32 bs){
 
 bool DRW_Viewport::parseCode(int code, dxfReader *reader){
     switch (code) {
+    case 16: viewDir.x = reader->getDouble(); break;
+    case 26: viewDir.y = reader->getDouble(); break;
+    case 36: viewDir.z = reader->getDouble(); break;
+    case 17: viewTarget.x = reader->getDouble(); break;
+    case 27: viewTarget.y = reader->getDouble(); break;
+    case 37: viewTarget.z = reader->getDouble(); break;
     case 40:
         pswidth = reader->getDouble();
         break;
     case 41:
         psheight = reader->getDouble();
+        break;
+    case 45:
+        viewHeight = reader->getDouble();
+        break;
+    case 51:
+        twistAngle = reader->getDouble() / ARAD;
+        break;
+    case 90:
+        vpFlags = reader->getInt32();
         break;
     case 68:
         vpstatus = reader->getInt32();
@@ -2955,7 +2970,8 @@ bool DRW_Viewport::parseDwg(DRW::Version version, dwgBuffer *buf, duint32 bs){
     if (version > DRW::AC1014) {//2000+
         frozenLyCount = buf->getBitLong();
         DRW_DBG("Frozen Layer count?: "); DRW_DBG(frozenLyCount); DRW_DBG("\n");
-        DRW_DBG("Status Flags?: "); DRW_DBG(buf->getBitLong()); DRW_DBG("\n");
+        vpFlags = buf->getBitLong();
+        DRW_DBG("Status Flags?: "); DRW_DBG(vpFlags); DRW_DBG("\n");
         //RLZ: Warning needed separate string buffer
         DRW_DBG("Style sheet?: "); DRW_DBG(sBuf->getVariableText(version, false)); DRW_DBG("\n");
         DRW_DBG("Render mode?: "); DRW_DBG(buf->getRawChar8()); DRW_DBG("\n");

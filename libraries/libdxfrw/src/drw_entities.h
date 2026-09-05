@@ -1358,26 +1358,27 @@ public:
     double pswidth;           /*!< Width in paper space units, code 40 */
     double psheight;          /*!< Height in paper space units, code 41 */
     int vpstatus;             /*!< Viewport status, code 68 */
-    int vpID;                 /*!< Viewport ID, code 69 */
+    int vpID = 0;             /*!< Viewport ID, code 69 */
+    int vpFlags = 0;          /*!< Viewport flags, code 90; 0x4000 locks zoom */
     double centerPX;          /*!< view center point X, code 12 */
     double centerPY;          /*!< view center point Y, code 22 */
-    double snapPX;          /*!< Snap base point X, code 13 */
-    double snapPY;          /*!< Snap base point Y, code 23 */
-    double snapSpPX;          /*!< Snap spacing X, code 14 */
-    double snapSpPY;          /*!< Snap spacing Y, code 24 */
+    double snapPX = 0.0;      /*!< Snap base point X, code 13 */
+    double snapPY = 0.0;      /*!< Snap base point Y, code 23 */
+    double snapSpPX = 10.0;   /*!< Snap spacing X, code 14 */
+    double snapSpPY = 10.0;   /*!< Snap spacing Y, code 24 */
     //TODO: complete in dxf
-    DRW_Coord viewDir;        /*!< View direction vector, code 16, 26 & 36 */
+    DRW_Coord viewDir{0.0, 0.0, 1.0}; /*!< View direction vector, code 16, 26 & 36 */
     DRW_Coord viewTarget;     /*!< View target point, code 17, 27, 37 */
-    double viewLength;        /*!< Perspective lens length, code 42 */
-    double frontClip;         /*!< Front clip plane Z value, code 43 */
-    double backClip;          /*!< Back clip plane Z value, code 44 */
-    double viewHeight;        /*!< View height in model space units, code 45 */
-    double snapAngle;         /*!< Snap angle, code 50 */
-    double twistAngle;        /*!< view twist angle, code 51 */
+    double viewLength = 50.0; /*!< Perspective lens length, code 42 */
+    double frontClip = 0.0;   /*!< Front clip plane Z value, code 43 */
+    double backClip = 0.0;    /*!< Back clip plane Z value, code 44 */
+    double viewHeight = 1.0;  /*!< View height in model units, code 45; positive fallback */
+    double snapAngle = 0.0;   /*!< Snap angle in radians, DXF code 50 is degrees */
+    double twistAngle = 0.0;  /*!< View twist in radians, DXF code 51 is degrees */
 
 private:
-    duint32 frozenLyCount;
-};//RLZ: missing 15,25, 72, 331, 90, 340, 1, 281, 71, 74, 110, 120, 130, 111, 121,131, 112,122, 132, 345,346, and more...
+    duint32 frozenLyCount = 0;
+};//RLZ: missing 15,25, 72, 331, 340, 1, 281, 71, 74, 110, 120, 130, 111, 121,131, 112,122, 132, 345,346, and more...
 
 //used  //DRW_Coord basePoint;      /*!<  base point, code 10, 20 & 30 */
 

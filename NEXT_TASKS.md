@@ -2,7 +2,7 @@
 
 Updated 2026-09-05. Reproducible owner-found failures always take priority.
 
-## P0 — local corrections complete; MSVC and owner gates open
+## P0 — local and Windows verification complete; owner gate open
 
 - [ ] Reio reviews the delivered SARibbon checkpoint using `docs/OWNER_REVIEW.md`.
 - [x] Locally verify native document-change notification for the Properties entity/Modified
@@ -11,9 +11,10 @@ Updated 2026-09-05. Reproducible owner-found failures always take priority.
 - [x] Fix the inherited PLOTSETTINGS ownership/dictionary writer and add an
   audit-clean modelspace fixture. Reproduce repair 202 before the fix; require
   zero errors/repairs for four standalone and ten GUI ASCII outputs after it.
-- [ ] Verify both P0 corrections with the exact-source MSVC x64 / Qt 5.15 portable
-  CI artifact, then obtain owner acceptance. Local Qt/MinGW checks passed;
-  push and remote CI require Reio's new explicit approval.
+- [x] Verify both P0 corrections with exact-source MSVC CI `33977714231`, source
+  `3cefc819`, downloaded package hash/manifest and full local portable replay.
+- [ ] Obtain owner acceptance. Reio approved work-branch pushes and Windows CI
+  for the current five-hour development wave; release/remote merge remain separate.
 - [ ] Investigate the inherited binary-DXF header failure reproduced by the
   optional standalone binary probe. No binary compatibility claim from P0-B.
 
@@ -55,6 +56,10 @@ These checks protect inherited behavior; COPY's in-place duplication and MOVE's
 native dialog are not identical AutoCAD command lifecycles.
 
 ## Next — native paperspace vertical slice
+
+- [x] P1-01a: camera fields and native/raw-tag regression; only local proof so far.
+- [ ] P1-01b: read LAYOUT/BLOCK_RECORD and distinguish subclass/reactor owners.
+- [ ] P1-01c: write bounded layout identity/page settings; raw links and audit 0/0.
 
 - [ ] Implement the single-document architecture in PAPERSPACE_PLAN.
 - [ ] A3 layout and two shared-model viewports at 1:50 and 1:100, independent locks.

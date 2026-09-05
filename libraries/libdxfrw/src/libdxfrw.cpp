@@ -1295,6 +1295,17 @@ bool dxfRW::writeViewport(DRW_Viewport *ent) {
     writer->writeInt16(69, ent->vpID);
     writer->writeDouble(12, ent->centerPX);//RLZ: verify if exist in V12
     writer->writeDouble(22, ent->centerPY);//RLZ: verify if exist in V12
+    if (version > DRW::AC1009) {
+        writer->writeDouble(16, ent->viewDir.x);
+        writer->writeDouble(26, ent->viewDir.y);
+        writer->writeDouble(36, ent->viewDir.z);
+        writer->writeDouble(17, ent->viewTarget.x);
+        writer->writeDouble(27, ent->viewTarget.y);
+        writer->writeDouble(37, ent->viewTarget.z);
+        writer->writeDouble(45, ent->viewHeight);
+        writer->writeDouble(51, ent->twistAngle * ARAD);
+        writer->writeInt32(90, ent->vpFlags);
+    }
     return true;
 }
 

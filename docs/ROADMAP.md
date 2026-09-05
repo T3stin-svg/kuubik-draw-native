@@ -2,25 +2,30 @@
 
 ## Jälgitav tööplaan
 
-**Uuendatud:** 2026-09-05 19:03 EEST. **Vastutaja:** Codex, integratsiooniomanik.
-**Hetkel:** G-01 — ootab Reio push'i ja Windows MSVC CI luba.
-**Viimane sündmus:** P0-B commit `4e40a43c` valmis; mõlemad P0 parandused on
-lokaalselt kontrollitud. 9 Propertiesi olekut ja 14 ASCII-DXF-väljundit läbisid.
+**Uuendatud:** 2026-09-05 20:00 EEST. **Vastutaja:** Codex, integratsiooniomanik.
+**Hetkel:** P1-01a ülevaatuse järelkontroll; P1-01b layout'i lugemise ettevalmistus.
+**Tööaken:** 5.09 kell 19:10 kuni 6.09 kell 00:10 EEST; Reio kinnitas 5 h arendust.
+**Viimane sündmus:** P0 lähtepunkt `3cefc819` läbis Windows MSVC CI
+[33977714231](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33977714231).
+P0 kohalik portable-kordus ja sõltumatu DXF/PDF/SVG kontroll läbivad.
+Viewport'i puuduva DXF-grupi 45 parandus läbib kohaliku red/green testi.
+[Selle tööakna plaan](../tasks/plan.md).
 
 ```mermaid
 flowchart TD
     UI["Native SARibboni alus<br/>Teostus ✓ · Kohalik ✓ · Windows CI ✓<br/>Omaniku vastuvõtt ootel"]
     A["P0-A · Properties<br/>Teostus ✓ · 9 olekut ✓<br/>Kohalik commit d4280f9b"]
     B["P0-B · DXF ownership<br/>Teostus ✓ · 14 väljundit audit 0/0 ✓<br/>Kohalik commit 4e40a43c"]
-    G["JÄRGMINE VÄRAV<br/>Push'i luba → täpse lähtekoodi MSVC CI<br/>Portable kontroll → omaniku vastuvõtt"]
-    P["1 · Native paperspace<br/>Plaan olemas · teostus alustamata<br/>A3 TEST · kaks vaadet · 1:50 ja 1:100"]
+    G["G-01 · MSVC CI 33977714231 ✓<br/>Source 3cefc819 · portable-kordus ✓<br/>Omaniku vastuvõtt ootel"]
+    P["1 · Native paperspace<br/>P1-01a DXF-leping ja testid käimas<br/>A3 TEST · kaks vaadet · 1:50 ja 1:100"]
     C["2 · Igapäevased CAD-töövood<br/>MOVE/COPY elutsükkel · Modify<br/>Layers · Annotation · Blocks · Properties"]
     R["3 · Töökindlus ja failitugi<br/>Taaste · suured DXF-id · päris Windows DPI<br/>Laiem failikorpus ja omaniku töövood"]
     UI --> A
     UI --> B
     A --> G
     B --> G
-    G --> P --> C --> R
+    G -.-> P
+    P --> C --> R
 ```
 
 ✓ tähendab ainult sõnaselgelt nimetatud kontrolli läbimist. Tulevikuetappide
@@ -29,9 +34,9 @@ protsente ega tähtaegu ei ole oletatud. Reprodutseeritav P0 viga tõuseb järje
 | Töö | Teostus | Kohalik kontroll | Windows MSVC CI | Omaniku vastuvõtt |
 |---|---|---|---|---|
 | SARibboni alus, `d35ec354` | Valmis | Läbitud | Läbitud: `33966232573` | Ootel |
-| P0-A Properties | Valmis | 9/9 olekut | Ootel | Ootel |
-| P0-B PLOTSETTINGS | Valmis | 14 väljundit: audit 0/0 | Ootel | Ootel |
-| Native paperspace | Alustamata | Puudub | Puudub | Puudub |
+| P0-A Properties | Valmis | 9/9 olekut | Läbitud: `33977714231` | Ootel |
+| P0-B PLOTSETTINGS | Valmis | 14 väljundit: audit 0/0 | Läbitud: `33977714231` | Ootel |
+| Native paperspace | P1-01a kaameraväljad valmis; P1-01b lugemine järgmisena; UI puudub | Camera red/green ja 4 P0 regressiooni läbitud | Puudub | Puudub |
 | AutoCADi-laadsed MOVE/COPY töövood | Planeeritud; native alus olemas | Täielik töövoog tõendamata | Täielik töövoog tõendamata | Puudub |
 | Laiem töökindlus ja failitugi | Planeeritud | Osaline senine korpus | Osaline senine korpus | Puudub |
 
@@ -73,22 +78,23 @@ See ei tähenda suvalise DXF-i täielikku kadudeta tuge.
 
 ### G-01 · Windowsi tõend ja omaniku kontroll
 
-**Seis:** ootel. **Sõltub:** P0-A + P0-B lokaalsetest commit'idest ning Reio loast.
+**Seis:** täpse lähtekoodi Windows CI ja kohalik portable-kordus läbitud.
 
-- [ ] Reio lubab tööharu push'i ja olemasoleva Windowsi CI käivitamise.
-- [ ] Push täpsele tööharule; MSVC x64 / Qt 5.15 build sama lähtekoodi pealt.
-- [ ] Native GUI, Properties, DXF, PDF/SVG ja standalone ownership-testid läbivad.
-- [ ] Portable kaust sisaldab õigeid runtime-faile, litsentse ja build-manifesti.
-- [ ] Paketi enda Qt pluginad, isoleeritud profiilid ja muutumatu register on tõendatud.
-- [ ] ZIP/SHA-256, CI run ja source commit on omavahel kontrollitud.
-- [ ] Kohalik portable-kordus ja Reio vastuvõtt on eraldi registreeritud.
+- [x] Reio lubas tööharu push'i ja olemasoleva Windowsi CI käivitamise.
+- [x] Push täpsele tööharule; MSVC x64 / Qt 5.15 build source `3cefc819`.
+- [x] Native GUI, Properties, DXF, PDF/SVG ja standalone ownership-testid läbivad CI-s.
+- [x] CI portable kaust sisaldab õigeid runtime-faile, litsentse ja build-manifesti.
+- [x] CI-s paketi enda Qt pluginad, isoleeritud profiilid ja muutumatu register tõendatud.
+- [x] ZIP/SHA-256, CI run ja source commit on omavahel kontrollitud (TEST_REPORT).
+- [x] Kohalik portable-kordus läbitud; native/Qt profiilid isoleeritud, register muutumatu.
+- [ ] Reio vastuvõtt.
 
-**Värav ei anna release'i või remote merge'i luba.** Viimane senine MSVC-tõend
-on jätkuvalt `d35ec354` / run `33966232573`, kuni uus kontroll on läbitud.
+**Värav ei anna release'i või remote merge'i luba.** Uus MSVC-tõend on
+`3cefc819` / run `33977714231`; see ei kata järgnevaid P1 koodimuudatusi.
 
 ## Järgmisena — native paperspace
 
-**Kõigi P1 tööde seis: planeeritud, teostus alustamata.** Detailne tehniline alus:
+**P1-01 käimas; P1-02–08 planeeritud.** Detailne tehniline alus:
 [PAPERSPACE_PLAN](PAPERSPACE_PLAN.md). Enne arhitektuuri teostamist tehakse stage 0
 ülevaatus koos planning/doubt-driven oskustega. Üks RS_Graphic ja üks native Undo
 jäävad kõigis sammudes ainsaks mudeliks.
@@ -115,6 +121,10 @@ flowchart TD
 | P1-06 | Mudeli muutmine läbi viewport'i | Topeltklõps sees → ModelThroughViewport, väljas → Paper; LINE ilmub mõlemas vaates; üks Undo/Redo uuendab mõlemat | P1-03–05 |
 | P1-07 | Mõõtkavatäpne vektor-PDF | 1:1 A3 paber; 5000 mm LINE mõõdab vastavalt 100 ja 50 mm; tolerants ≤0,05 mm; geomeetria ei ole raster | P1-04–06 |
 | P1-08 | Layout copy | Koopia saab eraldi layout/viewport ID-d, näitab sama mudelit ning säilitab oma camera, scale'i ja lock'i ka reopen'i järel | P1-07 põhivoo tõend |
+
+P1-01 alametapid: **a)** viewport'i camera väljad ja testid — lokaalselt läbitud;
+**b)** LAYOUT/BLOCK_RECORD lugemine — ettevalmistamisel; **c)** terviklik ownership'i kirjutus
+ja sõltumatu 0/0 audit — ootel. Üks alametapp ei märgi kogu P1-01 tööd läbituks.
 
 **P1 koondvastuvõtt:** kõik kaheksa rida ei ole üks automaatne PASS. Põhislice'i
 värav on P1-01–07 ühine native töövoog, sõltumatu DXF/PDF mõõtmine, Windows CI
@@ -187,6 +197,8 @@ Tõendid: [P0_CORRECTIONS](P0_CORRECTIONS.md), [TEST_REPORT](TEST_REPORT.md).
 - 2026-09-05 18:55 EEST: Reio soovil lisatud detailne graafiline järjekord,
   püsivad töö-ID-d, kontrollkriteeriumid ja jooksva uuendamise kokkulepe.
 - 2026-09-05 19:03 EEST: P0-B commit `4e40a43c`; aktiivne töö liikus G-01 väravale.
+- 2026-09-05 19:10 EEST: Reio kinnitas järgmise 5 h arenduse; P1-01 stage 0 ja
+  kohalik faililepingu töö algas. G-01 luba ja MSVC tõend jäävad eraldi ootele.
 
 Varasema UI-etapi päevik: [DEVELOPMENT_PLAN](DEVELOPMENT_PLAN.md).
 Tasuta komponentide valiku ja piirangute alus: [RESEARCH_NOTES](RESEARCH_NOTES.md).

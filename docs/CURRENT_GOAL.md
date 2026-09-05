@@ -10,13 +10,15 @@ AutoCAD 2024.1.2 command placement and interaction, plus true native paperspace,
 not only a familiar-looking skin. All dependencies must be free/open-source and
 compatible with the fork's licensing.
 
-## Active milestone — 2026-09-05 P0 corrections
+## Active milestone — 2026-09-05 five-hour paperspace foundation
 
-The Properties notification and PLOTSETTINGS ownership corrections are implemented
-and locally verified; see [P0_CORRECTIONS](P0_CORRECTIONS.md). Exact-source MSVC CI
-and owner acceptance remain pending. This correction session authorizes local
-commits only; push and remote CI require Reio's new explicit approval. Paperspace
-implementation has not started.
+Reio authorized continued development from 16:10:46 to 21:10:46 UTC, using the
+installed plugins, and explicitly approved work-branch pushes and Windows CI.
+The P0 corrections now pass exact-source MSVC CI `33977714231` at `3cefc819`;
+local portable replay is underway and owner acceptance remains open.
+P1 starts with bounded DXF camera and layout/ownership contracts before native
+layout UI. See [the work plan](../tasks/plan.md) and the live [ROADMAP](ROADMAP.md).
+No release or remote merge is authorized.
 
 ## Historical UI milestone — 2026-09-05
 
@@ -27,7 +29,7 @@ sections below are historical; [PROJECT_STATE](PROJECT_STATE.md) names the lates
 verified source. Current sidebar/UI work does not imply the whole goal is complete.
 
 The SARibbon checkpoint now has Windows and local proof for source d35ec354
-(run 33966232573). Owner acceptance, MSVC proof for the two NEXT_TASKS corrections
+(run 33966232573). The subsequent P0 proof is recorded above. Owner acceptance
 and the true paperspace stage remain open. The five-hour milestone does not claim
 all phases or the overall goal completed.
 

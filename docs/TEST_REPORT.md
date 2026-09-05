@@ -1,6 +1,38 @@
 # Kuubik Draw Native — verified test checkpoint
 
-## Local P0 corrections — 2026-09-05 (MSVC CI pending)
+## Five-hour wave — P0 Windows proof and P1 camera records
+
+P0 source `3cefc819620335852f3fc807d5ee2c60bb0e3033` passed all gates in
+[Windows MSVC run 33977714231](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33977714231).
+The downloaded portable archive is 43,776,151 bytes, SHA-256
+`a38bfa6291f5bed5776f724cad6868b80c135e872cb2d30cca2717cb065f28be`.
+Checksum sidecar and build-manifest source match. Full local packaged replay
+passes: nine Properties states, ten isolated processes, unchanged native registry
+and independent DXF/PDF/SVG read-back. The qwindows reference capture was inspected.
+Owner acceptance is separate.
+
+P1-01a is locally green with MinGW 8.1 and ezdxf 1.4.4. Before the fix the raw-tag
+check fails on missing VIEWPORT group 45. Afterward it preserves main ID 1,
+floating IDs 2/3, 160 mm frames, scale ratios 1:50/1:100, centers, targets,
+direction, 0°/30° twist, lock/status flags and the 5000 mm model LINE.
+The non-default direction vector is a parser probe, not a 3D application claim.
+Four PLOTSETTINGS regressions still pass with audit 0 errors/0 repairs.
+Camera-record evidence does not establish raw layout ownership, whole-layout
+audit or native paperspace support. High-level ezdxf loading can normalize block
+owners before audit; the following P1 slice requires raw-tag checks too.
+
+Compile `tests/dxf-viewport.cpp` and `tests/dxf-plotsettings.cpp` against libdxfrw
+with assertions enabled, then run the corresponding `scripts/test-dxf-*.py`
+with the adapter and a fresh output directory. The MSVC workflow includes the
+new camera check for later commits; run 33977714231 predates it.
+The fresh review required complete native camera assertions on both reads and
+a non-default direction; these checks were added before the camera checkpoint.
+
+Local setup fixes: regenerate qmake's missing response file and relink its empty
+archive; use ezdxf's public layout-rename API and explicit viewport IDs. The true
+RED above was obtained after the fixture setup was corrected.
+
+## Historical local P0 corrections — 2026-09-05 (before MSVC CI)
 
 Baseline: clean `8a5f7ae0`, product-branch ancestry confirmed. Local developer
 toolchain: Qt 5.15.2 / MinGW 8.1 x64 with Boost 1.87 headers, all outside the
