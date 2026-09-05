@@ -7,3 +7,4 @@ libraries/saribbon/SARibbon.cpp -text whitespace=cr-at-eol,-blank-at-eol,-blank-
 evidence/development/2026-09-05-saribbon/**/*.json -text whitespace=cr-at-eol
 evidence/development/2026-09-05-saribbon/**/*.svg -text whitespace=cr-at-eol
 evidence/development/2026-09-05-saribbon/**/*.dxf -text -diff
+evidence/development/2026-09-05-paperspace-foundation/*.json -text whitespace=cr-at-eol
