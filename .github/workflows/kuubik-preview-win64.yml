@@ -194,6 +194,14 @@ jobs:
           python .\scripts\test-viewport-probe-verifier.py "$env:RUNNER_TEMP\Kuubik Draw portable smoke\gui-evidence\viewport-transform-probe.pdf"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Verify isolated settings failure diagnostics
+        shell: pwsh
+        run: |
+          $package = (Resolve-Path artifacts\KuubikDraw-0.2.0-preview.2-win64).Path
+          $env:QT_PLUGIN_PATH = $package
+          $env:QT_QPA_PLATFORM_PLUGIN_PATH = Join-Path $package 'platforms'
+          .\scripts\test-settings-failures.ps1 -Executable "$package\KuubikDraw.exe" -OutputDirectory "$env:RUNNER_TEMP\settings-failures"
+
       - name: Verify standalone PLOTSETTINGS ownership and writer reuse
         shell: cmd
         run: |
@@ -254,6 +262,10 @@ jobs:
             ${{ runner.temp }}/Kuubik Draw portable smoke/status-bar.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/status-bar-customization.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/settings-isolation.json
+            ${{ runner.temp }}/Kuubik Draw portable smoke/native-failure-*.log
+            ${{ runner.temp }}/settings-failures/**/*.log
+            ${{ runner.temp }}/settings-failures/**/settings-isolation.json
+            ${{ runner.temp }}/settings-failures/registry-check.json
             ${{ runner.temp }}/plotsettings-audit/*.dxf
             ${{ runner.temp }}/viewport-camera/*.dxf
             ${{ runner.temp }}/layout-read/*.dxf

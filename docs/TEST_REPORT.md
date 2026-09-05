@@ -57,8 +57,29 @@ Its first local packaged replay aborted at125% before UI construction, code
 0xC0000409. The isolated settings INI contains both probe keys but no completed
 isolation report; diagnosis is in progress. Two focused125% runs pass using the
 extracted and original copied executables with fresh profiles and unchanged registry.
-No successful full replay is claimed yet. Staged adapter import,
+The subsequent full replay of the unchanged package passes10 isolated processes,
+unchanged registry and exact-model-source independent DXF/PDF/SVG verification.
+That replay uses the same portable assertions with stderr capture added. Original
+failure and crash dump remain local; the dump confirms both read directions were
+true but QSettings status was non-NoError before opening the evidence report.
+Its specific filesystem cause is not established. Staged adapter import,
 paper entities, rendering and UI remain unconnected.
+
+### Isolated settings failure diagnostics
+
+The check now records status after each sync, writes a failed probe report when
+possible, and reports distinct settings-sync/report-open/write/commit failures.
+The portable harness asynchronously drains stderr and preserves a unique failure
+log, including on timeout. No retry, reduced assertion or fallback to user settings
+was added. The three reviewed failure cases are a directory blocking the report,
+a Windows share-locked INI, and both faults together. All stop before UI. The
+locked case retains AccessError at all three sync observations with both read
+directions true; a simultaneous report failure cannot hide that primary diagnostic.
+Registry unchanged. The earlier full GUI and independent regression also pass
+with diagnostic source (`native-settings-diagnostic-green`). The last review adds
+only the combined failure log and assertion, covered by `settings-failures-verified`.
+An intermediate regression proved that the installed Qt handler suppresses the
+separate qCritical message; all fatal report stages now include probe status directly.
 
 ## P1-02a — native paperspace save protection (local)
 

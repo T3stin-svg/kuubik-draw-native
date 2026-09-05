@@ -30,7 +30,9 @@ history. The newDoc dangling-history RED is fixed; 54 native lifecycle/identity
 checks and the full local GUI/file/guard regressions pass. This metadata checkpoint
 passes MSVC run `33987457900` at `a601e807`. Its downloaded 43,805,010-byte ZIP
 matches the source manifest and SHA-256 `9ae9675a920d9a80266ee13f6fb7ccd7d1ab78f2c8501611a6fed5f15b00f783`;
-local packaged replay is running. P1-03a adds one validated Qt camera shared with
+local packaged replay now passes after an initial isolated QSettings sync failure.
+The original failure is retained and diagnosed; no environmental cause is asserted.
+P1-03a source `15eed2e2` adds one validated Qt camera shared with
 native metadata validation and a bounded raster/vector probe. DXF adapter, paper entities, renderer and UI integration
 remain unfinished.
 Owner acceptance, release and remote merge are not implied by these checks.

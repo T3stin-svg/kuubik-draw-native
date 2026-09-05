@@ -89,27 +89,41 @@ void RS_Settings::verifyIsolatedProfile()
                           + QUuid::createUuid().toString(QUuid::WithoutBraces);
     writeEntry(probe + QStringLiteral("/native"), QStringLiteral("native-value"));
     direct.sync();
+    const auto nativeSyncStatus = direct.status();
     const bool nativeToQt = direct.value(probe + QStringLiteral("/native")).toString()
                             == QStringLiteral("native-value");
     direct.setValue(probe + QStringLiteral("/qt"), QStringLiteral("qt-value"));
     direct.sync();
+    const auto qtSyncStatus = direct.status();
     const bool qtToNative = readEntry(probe + QStringLiteral("/qt"))
                             == QStringLiteral("qt-value");
     direct.remove(probe);
     direct.sync();
     const bool passed = nativeToQt && qtToNative && direct.status() == QSettings::NoError;
+    const QByteArray diagnostic = QStringLiteral("native=%1 qt=%2 cleanup=%3 nativeToQt=%4 qtToNative=%5")
+        .arg(int(nativeSyncStatus)).arg(int(qtSyncStatus)).arg(int(direct.status()))
+        .arg(int(nativeToQt)).arg(int(qtToNative)).toLatin1();
     QJsonObject report;
     report.insert(QStringLiteral("sameIsolatedIniBackend"), sameBackend);
     report.insert(QStringLiteral("nativeWriteQtRead"), nativeToQt);
     report.insert(QStringLiteral("qtWriteNativeRead"), qtToNative);
+    report.insert(QStringLiteral("nativeSyncStatus"), nativeSyncStatus);
+    report.insert(QStringLiteral("qtSyncStatus"), qtSyncStatus);
+    report.insert(QStringLiteral("cleanupSyncStatus"), direct.status());
     report.insert(QStringLiteral("passed"), passed);
     QSaveFile evidence(QDir(isolatedProfileRoot).filePath(
         QStringLiteral("settings-isolation.json")));
     const QByteArray data = QJsonDocument(report).toJson();
-    if (!passed || !evidence.open(QIODevice::WriteOnly)
-        || evidence.write(data) != data.size() || !evidence.commit()) {
-        qFatal("Kuubik isolated settings read/write verification failed");
-    }
+    // Preserve the failed probe report too. A single fatal message previously
+    // hid whether the settings backend or the evidence file had failed.
+    if (!evidence.open(QIODevice::WriteOnly))
+        qFatal("Kuubik isolated settings verification failed: stage=report-open error=%d %s", int(evidence.error()), diagnostic.constData());
+    if (evidence.write(data) != data.size())
+        qFatal("Kuubik isolated settings verification failed: stage=report-write error=%d %s", int(evidence.error()), diagnostic.constData());
+    if (!evidence.commit())
+        qFatal("Kuubik isolated settings verification failed: stage=report-commit error=%d %s", int(evidence.error()), diagnostic.constData());
+    if (!passed)
+        qFatal("Kuubik isolated settings verification failed: stage=settings-sync %s", diagnostic.constData());
 }
 
 RS_Settings::GroupGuard::GroupGuard(QString group)

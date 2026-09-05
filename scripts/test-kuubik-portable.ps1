@@ -162,18 +162,24 @@ function Run-Native(
     [int]$TimeoutSeconds = 180
 ) {
     $startInfo = New-NativeStartInfo $Executable $Arguments $Environment
+    $startInfo.RedirectStandardError = $true
     $process = [Diagnostics.Process]::Start($startInfo)
     if ($null -eq $process) {
         throw "$Label failed to start."
     }
-    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+    $stderrRead = $process.StandardError.ReadToEndAsync()
+    $timedOut = -not $process.WaitForExit($TimeoutSeconds * 1000)
+    if ($timedOut) {
         # Only this freshly created test process is owned by the harness.
         # A modal regression must not consume the entire CI runner timeout.
         $process.Kill($true)
-        throw "$Label exceeded the $TimeoutSeconds second test timeout."
+        $process.WaitForExit()
     }
-    if ($process.ExitCode -ne 0) {
-        throw "$Label failed with exit code $($process.ExitCode)"
+    $stderr = $stderrRead.GetAwaiter().GetResult()
+    if ($timedOut -or $process.ExitCode -ne 0) {
+        $failureLog = Join-Path $smokeRoot ('native-failure-' + [guid]::NewGuid().ToString('N') + '.log')
+        [IO.File]::WriteAllText($failureLog, $stderr)
+        throw "$Label failed: exit=$($process.ExitCode), timeout=$timedOut. Native stderr: $failureLog"
     }
     Assert-IsolatedSettings $startInfo
 }

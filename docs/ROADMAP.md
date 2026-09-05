@@ -2,8 +2,8 @@
 
 ## Jälgitav tööplaan
 
-**Uuendatud:** 2026-09-05 23:04 EEST. **Vastutaja:** Codex, integratsiooniomanik.
-**Hetkel:** P1-03a lõppkontroll; eelneva MSVC paketi kohaliku 125% DPI katkestuse uurimine.
+**Uuendatud:** 2026-09-05 23:11 EEST. **Vastutaja:** Codex, integratsiooniomanik.
+**Hetkel:** P1-03a MSVC CI; settings-tõrke diagnostika regressioon ja F-01 uurimine.
 **Tööaken:** 5.09 kell 19:10 kuni 6.09 kell 00:10 EEST; Reio kinnitas 5 h arendust.
 **Viimane sündmus:** P0 lähtepunkt `3cefc819` läbis Windows MSVC CI
 [33977714231](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33977714231).
@@ -58,7 +58,20 @@ kohalikku portable-kordust pole läbituks märgitud. Sama source'i CI oli roheli
 Katkestus toimus isoleeritud settings-proovis enne UI loomist; kaks sihitud 125%
 kordust läbivad. P1-03a lõplik 36 kontrolli, täis-GUI ja failiregressioon läbivad.
 PDF-i kontroll keeldub kuuest moonutatud väljundist, sh tühi clip ja topelt UserUnit.
-Transformi commit'i ettevalmistus käib; settings-tõrke diagnoos jääb eraldi nähtavaks.
+Transformi commit `15eed2e2` on Gitleaks-kontrolli järel push'itud;
+[MSVC CI 33988991011](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33988991011) käib.
+Settings-tõrke diagnoos jääb eraldi nähtavaks.
+Crash dump kinnitab: mõlemad settings-proovi lugemissuunad olid õiged, kuid Qt
+tagastas pärast sync'i vea. See käivitas kaitse enne raporti avamist ja UI loomist.
+Lisatud diagnostika säilitab veastaatuse ja stderr'i; kirjutuskaitset ei lõdvendata.
+Muutmata `a601e807` paketi värske täiskordus läbis nüüd 10 isoleeritud profiili,
+registri võrdsuse ja sõltumatu DXF/PDF/SVG kontrolli. Algne tõrge jääb tõendisse;
+failisüsteemi algpõhjust pole oletatud. Lukustatud INI ja takistatud raporti
+kaks uut testi läbivad ning tõendavad käivituse peatamist koos veainfoga.
+Lõppülevaatuse kolmas juht (mõlemad tõrked korraga) läbib samuti. Vahetest leidis,
+et eraldi qCritical teade ei jõudnud stderr'i; veainfo on nüüd igas fatal-teates endas.
+F-01 RED on uuesti kinnitatud: binaarse päise group 290 üleliigne bait tekitab
+järgmisele väljale koodi 2304. Kõigi 17 vale bool-kutse parandus ja versioonikorpus on järgmine töö.
 [Selle tööakna plaan](../tasks/plan.md).
 
 ```mermaid

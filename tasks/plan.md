@@ -181,3 +181,15 @@ first local portable replay stopped before UI creation in isolated-profile
 read/write verification (fatal message confirmed from its dump). Two focused
 fresh-profile125% replays pass. Diagnose that failure without weakening isolation
 or declaring the incomplete full replay green. Transform MSVC is the next gate.
+
+The model package's full diagnostic retry now passes10 isolated processes and
+independent read-back. Dump evidence narrows the original to a sticky non-NoError
+QSettings status while both read comparisons passed, not an evidence-file failure
+or DPI rendering issue. The source now retains per-sync status and native stderr.
+Three actual locked/report/combined failure cases pass without weakening isolation;
+the qCritical suppression RED required including status in each fatal message.
+
+F-01 has been reproduced with the current library: a two-byte boolean payload
+after $LWDISPLAY shifts the next group code to2304. Reuse writeBool at all17
+identified header/DIMSTYLE sites and verify binary false/true across supported
+modern DXF versions, while retaining ASCII and file-ownership regression gates.

@@ -17,6 +17,10 @@ Updated 2026-09-05. Reproducible owner-found failures always take priority.
   for the current five-hour development wave; release/remote merge remain separate.
 - [ ] Investigate the inherited binary-DXF header failure reproduced by the
   optional standalone binary probe. No binary compatibility claim from P0-B.
+- [x] Diagnose the isolated-settings startup fatal from the local MSVC replay;
+  retain per-sync status and native stderr, test locked INI/report/combined failures.
+- [ ] Verify that diagnostic change in exact-source MSVC CI; original environmental
+  cause remains unspecified, with initial failure and successful full retry both retained.
 
 ## Completed — approved SARibbon UI milestone
 
