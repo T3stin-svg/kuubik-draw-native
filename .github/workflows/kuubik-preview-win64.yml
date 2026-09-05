@@ -190,6 +190,9 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check --quiet ezdxf==1.4.4 pypdf pillow
           python .\scripts\verify-preview-outputs.py "$env:RUNNER_TEMP\Kuubik Draw portable smoke"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python .\scripts\test-viewport-probe-verifier.py "$env:RUNNER_TEMP\Kuubik Draw portable smoke\gui-evidence\viewport-transform-probe.pdf"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Verify standalone PLOTSETTINGS ownership and writer reuse
         shell: cmd
@@ -263,6 +266,9 @@ jobs:
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.json
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/layout-model-smoke.json
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/layout-model-baseline.dxf
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/viewport-transform-smoke.json
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/viewport-transform-probe.pdf
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/viewport-transform-probe.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/pline-before-undo.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/pline-after-undo.dxf

@@ -1,6 +1,6 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. **P1 file foundation/save guard pass MSVC; native layout metadata and Undo pass locally.**
+Status date: **2026-09-05**. **P1 file foundation, save guard and native metadata/Undo pass MSVC; Qt camera foundation is under local verification.**
 
 The current correction session starts at `8a5f7ae0` on the existing integration
 branch. P0-A uses native modification notifications and counts active entities.
@@ -28,7 +28,10 @@ and full GUI/file regression pass Windows run `33986140500`, source `fcad4372`.
 Native layout/page/viewport values now belong to RS_Graphic and share its Undo
 history. The newDoc dangling-history RED is fixed; 54 native lifecycle/identity
 checks and the full local GUI/file/guard regressions pass. This metadata checkpoint
-has no MSVC proof yet. DXF adapter, paper entities, renderer and UI integration
+passes MSVC run `33987457900` at `a601e807`. Its downloaded 43,805,010-byte ZIP
+matches the source manifest and SHA-256 `9ae9675a920d9a80266ee13f6fb7ccd7d1ab78f2c8501611a6fed5f15b00f783`;
+local packaged replay is running. P1-03a adds one validated Qt camera shared with
+native metadata validation and a bounded raster/vector probe. DXF adapter, paper entities, renderer and UI integration
 remain unfinished.
 Owner acceptance, release and remote merge are not implied by these checks.
 

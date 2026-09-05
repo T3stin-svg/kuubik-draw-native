@@ -121,6 +121,7 @@ public:
     bool runKuubikGuiSmoke(const QString& outputDirectory);
     bool runKuubikPaperspaceSaveSmoke(const QString& outputDirectory, const QString& inputPath);
     bool runKuubikLayoutModelSmoke(const QString& outputDirectory);
+    bool runKuubikViewportTransformSmoke(const QString& outputDirectory);
     void refreshKuubikProperties(int selectedCount, double totalLength);
 
 public slots:

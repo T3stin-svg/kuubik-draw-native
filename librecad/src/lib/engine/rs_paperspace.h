@@ -4,12 +4,15 @@
 
 #include "rs_vector.h"
 #include <QString>
+#include <QRectF>
+#include <QTransform>
 #include <array>
+#include <optional>
 #include <tuple>
 #include <vector>
 
 // Native 2D metadata only. Every viewport refers to the same RS_Graphic geometry.
-// Paper coordinates are millimeters; camera coordinates use drawing units.
+// Paper coordinates are Y-up millimeters; camera coordinates are WCS drawing units.
 struct RS_PaperViewport {
     quint64 id = 0;
     RS_Vector center{0, 0};
@@ -17,6 +20,11 @@ struct RS_PaperViewport {
     RS_Vector viewCenter{0, 0};
     double viewHeight = 8000, twist = 0; // radians
     bool enabled = true, locked = false;
+
+    std::optional<QRectF> paperFrame() const;
+    // p = center + height/viewHeight * R(-twist) * (world - viewCenter).
+    // No identity fallback for an invalid or numerically unusable camera.
+    std::optional<QTransform> cameraTransform() const;
 
     bool operator==(const RS_PaperViewport& b) const {
         return std::tie(id, center.x, center.y, center.z, width, height,

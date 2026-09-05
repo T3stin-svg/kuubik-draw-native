@@ -68,11 +68,14 @@ native dialog are not identical AutoCAD command lifecycles.
   guard; include unknown/discarded geometry, paper blocks, 102 scope, compatibility
   import, ordinary model saves and actual UI autosave/retry behavior.
 - [x] P1-02a: exact-source MSVC `33986140500` at `fcad4372`.
-- [ ] P1-02a: downloaded portable local replay (checksum/source inspection underway).
+- [x] P1-02a: downloaded portable hash/source and full local replay; registry unchanged.
 - [x] P1-02b metadata core: RS_Graphic value registry, same-kind live IDs/new IDs,
   shared cycle-owned Undo, newDoc/close cleanup; 54 local checks and full native
   GUI/file/guard regressions pass.
-- [ ] P1-02b: exact-source MSVC; connect staged DXF import and paper entities.
+- [x] P1-02b: exact-source MSVC `33987457900` at `a601e807`.
+- [ ] P1-02b: connect staged DXF import and paper entities; keep save protection.
+- [ ] P1-03a: finish verified Qt camera/clip/vector probe checkpoint and its MSVC gate.
+- [ ] P1-03: connect the camera to native render, hit/snap and command contexts.
 
 - [ ] Implement the single-document architecture in PAPERSPACE_PLAN.
 - [ ] A3 layout and two shared-model viewports at 1:50 and 1:100, independent locks.

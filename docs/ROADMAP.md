@@ -2,8 +2,8 @@
 
 ## Jälgitav tööplaan
 
-**Uuendatud:** 2026-09-05 22:31 EEST. **Vastutaja:** Codex, integratsiooniomanik.
-**Hetkel:** P1-02b metadata/Undo commit'i ettevalmistus; eelneva MSVC paketi kohalik kordus.
+**Uuendatud:** 2026-09-05 23:04 EEST. **Vastutaja:** Codex, integratsiooniomanik.
+**Hetkel:** P1-03a lõppkontroll; eelneva MSVC paketi kohaliku 125% DPI katkestuse uurimine.
 **Tööaken:** 5.09 kell 19:10 kuni 6.09 kell 00:10 EEST; Reio kinnitas 5 h arendust.
 **Viimane sündmus:** P0 lähtepunkt `3cefc819` läbis Windows MSVC CI
 [33977714231](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33977714231).
@@ -41,6 +41,24 @@ P1-02b impordiadapter ja UI pole veel ühendatud. Ülevaatuse parandused lisavad
 elusa sama tüübi ID kontrolli, ainult const Undo-vaatluse ja eri tsüklite koostöö testi.
 Lõplik metadata/Undo test läbib 54 kontrolli; kogu GUI, 22 salvestuskaitse juhtu,
 DXF/PDF/SVG ja neli ribboni mõõdukontrolli läbivad uuesti.
+Metadata/Undo commit `a601e807` läbis [MSVC CI 33987457900](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33987457900).
+Eelneva kaitsepaketi `fcad4372` ZIP, SHA-256 ja manifest klapivad; kohalik portable-kordus
+läbib native GUI ja sõltumatu DXF/PDF/SVG kontrolli, 10 isoleeritud profiili, register muutumatu.
+P1-03a värske ülevaatus lisas pöördmaatriksi overflow, suure koordinaadi täpsuse,
+Y-üles pöördemärgi, 320×160 mm raami ja täpse pööratud clip'i kontrollid.
+Qt maatriksi/PDF katse on teisenduse alus; native layout-renderdaja, sakid ja plot-töövoog ootavad.
+P1-03a RED kinnitas kolme arvulist viga: raami kokkuvajumine, keskpunkti nihke kaotus
+ja determinandi overflow. Parandus keeldub neist; sama valideerimine kaitseb nüüd native registrit.
+GREEN läbib 34 native kontrolli, mõlema clip'i eraldi tõendi ja sõltumatu PDF-i pikkuse/suuna mõõtmise.
+Täielik GUI ja DXF/PDF/SVG regressioon läbivad. Qt 5 MediaBox on täisarvulistes punktides;
+see eraldi lehepiiri ümardus ei muuda joonte 0,05 mm mõõduväravat. Ühikute katse ja lõppülevaatus jätkuvad.
+Paketi `a601e807` SHA/manifest klapivad, kuid kohalik täiskordus katkes 125% DPI
+protsessis koodiga `0xC0000409`. Ebaõnnestunud tõend säilib; põhjust uuritakse,
+kohalikku portable-kordust pole läbituks märgitud. Sama source'i CI oli roheline.
+Katkestus toimus isoleeritud settings-proovis enne UI loomist; kaks sihitud 125%
+kordust läbivad. P1-03a lõplik 36 kontrolli, täis-GUI ja failiregressioon läbivad.
+PDF-i kontroll keeldub kuuest moonutatud väljundist, sh tühi clip ja topelt UserUnit.
+Transformi commit'i ettevalmistus käib; settings-tõrke diagnoos jääb eraldi nähtavaks.
 [Selle tööakna plaan](../tasks/plan.md).
 
 ```mermaid
@@ -49,7 +67,7 @@ flowchart TD
     A["P0-A · Properties<br/>Teostus ✓ · 9 olekut ✓<br/>Kohalik commit d4280f9b"]
     B["P0-B · DXF ownership<br/>Teostus ✓ · 14 väljundit audit 0/0 ✓<br/>Kohalik commit 4e40a43c"]
     G["G-01 · MSVC CI 33977714231 ✓<br/>Source 3cefc819 · portable-kordus ✓<br/>Omaniku vastuvõtt ootel"]
-    P["1 · Native paperspace<br/>Failileping + salvestuskaitse: kohalik ✓ · MSVC ✓<br/>Metadata/Undo: 54 kohalikku kontrolli ✓ · MSVC ootel<br/>Native UI ootel"]
+    P["1 · Native paperspace<br/>Failileping + salvestuskaitse: kohalik ✓ · MSVC ✓<br/>Metadata/Undo: 54 kontrolli ✓ · MSVC ✓<br/>Transform töös · Native UI ootel"]
     C["2 · Igapäevased CAD-töövood<br/>MOVE/COPY elutsükkel · Modify<br/>Layers · Annotation · Blocks · Properties"]
     R["3 · Töökindlus ja failitugi<br/>Taaste · suured DXF-id · päris Windows DPI<br/>Laiem failikorpus ja omaniku töövood"]
     UI --> A
@@ -135,8 +153,8 @@ jäävad kõigis sammudes ainsaks mudeliks.
 flowchart TD
     G["G-01 · P0 üleandmise värav"] --> A["P1-01 · DXF objektileping ja testkorpus"]
     A --> S["P1-02a · Native salvestuskaitse<br/>Kohalik ✓ · MSVC ✓"]
-    S --> B["P1-02b · Layout metadata ja Undo<br/>54 kohalikku kontrolli ✓ · MSVC ootel<br/>Impordiadapter/paper entities ootel"]
-    B --> C["P1-03 · Ühine transform, clipping ja snap"]
+    S --> B["P1-02b · Layout metadata ja Undo<br/>54 kontrolli ✓ · MSVC 33987457900 ✓<br/>Impordiadapter/paper entities ootel"]
+    B --> C["P1-03a · Qt transform ja clip katse töös<br/>Native renderdus / hit-test / snap ühendamine ootel"]
     C --> D["P1-04 · DXF save / close / reopen"]
     D --> E["P1-05 · Model/Layout, scale ja lock"]
     E --> F["P1-06 · LINE läbi viewport'i, mõlemad vaated"]
@@ -149,6 +167,7 @@ flowchart TD
 | P1-01 | LAYOUT, VIEWPORT, BLOCK_RECORD ja layout'i PLOTSETTINGS lugemise/kirjutamise leping | Sünteetilised failid katavad ID-d, owner'id, seosed, ühikud ja toetamatute objektide piirid; sõltumatu audit on 0/0 | Stage 0 ülevaatus |
 | P1-02 | Native layout'i ja viewport'i omand ning eluiga | Üks RS_Graphic; layout TEST; ühine mudel; native Undo taastab lisamise/kustutamise ilma dangling pointer'ite või teise entity-mudelita | P1-01 |
 | P1-03 | Ühine model↔paper teisendus | Renderdus, hit-test, snap ja PDF kasutavad sama teisendust; 0°/30°, inverse, clipping ja ühikud läbivad kontrolli | P1-02 |
+| P1-03a | Qt teisenduse arvuline alus (töös) | WCS↔Y-üles paber mm; mõõtkava, pööre, inverse, arvuliste vigade keeld ning raster/vector clip-katse; ei lõpeta native UI töövoogu | P1-02b väärtusmudel |
 | P1-04 | Layout/viewport DXF roundtrip | Save → close → reopen säilitab ID-d, owner'id, mõõtkavad ja lukud; geomeetria säilib ning sõltumatu audit on 0/0 | P1-01–03 |
 | P1-05 | Model/Layout sakid, scale ja lock | A3 landscape TEST; kaks ligikaudu 160×160 mm viewport'i; 1:50 ja 1:100; sõltumatu camera; lock peatab wheel zoom'i mõju scale'ile | P1-04 |
 | P1-06 | Mudeli muutmine läbi viewport'i | Topeltklõps sees → ModelThroughViewport, väljas → Paper; LINE ilmub mõlemas vaates; üks Undo/Redo uuendab mõlemat | P1-03–05 |

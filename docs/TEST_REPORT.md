@@ -1,6 +1,32 @@
 # Kuubik Draw Native — verified test checkpoint
 
-## P1-02b — native layout metadata and shared Undo (local)
+## P1-03a — Qt camera, exact rectangle clip and vector probe (local)
+
+The minimal Qt implementation first failed three real numeric cases: collapsed
+paper frame, lost paper-center translation at WCS 1e20, and determinant overflow
+with a finite but incorrect inverse. The hardened factory rejects those before
+native metadata edits. The final native report passes 36 checks covering both
+axes at 0/30 degrees and 1:50/1:100, a non-square frame, inverse, fractional WCS
+coordinates around 1e9, inch/meter drawing units, flags, twelve invalid inputs,
+exact rotated point membership and both raster clips with separate ink/endpoints.
+The existing 54 metadata checks and full GUI/file regression still pass; eight
+isolated profiles leave the registry unchanged. Four ribbon geometry checks pass.
+
+The QPdfWriter probe contains two vector LINE strokes. Independent pypdf graphics
+state, matrix and rectangle-clip checks measure 100/50 mm, centers and signed
+0/-30-degree directions within 0.05 mm. Six serialized in-memory corruptions must
+fail: empty clip, doubled UserUnit, page rotation/crop, doubled or mirrored geometry.
+The first page-size oracle incorrectly imposed geometry tolerance on Qt 5's
+integer-point MediaBox. Source inspection established 1191×842 pt for A3; only
+page extent allows half-point rounding. Geometry tolerance was not relaxed.
+
+Evidence: ignored `native-transform-red`, `native-transform-green`,
+`native-transform-reviewed`, `transform-probe-verifier-negatives.log` under the
+wave root. These are camera/Qt painter probes, not native layout-renderer or plot
+acceptance. This transform source has no MSVC proof yet. The Windows workflow
+runs/uploads the new probe and independent negative oracle checks.
+
+## P1-02b — native layout metadata and shared Undo
 
 The new native check first proved that newDoc left an Undo cycle pointing to
 already deleted LINE data. History now clears before entity deletion and before
@@ -24,8 +50,14 @@ native registry equality is unchanged. Evidence: `native-layout-model-reviewed`,
 The original failure is `native-layout-model-red/gui-evidence/layout-model-smoke.json`.
 
 The Windows workflow executes this model check as part of the existing native GUI
-smoke and uploads its report/baseline. This model change has no MSVC proof yet;
-`33986140500`/`fcad4372` proves the preceding save guard only. Staged adapter import,
+smoke and uploads its report/baseline. Source `a601e807` passes MSVC `33987457900`.
+The downloaded ZIP is 43,805,010 bytes with matching source/sidecar and SHA-256
+`9ae9675a920d9a80266ee13f6fb7ccd7d1ab78f2c8501611a6fed5f15b00f783`.
+Its first local packaged replay aborted at125% before UI construction, code
+0xC0000409. The isolated settings INI contains both probe keys but no completed
+isolation report; diagnosis is in progress. Two focused125% runs pass using the
+extracted and original copied executables with fresh profiles and unchanged registry.
+No successful full replay is claimed yet. Staged adapter import,
 paper entities, rendering and UI remain unconnected.
 
 ## P1-02a — native paperspace save protection (local)

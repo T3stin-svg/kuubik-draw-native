@@ -92,6 +92,10 @@ source `fcad4372` läbis MSVC CI `33986140500`. See ei ole veel paperspace'i muu
   koos tsükliga. Korduvad muudatused koonduvad ühte snapshot'i sama native
   `startUndoCycle` / `endUndoCycle` tehingu sees. Payload ei hoia UI-pointer'it.
 - `RS_GraphicView::toGui/toGraph` on praegu telgede skaalal/nihkel põhinev.
+  P1-03a lisab RS_PaperViewport'i Qt kaamera: WCS → Y-üles paber mm,
+  pööre radiaanides, kehtiv raam ja 1e-6 mm arvulise täpsuse värav.
+  Native registri valideerimine kasutab sama teisendust. Qt raster-/PDF-proov
+  mõõdab geomeetriat ja mõlemat clip'i; päris renderdus/plot pole veel ühendatud.
   Pööratud viewport ei valmi ainult QPainter.rotate abil: olemasolevad käsud ja
   snap kasutavad samas klassis scalar toGuiX/toGuiY/toGraphX/toGraphY teisendusi.
   Kõik need tarbijad tuleb kaardistada; uus ühtne 2D transform peab teenindama

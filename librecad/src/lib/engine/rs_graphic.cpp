@@ -51,9 +51,6 @@ bool validPaperSpace(const RS_PaperSpace& data, bool requireIds) {
     std::set<quint64> ids;
     std::set<QString> names;
     const auto positive = [](double value) { return std::isfinite(value) && value > 0; };
-    const auto point = [](const RS_Vector& value) {
-        return static_cast<bool>(value) && std::isfinite(value.x) && std::isfinite(value.y) && value.z == 0;
-    };
     for (const auto& layout : data) {
         if ((requireIds && !layout.id) || (layout.id && !ids.insert(layout.id).second) || layout.name.trimmed().isEmpty()
             || layout.name.contains('\n') || layout.name.contains('\r') || layout.name.contains(QChar(0))
@@ -62,9 +59,7 @@ bool validPaperSpace(const RS_PaperSpace& data, bool requireIds) {
         if (layout.margins[0] + layout.margins[2] >= layout.width
             || layout.margins[1] + layout.margins[3] >= layout.height) return false;
         for (const auto& view : layout.viewports) {
-            if ((requireIds && !view.id) || (view.id && !ids.insert(view.id).second) || !point(view.center) || !point(view.viewCenter)
-                || !positive(view.width) || !positive(view.height) || !positive(view.viewHeight)
-                || !std::isfinite(view.twist)) return false;
+            if ((requireIds && !view.id) || (view.id && !ids.insert(view.id).second) || !view.cameraTransform()) return false;
         }
     }
     return true;

@@ -64,6 +64,7 @@
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QPagedPaintDevice>
+#include <QPdfWriter>
 #include <QPluginLoader>
 #include <QPixmap>
 #include <QPrinter>
@@ -5537,6 +5538,165 @@ bool QC_ApplicationWindow::runKuubikLayoutModelSmoke(const QString& outputDirect
     return report.commit() && passed;
 }
 
+bool QC_ApplicationWindow::runKuubikViewportTransformSmoke(const QString& outputDirectory)
+{
+    QJsonObject checks;
+    const auto close = [](QPointF a, QPointF b) {
+        return std::hypot(a.x() - b.x(), a.y() - b.y()) <= 1e-6;
+    };
+    RS_PaperViewport view;
+    view.center = {100, 148.5};
+    view.viewCenter = {1200, -3400};
+    view.width = 320; // Non-square frame catches width-based or anisotropic scale.
+    const QPointF world(view.viewCenter.x, view.viewCenter.y);
+    for (int angle : {0, 30}) {
+        view.twist = angle * M_PI / 180;
+        for (int denominator : {50, 100}) {
+            view.viewHeight = view.height * denominator;
+            const auto transform = view.cameraTransform();
+            const QString key = QString("angle%1scale%2").arg(angle).arg(denominator);
+            checks.insert(key + "valid", transform.has_value());
+            if (!transform) continue;
+            const double length = 5000.0 / denominator;
+            const QPointF center(100, 148.5);
+            const QPointF x = angle == 0 ? QPointF(length, 0) : QPointF(length * std::sqrt(3.0) / 2, -length / 2);
+            const QPointF y = angle == 0 ? QPointF(0, length) : QPointF(length / 2, length * std::sqrt(3.0) / 2);
+            checks.insert(key + "basis", close(transform->map(world), center)
+                && close(transform->map(world + QPointF(5000, 0)), center + x)
+                && close(transform->map(world + QPointF(0, 5000)), center + y));
+            checks.insert(key + "inverse", close(transform->inverted().map(center + x), world + QPointF(5000, 0)));
+        }
+    }
+    auto large = view;
+    large.viewCenter = {1e9 + 123.456, -1e9 + 654.321};
+    const auto largeTransform = large.cameraTransform();
+    const QPointF largeOrigin(large.viewCenter.x, large.viewCenter.y);
+    checks.insert("largeWorldCoordinates", largeTransform
+        && close(largeTransform->map(largeOrigin), QPointF(100, 148.5))
+        && close(largeTransform->map(largeOrigin + QPointF(5000, 0)), QPointF(100 + 25 * std::sqrt(3.0), 123.5))
+        && close(largeTransform->map(largeOrigin + QPointF(0, 5000)), QPointF(125, 148.5 + 25 * std::sqrt(3.0)))
+        && close(largeTransform->inverted().map(QPointF(100, 148.5)), largeOrigin));
+    auto flagged = view;
+    flagged.enabled = false;
+    flagged.locked = true;
+    checks.insert("flagsDoNotChangeCamera", flagged.cameraTransform() == view.cameraTransform());
+    for (double mmPerUnit : {25.4, 1000.0}) {
+        auto units = view;
+        units.twist = 0;
+        units.viewCenter = {0, 0};
+        units.viewHeight = 8000 / mmPerUnit;
+        const auto transform = units.cameraTransform();
+        checks.insert(mmPerUnit == 25.4 ? "inchDrawingUnits" : "meterDrawingUnits", transform
+            && close(transform->map(QPointF(5000 / mmPerUnit, 0)), QPointF(200, 148.5)));
+    }
+    RS_Graphic rejected;
+    rejected.setModified(false);
+    for (int i = 0; i < 12; ++i) {
+        auto bad = view;
+        switch (i) {
+        case 0: bad.width = 0; break;
+        case 1: bad.height = -1; break;
+        case 2: bad.viewHeight = 0; break;
+        case 3: bad.twist = std::numeric_limits<double>::quiet_NaN(); break;
+        case 4: bad.viewCenter.z = 1; break;
+        case 5: bad.center = RS_Vector(false); break;
+        case 6: bad.viewHeight = std::numeric_limits<double>::infinity(); break;
+        case 7: bad.center.x = 1e20; break; // frame edges collapse
+        case 8: bad.viewCenter.x = 1e20; break; // finite translation loses paper center
+        case 9: bad.viewHeight = 1.6e-198; bad.center = {0, 0}; bad.viewCenter = {0, 0}; break; // determinant overflow
+        case 10: bad.viewHeight = 1e200; break; // singular in Qt precision
+        case 11: bad.center.x = 1e308; bad.width = 1e308; break;
+        }
+        RS_PaperLayout invalid;
+        invalid.name = "INVALID";
+        invalid.viewports = {bad};
+        checks.insert(QString("rejectInvalid%1").arg(i), !bad.cameraTransform()
+            && !rejected.replacePaperSpace({invalid}) && rejected.getPaperSpace().empty()
+            && rejected.countUndoCycles() == 0 && !rejected.isModified());
+    }
+
+    // This is a Qt camera/clip probe, not a native layout renderer or plot command.
+    // Establish the paper clip before installing the WCS camera. Qt multiplies
+    // camera * paperToDevice; the Y flip belongs only to paperToDevice.
+    view.width = 160;
+    view.viewHeight = 8000;
+    const auto rotated = view.cameraTransform();
+    const auto frame = view.paperFrame();
+    if (rotated && frame) {
+        const auto inverse = rotated->inverted();
+        const auto box = inverse.mapRect(*frame);
+        const QPointF outside = box.topLeft() + QPointF(1, 1);
+        checks.insert("exactRotatedHit", box.contains(outside) && !frame->contains(rotated->map(outside))
+            && frame->contains(rotated->map(world)));
+    } else checks.insert("exactRotatedHit", false);
+    const auto paintProbe = [&view](QPainter& painter, double pixelsPerMm, bool extended) {
+        QTransform paperToDevice;
+        paperToDevice.translate(0, 297 * pixelsPerMm).scale(pixelsPerMm, -pixelsPerMm);
+        for (int index : {0, 1}) {
+            auto camera = view;
+            camera.center = {index == 0 ? 100.0 : 290.0, 148.5};
+            camera.twist = index == 0 ? 0 : M_PI / 6;
+            camera.viewHeight = camera.height * (index == 0 ? 50 : 100);
+            const auto frame = camera.paperFrame();
+            const auto transform = camera.cameraTransform();
+            if (!frame || !transform) return false;
+            painter.save();
+            painter.setWorldTransform(paperToDevice);
+            painter.setClipRect(*frame, Qt::IntersectClip);
+            painter.setWorldTransform(*transform * paperToDevice);
+            painter.setPen(QPen(Qt::black, extended ? 10 : 5));
+            const QPointF origin(camera.viewCenter.x, camera.viewCenter.y);
+            painter.drawLine(origin + QPointF(extended ? -20000 : -2500, 0), origin + QPointF(extended ? 20000 : 2500, 0));
+            painter.restore();
+        }
+        return true;
+    };
+    QImage raster(4200, 2970, QImage::Format_RGB32);
+    raster.fill(Qt::white);
+    {
+        QPainter painter(&raster);
+        checks.insert("rasterProbeCameras", paintProbe(painter, 10, true));
+    }
+    std::array<int, 2> inkInside{{0, 0}};
+    std::array<double, 2> minX{{420, 420}}, maxX{{0, 0}}, minY{{297, 297}}, maxY{{0, 0}};
+    int inkOutside = 0;
+    for (int y = 0; y < raster.height(); ++y) {
+        const auto* row = reinterpret_cast<const QRgb*>(raster.constScanLine(y));
+        for (int x = 0; x < raster.width(); ++x) if (qGray(row[x]) < 128) {
+            const QPointF paper((x + .5) / 10, 297 - (y + .5) / 10);
+            const int index = paper.x() < 200 ? 0 : 1;
+            const QRectF frame(index == 0 ? 20 : 210, 68.5, 160, 160);
+            if (!frame.adjusted(-.1, -.1, .1, .1).contains(paper)) { ++inkOutside; continue; }
+            ++inkInside[index];
+            minX[index] = std::min(minX[index], paper.x()); maxX[index] = std::max(maxX[index], paper.x());
+            minY[index] = std::min(minY[index], paper.y()); maxY[index] = std::max(maxY[index], paper.y());
+        }
+    }
+    checks.insert("clipRaster", inkInside[0] > 1000 && inkInside[1] > 1000 && inkOutside == 0);
+    checks.insert("clipBothEndpoints", std::abs(minX[0] - 20) < .2 && std::abs(maxX[0] - 180) < .2
+        && std::abs(minY[0] - 148.5) < .2 && std::abs(maxY[0] - 148.5) < .2
+        && std::abs(minX[1] - 210) < .2 && std::abs(maxX[1] - 370) < .2
+        && std::abs(minY[1] - (148.5 - 80 / std::sqrt(3.0))) < .2
+        && std::abs(maxY[1] - (148.5 + 80 / std::sqrt(3.0))) < .2);
+    checks.insert("clipRasterSaved", raster.save(QDir(outputDirectory).filePath("viewport-transform-probe.png")));
+    {
+        QPdfWriter pdf(QDir(outputDirectory).filePath("viewport-transform-probe.pdf"));
+        pdf.setTitle("Kuubik Qt viewport transform probe (not native layout plot)");
+        pdf.setResolution(2540);
+        pdf.setPageLayout(QPageLayout(QPageSize(QPageSize::A3), QPageLayout::Landscape, QMarginsF(), QPageLayout::Millimeter));
+        QPainter painter(&pdf);
+        checks.insert("vectorProbePainter", painter.isActive());
+        checks.insert("vectorProbeCameras", painter.isActive() && paintProbe(painter, pdf.resolution() / 25.4, false));
+        checks.insert("vectorProbeEnd", painter.end());
+    }
+    bool passed = true;
+    for (auto it = checks.begin(); it != checks.end(); ++it) passed = passed && it.value().toBool();
+    QSaveFile report(QDir(outputDirectory).filePath("viewport-transform-smoke.json"));
+    if (!report.open(QIODevice::WriteOnly)) return false;
+    report.write(QJsonDocument(QJsonObject{{"passed", passed}, {"checks", checks}}).toJson());
+    return report.commit() && passed;
+}
+
 bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
 {
     const QString paperspaceInput = qEnvironmentVariable("KUUBIK_PAPERSPACE_GUARD_INPUT_DXF");
@@ -5546,6 +5706,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         return false;
     }
     if (!runKuubikLayoutModelSmoke(outputDirectory)) return false;
+    if (!runKuubikViewportTransformSmoke(outputDirectory)) return false;
 
     // Keep the evidence viewport independent from the runner's physical
     // display. QWidget::grab() records the actual rendered widgets.

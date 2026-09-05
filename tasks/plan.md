@@ -166,3 +166,18 @@ creation versus retained-ID baseline import; same-kind live-ID enforcement;
 const payload observations; successive A/B cycles and replacement C after Undo B.
 Native nonempty metadata is still save-protected. Adapter and renderer/UI wiring
 remain separate. The earlier guard source fcad4372 passes MSVC run 33986140500.
+
+## P1-03a shared Qt camera checkpoint
+
+RS_PaperViewport now supplies the native QTransform and paper rectangle; native
+registry acceptance reuses it. The three numeric REDs are fixed, and 36 native
+checks plus existing54 metadata checks and full GUI/file regression pass locally.
+Independent Qt PDF probes measure100/50 mm and signed direction with effective
+clip/default-page-unit checks; six misleading PDF mutations are rejected. No
+renderer/command/plot integration is implied. D-030 records spaces and precision.
+
+Model source a601e807 passed MSVC33987457900. Its ZIP/source/checksum match; the
+first local portable replay stopped before UI creation in isolated-profile
+read/write verification (fatal message confirmed from its dump). Two focused
+fresh-profile125% replays pass. Diagnose that failure without weakening isolation
+or declaring the incomplete full replay green. Transform MSVC is the next gate.

@@ -3,6 +3,30 @@
 These are current product decisions. A later AI may recommend changes, but must
 not silently reverse them.
 
+## D-030 — One Qt camera maps WCS drawing units to Y-up paper millimeters
+
+2026-09-05: RS_PaperViewport supplies an optional paper frame and QTransform.
+Its viewCenter is a WCS point, not a raw DXF DCS center. The transform is
+`paperCenter + height/viewHeight * R(-twist) * (world - viewCenter)`; twist is
+radians and scale is paper millimeters per drawing unit. Model units must be
+accounted for when setting viewHeight; the transform itself has no global units.
+Invalid/nonfinite/nonplanar values, collapsed frames, unusable inverses and
+center/corner round-trips worse than 1e-6 mm are rejected before native edits.
+Qt's successful inverse flag alone is insufficient when the determinant overflows.
+
+Device Y inversion is a separate paper-to-device transform. Set the paper clip
+under that transform, then use `camera * paperToDevice`, with save/restore and
+IntersectClip per viewport. A rotated inverse frame's mapRect is only an AABB;
+exact hit testing maps a point into paper and checks the original rectangle.
+Use the same camera for future native rendering, hit/snap and plot integration.
+
+The current raster and QPdfWriter probes certify the camera math, not a native
+layout renderer, command context or plot workflow. Independent PDF checks retain
+0.05 mm geometry tolerance. Qt 5's integer-point MediaBox rounds A3 to 1191×842 pt;
+the page-boundary check allows only half-point rounding, recorded separately.
+Sources: [Qt transforms](https://doc.qt.io/archives/qt-5.15/qtransform.html),
+[Qt PDF page matrix and size](https://github.com/qt/qtbase/blob/5.15/src/gui/painting/qpdf.cpp).
+
 ## D-029 — Native layout metadata shares the document's Undo history
 
 2026-09-05: RS_Graphic owns value-based layout/page/rectangular-viewport metadata.

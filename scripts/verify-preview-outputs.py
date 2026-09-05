@@ -6,10 +6,11 @@ import xml.etree.ElementTree as ET
 from collections import Counter
 import json
 import re
+import math
 from pathlib import Path
 
 from PIL import Image, ImageStat
-from pypdf import PdfReader
+from pypdf import PdfReader, Transformation
 
 from dxf_audit import require_audit_clean
 
@@ -49,6 +50,78 @@ def require_ribbon_mouse_invocation(invocation: dict, context: str) -> None:
             require(invocation[key] is True, (context, key, invocation))
     else:
         raise RuntimeError((context, "unexpected invocation surface", surface))
+
+
+def verify_viewport_transform_probe(directory: Path) -> None:
+    """Measure Qt's camera probe; this does not certify a native layout plot."""
+    report = json.loads((directory / "viewport-transform-smoke.json").read_text(encoding="utf-8"))
+    require(report["passed"] is True and len(report["checks"]) == 36
+            and all(value is True for value in report["checks"].values()), report)
+    verify_viewport_pdf_probe(PdfReader(directory / "viewport-transform-probe.pdf"))
+
+
+def verify_viewport_pdf_probe(pdf: PdfReader) -> None:
+    """Bounded two-LINE Qt output, including physical units and effective clips."""
+    require(len(pdf.pages) == 1, "Camera probe must have one A3 page")
+    page = pdf.pages[0]
+    mm = 25.4 / 72
+    require(float(page.get("/UserUnit", 1)) == 1 and page.rotation == 0
+            and tuple(page.cropbox) == tuple(page.mediabox), "Camera probe page units/rotation/crop changed")
+    # Qt 5 serializes QPageLayout::fullRectPoints(), an integer point rectangle.
+    # Only MediaBox has half-point rounding; geometry below keeps the .05 mm gate.
+    require(abs(float(page.mediabox.width) - 420 / mm) <= .5
+            and abs(float(page.mediabox.height) - 297 / mm) <= .5, page.mediabox)
+    require(len(page.images) == 0, "Camera probe must retain vector geometry")
+    # Track the PDF graphics-state stack and public pypdf matrix operations;
+    # path vertices are measured in page points, independently of native JSON.
+    matrix, stack, path, lines = Transformation(), [], [], []
+    clip = tuple(float(value) for value in page.mediabox)
+    for operands, operator in page.get_contents().operations:
+        if operator == b"q":
+            stack.append((matrix, clip))
+        elif operator == b"Q":
+            require(stack, "Unbalanced PDF graphics state")
+            matrix, clip = stack.pop()
+        elif operator == b"cm":
+            matrix = Transformation(tuple(float(value) for value in operands)).transform(matrix)
+        elif operator == b"m":
+            path = [matrix.apply_on(tuple(operands))]
+        elif operator == b"l":
+            path.append(matrix.apply_on(tuple(operands)))
+        elif operator == b"re":
+            x, y, width, height = map(float, operands)
+            path = [matrix.apply_on(point) for point in ((x, y), (x + width, y),
+                    (x + width, y + height), (x, y + height), (x, y))]
+        elif operator in (b"W", b"W*"):
+            # This bounded producer uses axis-aligned paper rectangles only.
+            # Reject an empty/unsupported clip instead of measuring hidden ink.
+            require(path, "Missing camera clip path")
+            left, right = min(x for x, y in path), max(x for x, y in path)
+            bottom, top = min(y for x, y in path), max(y for x, y in path)
+            require(left < right and bottom < top
+                    and set(path) == {(left, bottom), (right, bottom), (right, top), (left, top)}, path)
+            vertices = path[:-1] if path[0] == path[-1] else path
+            require(len(vertices) == 4 and all((a[0] == b[0]) != (a[1] == b[1])
+                    for a, b in zip(vertices, vertices[1:] + vertices[:1])), "Nonrectangular camera clip")
+            clip = (max(clip[0], left), max(clip[1], bottom), min(clip[2], right), min(clip[3], top))
+        elif operator == b"S":
+            require(len(path) == 2, ("Expected a stroked LINE", path))
+            require(all(clip[0] <= x <= clip[2] and clip[1] <= y <= clip[3] for x, y in path),
+                    ("Camera LINE is hidden or clipped", clip, path))
+            lines.append(tuple((x * mm, y * mm) for x, y in path))
+            path = []
+        elif operator == b"n":
+            path = []
+    require(not stack and len(lines) == 2, (stack, lines))
+    for (start, end), expected_length, expected_center, expected_delta in zip(
+        lines, (100, 50), ((100, 148.5), (290, 148.5)), ((100, 0), (25 * math.sqrt(3), -25))
+    ):
+        delta = (end[0] - start[0], end[1] - start[1])
+        center = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
+        require(abs(math.hypot(*delta) - expected_length) <= .05, (start, end, expected_length))
+        require(math.dist(center, expected_center) <= .05, (center, expected_center))
+        require(math.dist(delta, expected_delta) <= .05, (delta, expected_delta))
+    print("PASS Qt viewport vector probe: A3, 100/50 mm, centers and 0/-30 degree directions; native layout plot remains separate")
 
 
 def main() -> None:
@@ -117,6 +190,7 @@ def main() -> None:
     require(vector_tags, [element.tag for element in svg_elements])
 
     gui_doc = require_audit_clean(gui_dxf_path, 1)
+    verify_viewport_transform_probe(smoke / "gui-evidence")
     layout_report = json.loads((smoke / "gui-evidence" / "layout-model-smoke.json").read_text(encoding="utf-8"))
     require(layout_report["passed"] is True, layout_report)
     require(len(layout_report["checks"]) == 54 and all(value is True for value in layout_report["checks"].values()), layout_report)
