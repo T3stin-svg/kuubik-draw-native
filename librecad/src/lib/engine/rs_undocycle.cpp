@@ -50,18 +50,26 @@ void RS_UndoCycle::removeUndoable(RS_Undoable* u) {
     undoables.erase(u);
 }
 
+const RS_Undoable* RS_UndoCycle::addOwnedUndoable(std::unique_ptr<RS_Undoable> u) {
+    if (!u) return nullptr;
+    ownedUndoables.push_back(std::move(u));
+    return ownedUndoables.back().get();
+}
+
 /**
  * Return number of undoables in cycle
  */
 size_t RS_UndoCycle::size()
 {
-    return undoables.size();
+    return undoables.size() + ownedUndoables.size();
 }
 
 void RS_UndoCycle::changeUndoState()
 {
 	for (RS_Undoable* u: undoables)
 		u->changeUndoState();
+    for (const auto& u : ownedUndoables)
+        u->changeUndoState();
 }
 
 std::set<RS_Undoable*> const& RS_UndoCycle::getUndoables() const

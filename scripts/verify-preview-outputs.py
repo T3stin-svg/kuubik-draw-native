@@ -117,6 +117,12 @@ def main() -> None:
     require(vector_tags, [element.tag for element in svg_elements])
 
     gui_doc = require_audit_clean(gui_dxf_path, 1)
+    layout_report = json.loads((smoke / "gui-evidence" / "layout-model-smoke.json").read_text(encoding="utf-8"))
+    require(layout_report["passed"] is True, layout_report)
+    require(len(layout_report["checks"]) == 54 and all(value is True for value in layout_report["checks"].values()), layout_report)
+    baseline = require_audit_clean(smoke / "gui-evidence" / "layout-model-baseline.dxf", 1)
+    baseline_line, = baseline.modelspace().query("LINE")
+    require(baseline_line.dxf.start.isclose((0, 0, 0)) and baseline_line.dxf.end.isclose((5000, 0, 0)), "Metadata protection changed the saved baseline")
     gui_entities = list(gui_doc.modelspace())
     gui_types = [entity.dxftype() for entity in gui_entities]
     require(gui_types.count("LWPOLYLINE") == 1, gui_types)

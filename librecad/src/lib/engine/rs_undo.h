@@ -59,6 +59,9 @@ public:
     virtual void startUndoCycle();
     virtual void addUndoable(RS_Undoable* u);
     virtual void endUndoCycle();
+    const RS_Undoable* addOwnedUndoable(std::unique_ptr<RS_Undoable> u);
+    // Call before destroying document data referenced by history. No UI callbacks.
+    void clearUndoHistory();
 
     /**
      * Must be overwritten by the implementing class and delete
@@ -76,6 +79,9 @@ public:
     friend std::ostream& operator << (std::ostream& os, RS_Undo& a);
 
     static bool test();
+
+protected:
+    RS_UndoCycle* currentUndoCycle() const { return currentCycle.get(); }
 
 private:
 

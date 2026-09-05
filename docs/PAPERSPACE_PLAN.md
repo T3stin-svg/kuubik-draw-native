@@ -76,18 +76,21 @@ teadlikult piiratud eksporditee. Selle toe puudumisel pole roundtrip sertifitsee
 
 **Avaldatud SARibboni eelvaade ei rakenda seda kaitset. Tööharu P1-02a lisab
 native Save/Save As/autosave/eksportimise keelu tuvastatud paperspace'ile;
-selle MSVC tõend on ootel. See ei ole veel paperspace'i muutmise ega roundtrip'i tugi.**
+source `fcad4372` läbis MSVC CI `33986140500`. See ei ole veel paperspace'i muutmise ega roundtrip'i tugi.**
 
 ## Native integratsioonipunktid ja eluea piirid
 
 - `RS_Graphic` omab layout'ide registrit. Registri identiteet on stabiilne ID,
   mitte kasutaja muudetav nimi ega UI-saki indeks. `newDoc`, open-failure,
   document close ja save-as peavad registrit üheselt haldama.
-- `RS_Document::removeUndoable` oskab praegu koristada ainult undone entity'id.
-  Enne uute layout-muudatuste `RS_Undoable`-objektide lisamist tuleb laiendada
-  omandit ja obsolete-redo koristust. Toores UI-pointer Undo payload'is ei sobi.
-  Võimalik adapter hoiab dokumendi ID-sid ning enne/pärast väärtusseisu ja ühineb
-  sama `startUndoCycle` / `endUndoCycle` tehinguga.
+- P1-02b teostab native väärtusregistri ja ühe metadata-snapshot'i olemasoleva
+  Undo-tsükli kohta. Edit'i `id=0` loob uue tunnuse; olemasolev tunnus peab kuuluma
+  elusale sama tüübi objektile. Import aktsepteerib lähtetunnuseid ainult tühja
+  registri/ajalooga. Lugeja-adapteri ühendamine ning paper-entity konteinerid on veel ootel.
+- `RS_Document::removeUndoable` koristab jätkuvalt borrowed entity'id. P1-02b
+  lisab metadata omandi tsüklisse endasse; obsolete-redo vabastab payload'id
+  koos tsükliga. Korduvad muudatused koonduvad ühte snapshot'i sama native
+  `startUndoCycle` / `endUndoCycle` tehingu sees. Payload ei hoia UI-pointer'it.
 - `RS_GraphicView::toGui/toGraph` on praegu telgede skaalal/nihkel põhinev.
   Pööratud viewport ei valmi ainult QPainter.rotate abil: olemasolevad käsud ja
   snap kasutavad samas klassis scalar toGuiX/toGuiY/toGraphX/toGraphY teisendusi.

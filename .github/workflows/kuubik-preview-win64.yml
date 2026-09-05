@@ -261,6 +261,8 @@ jobs:
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-active.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-committed.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.json
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/layout-model-smoke.json
+            ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/layout-model-baseline.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/pline-before-undo.dxf
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/pline-after-undo.dxf

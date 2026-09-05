@@ -117,8 +117,9 @@ checksum, source manifest and full local portable replay pass.
 P1-01a camera fields and P1-01b layout reading pass MSVC at `f2879c5b`.
 P1-01c bounded layout writing/identity/failure checks pass MSVC at `6e49a93a`.
 P1-02a native save protection passes its 22-process local corpus and full GUI/file
-regression; its own MSVC check is pending. Native layout ownership, Undo, rendering
-and UI remain unfinished. Follow `tasks/plan.md`, `docs/ROADMAP.md` and
+regression and MSVC run `33986140500` at `fcad4372`. P1-02b native metadata and
+shared Undo pass 54 local checks; its MSVC proof is pending. DXF adapter, paper
+entities, rendering and UI remain unfinished. Follow `tasks/plan.md`, `docs/ROADMAP.md` and
 PROJECT_STATE for current evidence. No release or remote merge is authorized.
 
 ## Historical authorization — 2026-09-05 UI milestone

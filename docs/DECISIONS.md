@@ -3,6 +3,29 @@
 These are current product decisions. A later AI may recommend changes, but must
 not silently reverse them.
 
+## D-029 — Native layout metadata shares the document's Undo history
+
+2026-09-05: RS_Graphic owns value-based layout/page/rectangular-viewport metadata.
+Model entities stay in its existing entity container. Native edits use one owned
+first-before snapshot per existing Undo cycle, including nested edits and cycles
+mixed with entities. Undo/Redo swaps the value state and marks the document
+modified; repeated same-state notifications are idempotent. Existing entity Undo
+references stay borrowed; metadata payloads die with their cycle. History is
+cleared before newDoc deletes entities and before graphic members die on close.
+
+Native replacement validates before entering Undo, so rejected/no-op edits keep
+redo. Nonzero edit IDs must identify live objects of the same kind; zero means
+allocate a new ID. Only the empty-history import entry accepts retained source IDs.
+The ID counter is outside snapshots and never rewinds during the graphic's life.
+Undo restores original IDs through its snapshot, without reusing them for new
+objects. Owned payloads are exposed only through const observation.
+
+This checkpoint is a native data/history foundation. It does not connect DXF
+import, rendering or tabs. Until native export exists, the save gate also refuses
+a nonempty native registry; Undo back to empty restores eligibility unless an
+imported-unsupported-data flag remains. Page snapshots never call global print
+preference setters. No second CAD model, history or runtime dependency is added.
+
 ## D-028 — Native saves refuse paperspace until the document can preserve it
 
 2026-09-05: Imported LAYOUT records, VIEWPORTs and paper entities mark the existing

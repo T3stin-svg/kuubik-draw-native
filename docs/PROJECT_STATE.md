@@ -1,6 +1,6 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. **P0-A/B and bounded P1 reader/writer pass MSVC; native save guard locally verified.**
+Status date: **2026-09-05**. **P1 file foundation/save guard pass MSVC; native layout metadata and Undo pass locally.**
 
 The current correction session starts at `8a5f7ae0` on the existing integration
 branch. P0-A uses native modification notifications and counts active entities.
@@ -24,8 +24,12 @@ independent audit 0/0, and protects the destination on failed validation/replace
 Its full local application/GUI/file regression and MSVC checkpoint pass. The native
 save guard now refuses destructive drawing saves for detected paperspace, including
 legacy compatibility import and UI autosave/retry paths. Its 22-process corpus
-and full GUI/file regression pass locally; it has no MSVC proof yet. Native paperspace document/UI integration
-remains unfinished.
+and full GUI/file regression pass Windows run `33986140500`, source `fcad4372`.
+Native layout/page/viewport values now belong to RS_Graphic and share its Undo
+history. The newDoc dangling-history RED is fixed; 54 native lifecycle/identity
+checks and the full local GUI/file/guard regressions pass. This metadata checkpoint
+has no MSVC proof yet. DXF adapter, paper entities, renderer and UI integration
+remain unfinished.
 Owner acceptance, release and remote merge are not implied by these checks.
 
 ## Product and authority

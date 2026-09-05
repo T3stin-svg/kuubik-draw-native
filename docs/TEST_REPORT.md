@@ -1,9 +1,37 @@
 # Kuubik Draw Native — verified test checkpoint
 
+## P1-02b — native layout metadata and shared Undo (local)
+
+The new native check first proved that newDoc left an Undo cycle pointing to
+already deleted LINE data. History now clears before entity deletion and before
+RS_Graphic members die. Cycle-owned metadata is distinct from borrowed entities.
+The value registry holds paper layouts and rectangular camera metadata; there
+is no second model geometry or separate history.
+
+`layout-model-smoke.json` passes 54 native checks: two edits inside a mixed LINE/
+metadata cycle; idempotent state notifications; successive A/B cycles, both Undo/
+Redo directions and obsolete B replaced by C; close with applied/undone history and reset an open cycle;
+newDoc; Modified; no-op/invalid changes preserving redo; live-kind and retired-ID
+rejection; zero-ID creation, imported IDs and exhaustion; copied input ownership;
+empty-history import policy; refusal to save nonempty native metadata. Twelve
+invalid page/camera/identity/name cases leave state/history/Modified unchanged.
+
+The full GUI suite and 22-case native save-guard suite pass again with the final
+local model code. Independent DXF/PDF/SVG validation passes and checks the saved
+5000 mm baseline remains intact. Eight GUI and 22 guard profiles are isolated;
+native registry equality is unchanged. Evidence: `native-layout-model-reviewed`,
+`native-layout-model-guard-regression` and their logs under the ignored wave root.
+The original failure is `native-layout-model-red/gui-evidence/layout-model-smoke.json`.
+
+The Windows workflow executes this model check as part of the existing native GUI
+smoke and uploads its report/baseline. This model change has no MSVC proof yet;
+`33986140500`/`fcad4372` proves the preceding save guard only. Staged adapter import,
+paper entities, rendering and UI remain unconnected.
+
 ## P1-02a — native paperspace save protection (local)
 
 The bounded writer source `6e49a93a` passed Windows MSVC run `33983851259`.
-The subsequent native guard is locally verified, with its own CI still pending.
+The subsequent native guard passed Windows MSVC run `33986140500` at `fcad4372`.
 The original native RED reproduced 11 failed protection assertions; the later
 mesh RED remained after removing the null-owner false positive. Review also found
 102 scope, block context, POLYLINE/SEQEND attribution, compatibility import and UI

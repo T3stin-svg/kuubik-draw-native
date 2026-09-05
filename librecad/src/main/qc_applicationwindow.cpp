@@ -114,6 +114,8 @@
 #include "rs_document.h"
 #include "rs_eventhandler.h"
 #include "rs_graphic.h"
+#include "rs_undocycle.h"
+#include <limits>
 #include "rs_insert.h"
 #include "rs_layer.h"
 #include "rs_layerlist.h"
@@ -5349,6 +5351,192 @@ bool QC_ApplicationWindow::runKuubikPaperspaceSaveSmoke(const QString& outputDir
     return report.commit() && passed;
 }
 
+bool QC_ApplicationWindow::runKuubikLayoutModelSmoke(const QString& outputDirectory)
+{
+    QJsonObject checks;
+    struct TestGraphic : RS_Graphic {
+        RS_UndoCycle* cycle() const { return currentUndoCycle(); }
+    };
+    struct OwnedProbe : RS_Undoable {
+        int& destroyed;
+        explicit OwnedProbe(int& destroyed) : destroyed(destroyed) {}
+        ~OwnedProbe() override { ++destroyed; }
+        void undoStateChanged(bool) override {}
+    };
+    int destroyed = 0;
+    TestGraphic document;
+    auto* line = new RS_Line(&document, {{0, 0}, {5000, 0}});
+    document.addEntity(line);
+    document.startUndoCycle();
+    document.addUndoable(line);
+    document.endUndoCycle();
+    checks.insert("lineHistoryCreated", document.countUndoCycles() == 1);
+    document.newDoc();
+    checks.insert("newDocClearsHistory", document.countUndoCycles() == 0 && document.countRedoCycles() == 0);
+    if (checks.value("newDocClearsHistory").toBool()) {
+        document.setUnit(RS2::Millimeter);
+        document.addEntity(new RS_Line(&document, {{0, 0}, {5000, 0}}));
+        document.setModified(true);
+        checks.insert("baselineSave", document.saveAs(QDir(outputDirectory).absoluteFilePath("layout-model-baseline.dxf"), RS2::FormatDXFRW, true));
+
+        RS_PaperLayout layout;
+        layout.name = "TEST";
+        RS_PaperViewport first;
+        first.center = {100, 148.5};
+        first.viewCenter = {2500, 0};
+        first.locked = true;
+        RS_PaperViewport second = first;
+        second.center.x = 290;
+        second.viewHeight = 16000;
+        second.twist = M_PI / 6;
+        second.locked = false;
+        layout.viewports = {first, second};
+        RS_PaperSpace initial{layout};
+        RS_PaperSpace final = initial;
+
+        document.startUndoCycle();
+        auto* sharedLine = new RS_Line(&document, {{10, 20}, {30, 40}});
+        document.addEntity(sharedLine);
+        document.addUndoable(sharedLine);
+        checks.insert("firstMetadataEdit", document.replacePaperSpace(initial));
+        initial = document.getPaperSpace();
+        final = initial;
+        final[0].name = "RENAMED";
+        final[0].viewports[1].locked = true;
+        checks.insert("nestedMetadataEdit", document.replacePaperSpace(final));
+        checks.insert("oneMetadataSnapshot", document.cycle()->countOwnedUndoables() == 1);
+        // Deliberate smoke-only bypass to exercise repeated callback semantics.
+        // Production history exposes const payloads and controls its own position.
+        auto* snapshot = const_cast<RS_Undoable*>(document.cycle()->ownedUndoableAt(0));
+        document.addOwnedUndoable(std::make_unique<OwnedProbe>(destroyed));
+        document.endUndoCycle();
+        checks.insert("oneMixedHistoryCycle", document.countUndoCycles() == 1 && document.getPaperSpace() == final);
+        checks.insert("nativeMetadataSaveRefused", !document.save() && !document.checkDrawingSaveAllowed());
+        document.setModified(false);
+        checks.insert("mixedUndo", document.undo() && sharedLine->isUndone() && document.getPaperSpace().empty() && document.isModified());
+        checks.insert("emptyRegistrySaveAllowed", document.checkDrawingSaveAllowed());
+        checks.insert("noopKeepsRedo", document.replacePaperSpace({}) && document.countRedoCycles() == 1);
+        auto invalid = final;
+        invalid[0].viewports[0].viewHeight = 0;
+        checks.insert("invalidKeepsRedo", !document.replacePaperSpace(invalid) && document.countRedoCycles() == 1);
+        checks.insert("mixedRedo", document.redo() && !sharedLine->isUndone() && document.getPaperSpace() == final);
+        auto wrongKind = final;
+        wrongKind[0].id = wrongKind[0].viewports.front().id;
+        wrongKind[0].viewports.erase(wrongKind[0].viewports.begin());
+        checks.insert("idKindCannotChange", !document.replacePaperSpace(wrongKind) && document.getPaperSpace() == final);
+        snapshot->setUndoState(false);
+        snapshot->setUndoState(false);
+        checks.insert("repeatedAppliedState", document.getPaperSpace() == final);
+        snapshot->setUndoState(true);
+        snapshot->setUndoState(true);
+        checks.insert("repeatedUndoneState", document.getPaperSpace().empty());
+        snapshot->setUndoState(false);
+        checks.insert("stateRestore", document.getPaperSpace() == final);
+        checks.insert("importCannotReplaceHistory", !document.commitImportedPaperSpace(initial) && document.getPaperSpace() == final);
+        document.undo();
+        checks.insert("retiredIdsRejected", !document.replacePaperSpace(initial) && document.countRedoCycles() == 1);
+        auto replacement = initial;
+        replacement[0].id = 0;
+        replacement[0].viewports.clear();
+        checks.insert("branchReplacement", document.replacePaperSpace(replacement) && document.countRedoCycles() == 0 && destroyed == 1);
+        replacement = document.getPaperSpace();
+        checks.insert("obsoleteEntityRemoved", document.count() == 1);
+        document.newDoc();
+        checks.insert("newDocClearsMetadata", document.getPaperSpace().empty() && document.countUndoCycles() == 0 && document.checkDrawingSaveAllowed());
+        document.startUndoCycle();
+        document.addOwnedUndoable(std::make_unique<OwnedProbe>(destroyed));
+        document.newDoc();
+        checks.insert("resetOpenCycle", destroyed == 2 && !document.cycle());
+        checks.insert("resetRejectsOldIds", !document.replacePaperSpace(initial));
+        initial[0].id = 0;
+        for (auto& view : initial[0].viewports) view.id = 0;
+        checks.insert("editAfterReset", document.replacePaperSpace(initial) && document.countUndoCycles() == 1);
+        initial = document.getPaperSpace();
+        final = initial;
+        final[0].name = "RENAMED";
+        checks.insert("idsNeverRewind", initial[0].id > replacement[0].id);
+
+        for (int test = 0; test < 12; ++test) {
+            auto bad = final;
+            switch (test) {
+            case 0: bad[0].id = 999999; break;
+            case 1: bad[0].viewports[0].id = bad[0].id; break;
+            case 2: bad[0].name.clear(); break;
+            case 3: bad[0].name = "bad\nname"; break;
+            case 4: bad[0].width = -1; break;
+            case 5: bad[0].height = std::numeric_limits<double>::infinity(); break;
+            case 6: bad[0].margins[0] = bad[0].width; break;
+            case 7: bad[0].margins[1] = -1; break;
+            case 8: bad[0].viewports[0].center.z = 1; break;
+            case 9: bad[0].viewports[0].viewHeight = 0; break;
+            case 10: bad[0].viewports[0].twist = std::numeric_limits<double>::quiet_NaN(); break;
+            case 11: bad.push_back(bad.front()); bad.back().id = 999; bad.back().name = "renamed"; bad.back().viewports.clear(); break;
+            }
+            document.setModified(false);
+            checks.insert(QString("invalidMetadata%1").arg(test), !document.replacePaperSpace(bad)
+                          && document.getPaperSpace() == initial && document.countUndoCycles() == 1 && !document.isModified());
+        }
+        document.newDoc();
+        initial[0].id = 1000000;
+        checks.insert("importBaseline", document.commitImportedPaperSpace(initial) && document.countUndoCycles() == 0 && !document.isModified());
+        initial[0].name = "MUTATED CALLER";
+        checks.insert("valueOwnership", document.getPaperSpace()[0].name == "TEST");
+        RS_PaperLayout extra;
+        extra.name = "NEXT";
+        auto importedEdit = document.getPaperSpace();
+        importedEdit.push_back(extra);
+        checks.insert("importReservesIds", document.replacePaperSpace(importedEdit) && document.getPaperSpace().back().id > 1000000);
+        TestGraphic multiple;
+        auto stateA = final;
+        stateA[0].id = 0;
+        for (auto& view : stateA[0].viewports) view.id = 0;
+        checks.insert("cycleA", multiple.replacePaperSpace(stateA));
+        stateA = multiple.getPaperSpace();
+        auto stateB = stateA;
+        stateB[0].name = "SECOND CYCLE";
+        stateB[0].viewports[0].viewHeight = 16000;
+        checks.insert("cycleB", multiple.replacePaperSpace(stateB) && multiple.countUndoCycles() == 2);
+        checks.insert("undoB", multiple.undo() && multiple.getPaperSpace() == stateA);
+        checks.insert("undoA", multiple.undo() && multiple.getPaperSpace().empty());
+        checks.insert("redoA", multiple.redo() && multiple.getPaperSpace() == stateA);
+        checks.insert("redoB", multiple.redo() && multiple.getPaperSpace() == stateB);
+        multiple.undo();
+        auto stateC = stateA;
+        stateC[0].name = "REPLACEMENT CYCLE";
+        checks.insert("replaceObsoleteB", multiple.replacePaperSpace(stateC) && !multiple.redo() && multiple.getPaperSpace() == stateC);
+        checks.insert("undoC", multiple.undo() && multiple.getPaperSpace() == stateA);
+        checks.insert("redoC", multiple.redo() && multiple.getPaperSpace() == stateC);
+        for (bool undone : {false, true}) {
+            const int before = destroyed;
+            {
+                TestGraphic closing;
+                closing.startUndoCycle();
+                closing.addOwnedUndoable(std::make_unique<OwnedProbe>(destroyed));
+                auto fresh = final;
+                fresh[0].id = 0;
+                for (auto& view : fresh[0].viewports) view.id = 0;
+                closing.replacePaperSpace(fresh);
+                closing.endUndoCycle();
+                if (undone) closing.undo();
+            }
+            checks.insert(undone ? "closeUndoneHistory" : "closeAppliedHistory", destroyed == before + 1);
+        }
+        TestGraphic exhausted;
+        RS_PaperLayout maximum;
+        maximum.id = std::numeric_limits<quint64>::max();
+        maximum.name = "MAX";
+        checks.insert("idExhaustion", exhausted.commitImportedPaperSpace({maximum}) && !exhausted.replacePaperSpace({maximum, extra}));
+        exhausted.newDoc();
+        checks.insert("resetDoesNotReuseIds", !exhausted.replacePaperSpace({extra}));
+    }
+    bool passed = true;
+    for (auto it = checks.begin(); it != checks.end(); ++it) passed = passed && it.value().toBool();
+    QSaveFile report(QDir(outputDirectory).absoluteFilePath("layout-model-smoke.json"));
+    if (!report.open(QIODevice::WriteOnly)) return false;
+    report.write(QJsonDocument(QJsonObject{{"passed", passed}, {"checks", checks}}).toJson());
+    return report.commit() && passed;
+}
+
 bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
 {
     const QString paperspaceInput = qEnvironmentVariable("KUUBIK_PAPERSPACE_GUARD_INPUT_DXF");
@@ -5357,6 +5545,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
     if (!output.exists() && !QDir().mkpath(output.absolutePath())) {
         return false;
     }
+    if (!runKuubikLayoutModelSmoke(outputDirectory)) return false;
 
     // Keep the evidence viewport independent from the runner's physical
     // display. QWidget::grab() records the actual rendered widgets.

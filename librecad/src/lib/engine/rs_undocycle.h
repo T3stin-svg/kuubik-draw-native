@@ -31,6 +31,8 @@
 
 #include <iosfwd>
 #include <set>
+#include <memory>
+#include <vector>
 
 #include "rs_entity.h"
 #include "rs_undoable.h"
@@ -60,6 +62,9 @@ public:
      * more Undoables.
      */
     void addUndoable(RS_Undoable* u);
+    const RS_Undoable* addOwnedUndoable(std::unique_ptr<RS_Undoable> u);
+    size_t countOwnedUndoables() const { return ownedUndoables.size(); }
+    const RS_Undoable* ownedUndoableAt(size_t index) const { return ownedUndoables.at(index).get(); }
 
     /**
      * Removes an undoable from the list.
@@ -86,6 +91,8 @@ private:
     //RS2::UndoType type;
     //! List of entity id's that were affected by this action
     std::set<RS_Undoable*> undoables;
+    // Metadata belongs to its cycle; entity references above stay container-owned.
+    std::vector<std::unique_ptr<RS_Undoable>> ownedUndoables;
 };
 
 #endif

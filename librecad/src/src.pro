@@ -186,6 +186,7 @@ HEADERS += \
     lib/engine/rs_fontchar.h \
     lib/engine/rs_fontlist.h \
     lib/engine/rs_graphic.h \
+    lib/engine/rs_paperspace.h \
     lib/engine/rs_hatch.h \
     lib/engine/lc_hyperbola.h \
     lib/engine/rs_insert.h \

@@ -34,6 +34,7 @@
 #include "rs_layerlist.h"
 #include "rs_variabledict.h"
 #include "rs_document.h"
+#include "rs_paperspace.h"
 
 class QG_LayerWidget;
 
@@ -46,6 +47,8 @@ class RS_Graphic : public RS_Document {
 public:
     RS_Graphic(RS_EntityContainer* parent=nullptr);
     virtual ~RS_Graphic();
+    RS_Graphic(const RS_Graphic&) = delete;
+    RS_Graphic& operator=(const RS_Graphic&) = delete;
 
     //virtual RS_Entity* clone() {
     //	return new RS_Graphic(*this);
@@ -72,6 +75,10 @@ public:
     bool loadTemplate(const QString &filename, RS2::FormatType type) override;
     void markUnsupportedPaperSpace() { unsupportedPaperSpace = true; }
     bool checkDrawingSaveAllowed() const;
+    const RS_PaperSpace& getPaperSpace() const { return paperSpace; }
+    // Native edits retain live IDs of the same kind; zero requests a fresh ID.
+    bool replacePaperSpace(RS_PaperSpace data); // one snapshot per existing Undo cycle
+    bool commitImportedPaperSpace(RS_PaperSpace data); // empty registry/history baseline only
 
         // Wrappers for Layer functions:
     void clearLayers() {
@@ -345,6 +352,10 @@ public:
     int clean();
 
 private:
+        friend class RS_PaperSpaceUndo;
+        RS_PaperSpace paperSpace;
+        quint64 nextPaperSpaceId = 1; // deliberately outside Undo snapshots
+        void reservePaperSpaceIds();
 
         bool BackupDrawingFile(const QString &filename);
         QDateTime modifiedTime;

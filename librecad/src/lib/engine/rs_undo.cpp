@@ -152,6 +152,17 @@ void RS_Undo::addUndoable(RS_Undoable* u) {
     RS_DEBUG->print("RS_Undo::%s(): end", __func__);
 }
 
+const RS_Undoable* RS_Undo::addOwnedUndoable(std::unique_ptr<RS_Undoable> u) {
+    return currentCycle ? currentCycle->addOwnedUndoable(std::move(u)) : nullptr;
+}
+
+void RS_Undo::clearUndoHistory() {
+    currentCycle.reset();
+    undoList.clear();
+    undoPointer = -1;
+    refCount = 0;
+}
+
 
 
 /**

@@ -2,8 +2,8 @@
 
 ## Jälgitav tööplaan
 
-**Uuendatud:** 2026-09-05 22:04 EEST. **Vastutaja:** Codex, integratsiooniomanik.
-**Hetkel:** P1-02 ettevalmistus: native salvestuskaitse ja dokumendi/Undo omandi ülevaatus.
+**Uuendatud:** 2026-09-05 22:31 EEST. **Vastutaja:** Codex, integratsiooniomanik.
+**Hetkel:** P1-02b metadata/Undo commit'i ettevalmistus; eelneva MSVC paketi kohalik kordus.
 **Tööaken:** 5.09 kell 19:10 kuni 6.09 kell 00:10 EEST; Reio kinnitas 5 h arendust.
 **Viimane sündmus:** P0 lähtepunkt `3cefc819` läbis Windows MSVC CI
 [33977714231](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33977714231).
@@ -30,7 +30,17 @@ kõrvale jäetud entity, 102-skoobi, R12 null-owner, ühilduvusimpordi ja UI aut
 Varasemad camera/layout/ownership/PLOTSETTINGS testid läbivad uuesti. Kogu native
 kaitsekorpus läbib 22 avamisjuhtu: 16 × 15 kaitsekontrolli ja 6 tavalist mudelisalvestust.
 GUI, DXF/PDF/SVG ja neli ribboni kontrolli läbivad; register muutumatu.
-Kaitse commit/push on ettevalmistuses, MSVC tõend veel ootel.
+Kaitse commit `fcad4372` on pärast Gitleaks-kontrolli push'itud;
+[MSVC CI 33986140500](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33986140500) läbitud; paketi kohalik kordus on ettevalmistuses.
+P1-02b ülevaatus nõuab ühe metadata-snapshot'i koondamist Undo tsükli kohta,
+ajaloo nullimist enne dokumendi sisu kustutamist ning kaitset ka uutele native layout'idele.
+Uue dokumendi Undo-viidete viga on RED-testiga kinnitatud ja parandatud.
+Native layout/viewport väärtusregister, tsükli omandiga metadata ja 42 eluea/Undo
+kontrolli läbivad; sama build'i native GUI läbib 8 isoleeritud profiiliga.
+P1-02b impordiadapter ja UI pole veel ühendatud. Ülevaatuse parandused lisavad
+elusa sama tüübi ID kontrolli, ainult const Undo-vaatluse ja eri tsüklite koostöö testi.
+Lõplik metadata/Undo test läbib 54 kontrolli; kogu GUI, 22 salvestuskaitse juhtu,
+DXF/PDF/SVG ja neli ribboni mõõdukontrolli läbivad uuesti.
 [Selle tööakna plaan](../tasks/plan.md).
 
 ```mermaid
@@ -39,7 +49,7 @@ flowchart TD
     A["P0-A · Properties<br/>Teostus ✓ · 9 olekut ✓<br/>Kohalik commit d4280f9b"]
     B["P0-B · DXF ownership<br/>Teostus ✓ · 14 väljundit audit 0/0 ✓<br/>Kohalik commit 4e40a43c"]
     G["G-01 · MSVC CI 33977714231 ✓<br/>Source 3cefc819 · portable-kordus ✓<br/>Omaniku vastuvõtt ootel"]
-    P["1 · Native paperspace<br/>Lugemine/kirjutus: kohalik ✓ · MSVC ✓<br/>Salvestuskaitse: kohalik ✓ · MSVC ootel<br/>Native UI ootel"]
+    P["1 · Native paperspace<br/>Failileping + salvestuskaitse: kohalik ✓ · MSVC ✓<br/>Metadata/Undo: 54 kohalikku kontrolli ✓ · MSVC ootel<br/>Native UI ootel"]
     C["2 · Igapäevased CAD-töövood<br/>MOVE/COPY elutsükkel · Modify<br/>Layers · Annotation · Blocks · Properties"]
     R["3 · Töökindlus ja failitugi<br/>Taaste · suured DXF-id · päris Windows DPI<br/>Laiem failikorpus ja omaniku töövood"]
     UI --> A
@@ -124,8 +134,8 @@ jäävad kõigis sammudes ainsaks mudeliks.
 ```mermaid
 flowchart TD
     G["G-01 · P0 üleandmise värav"] --> A["P1-01 · DXF objektileping ja testkorpus"]
-    A --> S["P1-02a · Native salvestuskaitse<br/>Kohalik ✓ · MSVC ootel"]
-    S --> B["P1-02b · Layout ownership, eluiga ja Undo"]
+    A --> S["P1-02a · Native salvestuskaitse<br/>Kohalik ✓ · MSVC ✓"]
+    S --> B["P1-02b · Layout metadata ja Undo<br/>54 kohalikku kontrolli ✓ · MSVC ootel<br/>Impordiadapter/paper entities ootel"]
     B --> C["P1-03 · Ühine transform, clipping ja snap"]
     C --> D["P1-04 · DXF save / close / reopen"]
     D --> E["P1-05 · Model/Layout, scale ja lock"]

@@ -158,3 +158,11 @@ snapshot per current cycle aggregates first-before/final-after states: the curre
 pointer-ordered set cannot safely toggle multiple whole-registry snapshots.
 Payload destructors must not call the document or UI. Cover nested cycles, mixed
 LINE/metadata, obsolete redo, save/undo, newDoc and close in applied/undone states.
+
+The native value registry/history checkpoint now passes 54 local checks and full
+GUI/independent file/save-guard regression. Review corrections are incorporated:
+validate/no-op before starting Undo; idempotent state callbacks; zero-ID native
+creation versus retained-ID baseline import; same-kind live-ID enforcement;
+const payload observations; successive A/B cycles and replacement C after Undo B.
+Native nonempty metadata is still save-protected. Adapter and renderer/UI wiring
+remain separate. The earlier guard source fcad4372 passes MSVC run 33986140500.

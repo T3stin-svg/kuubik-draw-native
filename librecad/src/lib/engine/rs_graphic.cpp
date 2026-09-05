@@ -26,6 +26,8 @@
 
 #include <iostream>
 #include <cmath>
+#include <limits>
+#include <set>
 
 #include <QDir>
 
@@ -33,6 +35,7 @@
 
 #include "dxf_format.h"
 #include "lc_defaults.h"
+#include "lc_undosection.h"
 #include "rs_block.h"
 #include "rs_debug.h"
 #include "rs_dialogfactory.h"
@@ -41,6 +44,98 @@
 #include "rs_math.h"
 #include "rs_settings.h"
 #include "rs_units.h"
+#include "rs_undocycle.h"
+
+namespace {
+bool validPaperSpace(const RS_PaperSpace& data, bool requireIds) {
+    std::set<quint64> ids;
+    std::set<QString> names;
+    const auto positive = [](double value) { return std::isfinite(value) && value > 0; };
+    const auto point = [](const RS_Vector& value) {
+        return static_cast<bool>(value) && std::isfinite(value.x) && std::isfinite(value.y) && value.z == 0;
+    };
+    for (const auto& layout : data) {
+        if ((requireIds && !layout.id) || (layout.id && !ids.insert(layout.id).second) || layout.name.trimmed().isEmpty()
+            || layout.name.contains('\n') || layout.name.contains('\r') || layout.name.contains(QChar(0))
+            || !names.insert(layout.name.toCaseFolded()).second || !positive(layout.width) || !positive(layout.height)) return false;
+        for (double margin : layout.margins) if (!std::isfinite(margin) || margin < 0) return false;
+        if (layout.margins[0] + layout.margins[2] >= layout.width
+            || layout.margins[1] + layout.margins[3] >= layout.height) return false;
+        for (const auto& view : layout.viewports) {
+            if ((requireIds && !view.id) || (view.id && !ids.insert(view.id).second) || !point(view.center) || !point(view.viewCenter)
+                || !positive(view.width) || !positive(view.height) || !positive(view.viewHeight)
+                || !std::isfinite(view.twist)) return false;
+        }
+    }
+    return true;
+}
+}
+
+class RS_PaperSpaceUndo : public RS_Undoable {
+public:
+    explicit RS_PaperSpaceUndo(RS_Graphic& graphic) : graphic(graphic), snapshot(graphic.paperSpace) {}
+    void undoStateChanged(bool undone) override {
+        if (undone == appliedUndone) return;
+        appliedUndone = undone;
+        graphic.paperSpace.swap(snapshot);
+        graphic.setModified(true);
+    }
+private:
+    RS_Graphic& graphic;
+    RS_PaperSpace snapshot;
+    bool appliedUndone = false;
+};
+
+void RS_Graphic::reservePaperSpaceIds() {
+    const auto reserve = [this](quint64 id) {
+        if (nextPaperSpaceId && id >= nextPaperSpaceId)
+            nextPaperSpaceId = id == std::numeric_limits<quint64>::max() ? 0 : id + 1;
+    };
+    for (const auto& layout : paperSpace) {
+        reserve(layout.id);
+        for (const auto& view : layout.viewports) reserve(view.id);
+    }
+}
+
+bool RS_Graphic::replacePaperSpace(RS_PaperSpace data) {
+    // startUndoCycle discards redo, so invalid/no-op changes must return first.
+    if (!validPaperSpace(data, false)) return false;
+    if (data == paperSpace) return true;
+    std::set<quint64> layouts, viewports;
+    for (const auto& layout : paperSpace) {
+        layouts.insert(layout.id);
+        for (const auto& view : layout.viewports) viewports.insert(view.id);
+    }
+    quint64 next = nextPaperSpaceId;
+    const auto assign = [&next](quint64& id, const std::set<quint64>& liveIds) {
+        if (id) return liveIds.count(id) != 0;
+        if (next == 0) return false;
+        id = next++;
+        return true;
+    };
+    for (auto& layout : data) {
+        if (!assign(layout.id, layouts)) return false;
+        for (auto& view : layout.viewports) if (!assign(view.id, viewports)) return false;
+    }
+    LC_UndoSection section(this);
+    auto* cycle = currentUndoCycle();
+    bool hasSnapshot = false;
+    for (size_t i = 0; i < cycle->countOwnedUndoables(); ++i)
+        if (dynamic_cast<const RS_PaperSpaceUndo*>(cycle->ownedUndoableAt(i))) hasSnapshot = true;
+    if (!hasSnapshot) addOwnedUndoable(std::make_unique<RS_PaperSpaceUndo>(*this));
+    paperSpace.swap(data);
+    nextPaperSpaceId = next;
+    setModified(true);
+    return true;
+}
+
+bool RS_Graphic::commitImportedPaperSpace(RS_PaperSpace data) {
+    if (!paperSpace.empty() || currentUndoCycle() || countUndoCycles() || countRedoCycles()
+        || !validPaperSpace(data, true)) return false;
+    paperSpace.swap(data);
+    reservePaperSpaceIds();
+    return true;
+}
 
 
 /**
@@ -104,7 +199,9 @@ RS_Graphic::RS_Graphic(RS_EntityContainer* parent)
 /**
  * Destructor.
  */
-RS_Graphic::~RS_Graphic() = default;
+RS_Graphic::~RS_Graphic() {
+    clearUndoHistory();
+}
 
 
 
@@ -187,7 +284,9 @@ void RS_Graphic::newDoc() {
 
     RS_DEBUG->print("RS_Graphic::newDoc");
 
+    clearUndoHistory();
     clear();
+    paperSpace.clear();
     unsupportedPaperSpace = false;
 
     clearLayers();
@@ -305,7 +404,7 @@ bool RS_Graphic::BackupDrawingFile(const QString &filename)
 
 bool RS_Graphic::checkDrawingSaveAllowed() const
 {
-    if (!unsupportedPaperSpace) return true;
+    if (!unsupportedPaperSpace && paperSpace.empty()) return true;
     RS_DIALOGFACTORY->commandMessage(QObject::tr(
         "Saving is unavailable because this drawing contains layouts or paper-space objects "
         "that Kuubik Draw cannot yet preserve. The original file has not been changed."));
