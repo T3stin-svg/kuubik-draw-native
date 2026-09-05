@@ -71,6 +71,10 @@ jobs:
         shell: pwsh
         run: python .\scripts\check-kuubik-icons.py
 
+      - name: Verify pinned SARibbon source and attribution
+        shell: pwsh
+        run: python .\scripts\check-saribbon.py
+
       - name: Scan source for committed secrets
         shell: pwsh
         run: |

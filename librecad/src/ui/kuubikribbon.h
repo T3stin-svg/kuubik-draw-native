@@ -12,6 +12,7 @@
 #define KUUBIKRIBBON_H
 
 #include <QList>
+#include <QJsonObject>
 #include <QMap>
 #include <QPointer>
 #include <QStringList>
@@ -23,7 +24,9 @@ class QGridLayout;
 class QMainWindow;
 class QMenu;
 class QResizeEvent;
-class QTabWidget;
+class SARibbonBar;
+class SARibbonCategory;
+class SARibbonPanel;
 class QToolBar;
 class QToolButton;
 
@@ -38,6 +41,7 @@ public:
     QStringList boundActionKeys() const;
     QStringList missingActionKeys() const;
     QToolButton* buttonForAction(const QString& key) const;
+    QJsonObject layoutContract() const;
     void setWorkspaceActions(QAction* kuubikAction, QAction* classicAction);
 
     void embedNativeToolbars(QMainWindow* mainWindow);
@@ -65,21 +69,21 @@ private:
     };
     struct PanelInstance {
         QWidget* page {nullptr};
-        QFrame* frame {nullptr};
+        SARibbonPanel* frame {nullptr};
         QList<QToolButton*> itemButtons;
+        QList<QAction*> presentationActions;
         QToolButton* overflowButton {nullptr};
+        QAction* overflowPresentation {nullptr};
         int collapsePriority {0};
         bool collapsed {false};
     };
 
-    QFrame* createActionGroup(const PanelSpec& spec, QWidget* parent, QWidget* page);
+    SARibbonPanel* createActionGroup(const PanelSpec& spec, SARibbonCategory* page,
+                                    int referenceWidth = 0);
     QToolButton* createActionButton(const QString& key, QWidget* parent,
                                     ItemSize size = ItemSize::Small,
                                     bool iconOnly = false);
-    QWidget* createPage(const TabSpec& spec);
-    QFrame* createEmbeddedToolbarGroup(const QString& title,
-                                       QToolBar* toolbar,
-                                       QWidget* parent);
+    SARibbonCategory* createPage(const TabSpec& spec);
     QFrame* createCurrentLayerHost(QWidget* parent);
     void updateCollapsedPanels();
     void setPanelCollapsed(PanelInstance& panel, bool collapsed);
@@ -89,11 +93,13 @@ private:
     QMap<QString, QToolButton*> actionButtons;
     QStringList missingKeys;
     QList<PanelInstance> panels;
-    QTabWidget* tabs {nullptr};
+    SARibbonBar* tabs {nullptr};
+    bool updatingPanels {false};
     QMenu* applicationMenu {nullptr};
     bool workspaceActionsAdded {false};
     QToolBar* penToolbar {nullptr};
     QToolBar* optionToolbar {nullptr};
+    Qt::Orientation penToolbarOriginalOrientation {Qt::Horizontal};
     QFrame* penToolbarHost {nullptr};
     QFrame* optionToolbarHost {nullptr};
     QGridLayout* penToolbarLayout {nullptr};

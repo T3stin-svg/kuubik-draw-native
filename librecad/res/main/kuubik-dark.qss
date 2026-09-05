@@ -95,16 +95,17 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
     border-color: #68B4DF;
 }
 
-#kuubikRibbonTabs::pane {
+#kuubikRibbonTabs {
+    min-height: 0;
     margin: 0;
     padding: 0;
     background-color: #3B4453;
     border: 0;
 }
 #kuubikRibbonTabs QTabBar::tab {
-    min-width: 72px;
-    min-height: 23px;
-    padding: 2px 12px;
+    min-width: 48px;
+    min-height: 20px;
+    padding: 0 10px;
     color: #D9DFE4;
     background-color: #222933;
     border: 0;
@@ -114,10 +115,10 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
 #kuubikRibbonTabs QTabBar::tab:selected {
     color: #FFFFFF;
     background-color: #3B4453;
-    border-top: 3px solid #4CC2FF;
+    border-top: 2px solid #4CC2FF;
 }
 #kuubikRibbonPage {
-    min-height: 93px;
+    min-height: 0;
     background-color: #3B4453;
 }
 #kuubikRibbonGroup {
@@ -137,9 +138,9 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
     font-size: 8pt;
 }
 #kuubikRibbonButton {
-    min-width: 76px;
-    min-height: 28px;
-    padding: 1px 5px;
+    min-width: 24px;
+    min-height: 20px;
+    padding: 0 2px;
     color: #F1F4F6;
     background: transparent;
     border: 1px solid transparent;
@@ -154,20 +155,31 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
 }
 #kuubikRibbonButton:disabled { color: #7E878E; background: transparent; }
 #kuubikRibbonButton[kuubikItemSize="0"] {
-    min-width: 62px;
-    min-height: 68px;
-    padding: 2px 5px 1px;
+    min-width: 34px;
+    min-height: 64px;
+    padding: 1px 2px;
     text-align: center;
 }
 #kuubikRibbonButton[kuubikItemSize="1"] {
-    min-width: 82px;
-    min-height: 30px;
-    padding: 2px 5px;
+    min-width: 40px;
+    min-height: 20px;
+    padding: 0 2px;
 }
 #kuubikRibbonButton[kuubikItemSize="2"] {
-    min-width: 78px;
-    min-height: 29px;
-    padding: 1px 4px;
+    min-width: 40px;
+    min-height: 20px;
+    padding: 0 2px;
+}
+#kuubikRibbonButton[kuubikIconOnly="true"] {
+    min-width: 24px;
+    max-width: 24px;
+    padding: 0;
+}
+#kuubikRibbonUnavailable {
+    min-width: 40px;
+    padding: 1px;
+    color: #8F9BA6;
+    background: transparent;
 }
 #kuubikRibbonPanelOverflow {
     min-width: 48px;
@@ -179,15 +191,30 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
 }
 #kuubikRibbonPanelOverflow:hover { color: #FFFFFF; background: #48515A; border-color: #8AA0B0; }
 #kuubikCurrentLayerHost {
-    min-width: 176px;
+    min-width: 186px;
     background-color: #3B4453;
-    border-right: 1px solid #29313B;
+    border: 0;
 }
 #kuubikCurrentLayerHost QComboBox {
-    min-width: 128px;
-    min-height: 26px;
+    min-width: 170px;
+    min-height: 22px;
     background-color: #18212A;
     border-color: #66839A;
+}
+#kuubikLayerCaption {
+    color: #BAC4CE;
+    background: transparent;
+    font-size: 8pt;
+}
+#kuubikPenToolbarHost {
+    min-width: 205px;
+    background: transparent;
+}
+#kuubikPenToolbarHost QComboBox {
+    min-height: 19px;
+    max-height: 19px;
+    min-width: 180px;
+    padding: 0 3px;
 }
 #kuubikCurrentLayerPlaceholder {
     min-width: 128px;

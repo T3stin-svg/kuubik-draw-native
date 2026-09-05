@@ -2922,6 +2922,7 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
 
     QJsonArray ribbonPanels;
     if (kuubikRibbon != nullptr) {
+        contract.insert("ribbonLayout", kuubikRibbon->layoutContract());
         const auto frames = kuubikRibbon->findChildren<QFrame*>(
             QStringLiteral("kuubikRibbonGroup"));
         for (QFrame* frame : frames) {
@@ -2951,6 +2952,7 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
             panelObject.insert("collapsed", frame->property("kuubikCollapsed").toBool());
             panelObject.insert("actionKeys", QJsonArray::fromStringList(actionKeys));
             panelObject.insert("actionIdentityValid", identityValid);
+            panelObject.insert("unavailable", frame->property("kuubikUnavailable").toBool());
             ribbonPanels.append(panelObject);
         }
     }

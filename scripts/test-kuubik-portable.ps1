@@ -274,6 +274,13 @@ foreach ($panel in $ribbonPanels) {
     [void](Require-JsonString $panel 'tab' $panelContext)
     [void](Require-JsonString $panel 'title' $panelContext)
     [void](Require-JsonBoolean $panel 'collapsed' $panelContext)
+    if ($panel.unavailable) {
+        if ($panel.tab -ne 'Home' -or $panel.title -ne 'Groups' -or
+            @(Require-JsonProperty $panel 'actionKeys' $panelContext).Count -ne 0) {
+            throw 'Only the explicitly unsupported Home/Groups panel may lack native actions.'
+        }
+        continue
+    }
     if (@(Require-JsonProperty $panel 'actionKeys' $panelContext).Count -eq 0 -or
         -not (Require-JsonBoolean $panel 'actionIdentityValid' $panelContext)) {
         throw "Ribbon panel action identity is incomplete or invalid: $($panel.tab)/$($panel.title)"

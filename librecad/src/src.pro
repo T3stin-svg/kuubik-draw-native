@@ -19,6 +19,7 @@ GENERATED_DIR = ../../generated/librecad
 include(../../common.pri)
 include(./boost.pri)
 include(./muparser.pri)
+include(../../libraries/saribbon/saribbon.pri)
 
 CONFIG += qt \
     warn_on \
