@@ -93,6 +93,8 @@ private:
     bool processTextStyle();
     bool processVports();
     bool processAppId();
+    bool processBlockRecord();
+    bool processLayout();
 
     bool processPoint();
     bool processLine();

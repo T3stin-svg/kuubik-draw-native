@@ -1,6 +1,6 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. **P0-A/B MSVC CI passed; P1 camera records locally verified.**
+Status date: **2026-09-05**. **P0-A/B MSVC and local portable passed; P1 records locally verified.**
 
 The current correction session starts at `8a5f7ae0` on the existing integration
 branch. P0-A uses native modification notifications and counts active entities.
@@ -11,9 +11,12 @@ ezdxf 1.4.4 with zero errors and repairs. See [P0_CORRECTIONS](P0_CORRECTIONS.md
 The subsequent five-hour wave has explicit approval for work-branch push and
 Windows CI. Source `3cefc819` passed run `33977714231`; its downloaded ZIP SHA-256
 is `a38bfa6291f5bed5776f724cad6868b80c135e872cb2d30cca2717cb065f28be`
-(43,776,151 bytes). The manifest source matches; local portable replay is underway.
-P1 camera fields now pass native and raw-tag read/write checks for a bounded ASCII
-fixture. Layout ownership and application integration remain unfinished.
+(43,776,151 bytes). The manifest source matches; full local portable replay and
+independent DXF/PDF/SVG verification pass, with unchanged native settings registry.
+P1 camera fields pass native/raw-tag read/write checks (commit `04a0f55a`).
+LAYOUT/BLOCK_RECORD reading now passes the bounded A3, owner-context and alternate
+page/coordinate cases. New callbacks default to no-op for existing adapters.
+Layout writing/ownership and application integration remain unfinished.
 Owner acceptance, release and remote merge are not implied by these checks.
 
 ## Product and authority

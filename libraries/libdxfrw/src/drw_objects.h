@@ -37,7 +37,8 @@ namespace DRW {
          BLOCK_RECORD,
          APPID,
          IMAGEDEF,
-         PLOTSETTINGS
+         PLOTSETTINGS,
+         LAYOUT
      };
 
 //pending VIEW, UCS, APPID, VP_ENT_HDR, GROUP, MLINESTYLE, LONG_TRANSACTION, XRECORD,
@@ -319,22 +320,28 @@ public:
     void reset() {
         tType = DRW::BLOCK_RECORD;
         flags = 0;
+        handle = parentHandle = layoutHandle = 0;
+        insUnits = appGroupDepth = 0;
+        name.clear();
         firstEH = lastEH = DRW::NoHandle;
         DRW_TableEntry::reset();
     }
 
 protected:
+    bool parseCode(int code, dxfReader *reader) override;
     bool parseDwg(DRW::Version version, dwgBuffer *buf, duint32 bs=0) override;
 
 public:
 //Note:    int DRW_TableEntry::flags; contains code 70 of block
-    int insUnits;             /*!< block insertion units, code 70 of block_record*/
+    int insUnits = 0;         /*!< block insertion units, code 70 of block_record*/
+    duint32 layoutHandle = 0; /*!< Associated LAYOUT, code 340; zero for ordinary blocks */
     DRW_Coord basePoint;      /*!<  block insertion base point dwg only */
 protected:
     //dwg parser
 private:
-    duint32 block;   //handle for block entity
-    duint32 endBlock;//handle for end block entity
+    int appGroupDepth = 0;
+    duint32 block = 0;    //handle for block entity
+    duint32 endBlock = 0; //handle for end block entity
     duint32 firstEH; //handle of first entity, only in pre-2004
     duint32 lastEH;  //handle of last entity, only in pre-2004
     std::vector<duint32>entMap;
@@ -497,6 +504,16 @@ public:
         marginBottom = 0.0;
         marginRight = 0.0;
         marginTop = 0.0;
+        pageSetupName.clear();
+        printerName.clear();
+        paperSize.clear();
+        paperWidth = paperHeight = plotOriginX = plotOriginY = 0.0;
+        scaleNumerator = scaleDenominator = standardScale = 1.0;
+        plotFlags = paperRotation = 0;
+        paperUnits = 1;
+        plotType = 5;
+        standardScaleType = 16;
+        paperOriginX = paperOriginY = 0.0;
         DRW_TableEntry::reset();
     }
 
@@ -510,6 +527,49 @@ public:
     double marginBottom;    /*!< Size, in millimeters, of unprintable margin on bottom side of paper, code 41 */
     double marginRight;     /*!< Size, in millimeters, of unprintable margin on right side of paper, code 42 */
     double marginTop;       /*!< Size, in millimeters, of unprintable margin on top side of paper, code 43 */
+    UTF8STRING pageSetupName; /*!< Page setup name, code 1 */
+    UTF8STRING printerName;   /*!< Printer/plot configuration, code 2 */
+    UTF8STRING paperSize;     /*!< Canonical media name, code 4 */
+    double paperWidth = 0.0;  /*!< Physical paper width in mm, code 44 */
+    double paperHeight = 0.0; /*!< Physical paper height in mm, code 45 */
+    double plotOriginX = 0.0; /*!< Plot origin offset in mm, code 46 */
+    double plotOriginY = 0.0; /*!< Plot origin offset in mm, code 47 */
+    double scaleNumerator = 1.0;   /*!< Paper units, code 142 */
+    double scaleDenominator = 1.0; /*!< Drawing units, code 143 */
+    int plotFlags = 0;        /*!< Plot flags, code 70 */
+    int paperUnits = 1;       /*!< 0 inches, 1 mm, 2 pixels, code 72 */
+    int paperRotation = 0;    /*!< Quarter turns counterclockwise, code 73 */
+    int plotType = 5;         /*!< Layout plot type, code 74 */
+    int standardScaleType = 16; /*!< 1:1, code 75 */
+    double standardScale = 1.0; /*!< Standard scale factor, code 147 */
+    double paperOriginX = 0.0; /*!< Paper image origin, code 148 */
+    double paperOriginY = 0.0; /*!< Paper image origin, code 149 */
+};
+
+//! DXF LAYOUT record. Embedded plot settings and layout fields have separate scopes.
+class DRW_Layout : public DRW_PlotSettings {
+    SETOBJFRIENDS
+public:
+    DRW_Layout() { tType = DRW::LAYOUT; }
+    int layoutFlags = 0;      /*!< AcDbLayout code 70, distinct from plotFlags */
+    int tabOrder = 0;         /*!< Code 71 */
+    duint32 blockRecordHandle = 0; /*!< AcDbLayout code 330, distinct from parentHandle */
+    duint32 lastViewportHandle = 0; /*!< Code 331 */
+    DRW_Coord minLimit, maxLimit, basePoint, minExtent, maxExtent, ucsOrigin;
+    DRW_Coord ucsXAxis{1.0, 0.0, 0.0};
+    DRW_Coord ucsYAxis{0.0, 1.0, 0.0};
+    double elevation = 0.0;
+    int ucsType = 0;
+    duint32 ucsHandle = 0, baseUcsHandle = 0;
+    std::vector<duint32> reactors;
+protected:
+    bool parseCode(int code, dxfReader *reader) override;
+    bool parseDwg(DRW::Version, dwgBuffer*, duint32 = 0) override { return false; }
+private:
+    using DRW_PlotSettings::reset; // A layout is constructed afresh for each record.
+    std::string subclass;
+    int appGroupDepth = 0;
+    bool readingReactors = false;
 };
 
 //! Class to handle AppId entries

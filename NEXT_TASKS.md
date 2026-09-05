@@ -58,7 +58,8 @@ native dialog are not identical AutoCAD command lifecycles.
 ## Next — native paperspace vertical slice
 
 - [x] P1-01a: camera fields and native/raw-tag regression; only local proof so far.
-- [ ] P1-01b: read LAYOUT/BLOCK_RECORD and distinguish subclass/reactor owners.
+- [x] P1-01b: read LAYOUT/BLOCK_RECORD and distinguish subclass/reactor owners;
+  local full build and bounded native/independent tests pass, MSVC CI pending.
 - [ ] P1-01c: write bounded layout identity/page settings; raw links and audit 0/0.
 
 - [ ] Implement the single-document architecture in PAPERSPACE_PLAN.

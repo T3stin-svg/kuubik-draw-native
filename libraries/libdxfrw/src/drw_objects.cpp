@@ -694,6 +694,21 @@ bool DRW_Layer::parseDwg(DRW::Version version, dwgBuffer *buf, duint32 bs){
     return buf->isGood();
 }
 
+bool DRW_Block_Record::parseCode(int code, dxfReader *reader) {
+    if (code == 102) {
+        const auto group = reader->getString();
+        if (!group.empty() && group.front() == '{') ++appGroupDepth;
+        else if (group == "}") --appGroupDepth;
+        else return false;
+        return appGroupDepth >= 0 && appGroupDepth <= 64;
+    }
+    if (appGroupDepth) return true; // An application group cannot replace the owner.
+    if (code == 340) layoutHandle = reader->getHandleString();
+    else if (code == 70) insUnits = reader->getInt32();
+    else return DRW_TableEntry::parseCode(code, reader);
+    return true;
+}
+
 bool DRW_Block_Record::parseDwg(DRW::Version version, dwgBuffer *buf, duint32 bs){
     dwgBuffer sBuff = *buf;
     dwgBuffer *sBuf = buf;
@@ -1228,6 +1243,23 @@ bool DRW_ImageDef::parseDwg(DRW::Version version, dwgBuffer *buf, duint32 bs){
 
 bool DRW_PlotSettings::parseCode(int code, dxfReader *reader){
     switch (code) {
+    case 1: pageSetupName = reader->getUtf8String(); break;
+    case 2: printerName = reader->getUtf8String(); break;
+    case 4: paperSize = reader->getUtf8String(); break;
+    case 44: paperWidth = reader->getDouble(); break;
+    case 45: paperHeight = reader->getDouble(); break;
+    case 46: plotOriginX = reader->getDouble(); break;
+    case 47: plotOriginY = reader->getDouble(); break;
+    case 142: scaleNumerator = reader->getDouble(); break;
+    case 143: scaleDenominator = reader->getDouble(); break;
+    case 70: plotFlags = reader->getInt32(); break;
+    case 72: paperUnits = reader->getInt32(); break;
+    case 73: paperRotation = reader->getInt32(); break;
+    case 74: plotType = reader->getInt32(); break;
+    case 75: standardScaleType = reader->getInt32(); break;
+    case 147: standardScale = reader->getDouble(); break;
+    case 148: paperOriginX = reader->getDouble(); break;
+    case 149: paperOriginY = reader->getDouble(); break;
     case 5:
         handle = reader->getHandleString();
         break;
@@ -1250,6 +1282,66 @@ bool DRW_PlotSettings::parseCode(int code, dxfReader *reader){
         return DRW_TableEntry::parseCode(code, reader);
     }
 
+    return true;
+}
+
+bool DRW_Layout::parseCode(int code, dxfReader *reader) {
+    if (code == 102) {
+        const auto group = reader->getString();
+        if (!group.empty() && group.front() == '{') {
+            if (appGroupDepth == 0) readingReactors = group == "{ACAD_REACTORS";
+            ++appGroupDepth;
+        } else if (group == "}") {
+            if (--appGroupDepth == 0) readingReactors = false;
+        } else return false;
+        return appGroupDepth >= 0 && appGroupDepth <= 64;
+    }
+    if (appGroupDepth) {
+        if (readingReactors && appGroupDepth == 1 && code == 330)
+            reactors.push_back(reader->getHandleString());
+        return true;
+    }
+    if (code == 100) {
+        subclass = reader->getString();
+        return true;
+    }
+    if (subclass == "AcDbPlotSettings") return DRW_PlotSettings::parseCode(code, reader);
+    if (subclass.empty()) return DRW_TableEntry::parseCode(code, reader);
+    if (subclass != "AcDbLayout") return true;
+    switch (code) {
+    case 1: name = reader->getUtf8String(); break;
+    case 70: layoutFlags = reader->getInt32(); break;
+    case 71: tabOrder = reader->getInt32(); break;
+    case 330: blockRecordHandle = reader->getHandleString(); break;
+    case 331: lastViewportHandle = reader->getHandleString(); break;
+    case 10: minLimit.x = reader->getDouble(); break;
+    case 20: minLimit.y = reader->getDouble(); break;
+    case 11: maxLimit.x = reader->getDouble(); break;
+    case 21: maxLimit.y = reader->getDouble(); break;
+    case 12: basePoint.x = reader->getDouble(); break;
+    case 22: basePoint.y = reader->getDouble(); break;
+    case 32: basePoint.z = reader->getDouble(); break;
+    case 14: minExtent.x = reader->getDouble(); break;
+    case 24: minExtent.y = reader->getDouble(); break;
+    case 34: minExtent.z = reader->getDouble(); break;
+    case 15: maxExtent.x = reader->getDouble(); break;
+    case 25: maxExtent.y = reader->getDouble(); break;
+    case 35: maxExtent.z = reader->getDouble(); break;
+    case 13: ucsOrigin.x = reader->getDouble(); break;
+    case 23: ucsOrigin.y = reader->getDouble(); break;
+    case 33: ucsOrigin.z = reader->getDouble(); break;
+    case 16: ucsXAxis.x = reader->getDouble(); break;
+    case 26: ucsXAxis.y = reader->getDouble(); break;
+    case 36: ucsXAxis.z = reader->getDouble(); break;
+    case 17: ucsYAxis.x = reader->getDouble(); break;
+    case 27: ucsYAxis.y = reader->getDouble(); break;
+    case 37: ucsYAxis.z = reader->getDouble(); break;
+    case 146: elevation = reader->getDouble(); break;
+    case 76: ucsType = reader->getInt32(); break;
+    case 345: ucsHandle = reader->getHandleString(); break;
+    case 346: baseUcsHandle = reader->getHandleString(); break;
+    default: return DRW_TableEntry::parseCode(code, reader);
+    }
     return true;
 }
 

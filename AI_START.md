@@ -113,9 +113,9 @@ Settings scaling and full AutoCAD command equivalence remain unproved.
 
 Reio authorized continued development through 21:10:46 UTC, work-branch pushes
 and existing Windows CI. Both P0 slices pass MSVC CI at `3cefc819`; the package
-checksum and source manifest match, with local portable replay underway.
-P1-01a camera fields are locally verified; layout read/write ownership and native
-paperspace remain unfinished. Follow `tasks/plan.md`, `docs/ROADMAP.md` and
+checksum, source manifest and full local portable replay pass.
+P1-01a camera fields and P1-01b layout reading are locally verified; layout write
+ownership and native paperspace remain unfinished. Follow `tasks/plan.md`, `docs/ROADMAP.md` and
 PROJECT_STATE for current evidence. No release or remote merge is authorized.
 
 ## Historical authorization — 2026-09-05 UI milestone

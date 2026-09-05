@@ -32,6 +32,34 @@ Local setup fixes: regenerate qmake's missing response file and relink its empty
 archive; use ezdxf's public layout-rename API and explicit viewport IDs. The true
 RED above was obtained after the fixture setup was corrected.
 
+### P1-01b — layout and block-record reading
+
+The native red test failed because neither record reached the adapter. The new
+additive callbacks and scoped reader pass four positive inputs: A3 TEST, misleading
+nested application groups, an additional ordinary block, and alternative page/UCS
+settings with a UTF-8 layout name. Seven malformed application-group cases return
+a read error. Layout/page names, plot/layout flags, dictionary owner/block owner,
+last-active viewport, paper dimensions/units/rotation, custom scale, margins,
+origins, limits, extents and UCS coordinates are independently compared.
+Copy construction retains owned XDATA after the parser record resets.
+
+The fresh review found uninitialized BLOCK/ENDBLK members, permissive invalid 102
+strings and ambiguous copy guidance; all three were corrected. The inherited
+TableEntry copy-assignment ownership defect is outside the used path: retain
+records via copy construction, never `saved = callbackData`.
+
+Full local Qt/MinGW application build passes. The native GUI/file replay passes
+with eight isolated process profiles, unchanged registry, ten independently clean
+DXFs, vector PDF/SVG and the prior Properties/Undo/Redo workflows. Camera and four
+PLOTSETTINGS regressions also pass against the new reader. Exact-source MSVC CI
+for P1 remains pending; P0 run 33977714231 must not be reused as its proof.
+
+Record fields follow Autodesk's [LAYOUT](https://help.autodesk.com/cloudhelp/2024/ENU/AutoCAD-DXF/files/GUID-433D25BF-655D-4697-834E-C666EDFD956D.htm)
+and [PLOTSETTINGS](https://help.autodesk.com/cloudhelp/2024/ENU/AutoCAD-DXF/files/GUID-1113675E-AB07-4567-801A-310CDE0D56E9.htm)
+references. Group 147 is preserved numerically: ezdxf names it `unit_factor`,
+whereas the Autodesk text calls it a standard-scale factor. Plotting semantics
+are not inferred from this read-only check.
+
 ## Historical local P0 corrections — 2026-09-05 (before MSVC CI)
 
 Baseline: clean `8a5f7ae0`, product-branch ancestry confirmed. Local developer

@@ -5,51 +5,21 @@ from pathlib import Path
 import subprocess
 
 import ezdxf
+from dxf_paperspace import make_fixture, read_records
 
 
 def viewport_records(path):
-    lines = path.read_text(encoding="utf-8").splitlines()
-    assert len(lines) % 2 == 0, path.name
     records = []
-    current = None
-    for code, value in zip(lines[::2], lines[1::2]):
-        code = int(code.strip())
-        if code == 0:
-            current = {} if value.strip() == "VIEWPORT" else None
-            if current is not None:
-                records.append(current)
-        elif current is not None:
-            current.setdefault(code, []).append(value.strip())
+    for kind, tags in read_records(path):
+        if kind != "VIEWPORT":
+            continue
+        current = {}
+        for code, value in tags:
+            current.setdefault(code, []).append(value)
+        records.append(current)
     by_id = {int(record[69][0]): record for record in records}
     assert len(by_id) == len(records), "duplicate viewport IDs"
     return by_id
-
-
-def make_fixture(path):
-    document = ezdxf.new("R2018")
-    document.units = 4
-    document.layers.new("VIEWPORTS", dxfattribs={"plot": 0})
-    document.modelspace().add_line((0, 0), (5000, 0))
-    document.layouts.rename("Layout1", "TEST")
-    layout = document.layouts.get("TEST")
-    layout.page_setup(size=(420, 297), margins=(0, 0, 0, 0), units="mm", scale=(1, 1))
-    for index, height in enumerate((8000, 16000)):
-        viewport = layout.add_viewport(
-            center=(100 + index * 190, 148.5), size=(160, 160),
-            view_center_point=(2500 - index * 1250, index * 800), view_height=height,
-            dxfattribs={
-                "view_twist_angle": index * 30,
-                # Non-default XYZ tests the record parser, not a 3D application workflow.
-                "view_direction_vector": (index, index * 2, 1 + index * 2),
-                "view_target_point": (index * 100, index * 200, 0),
-                "flags": 0x8000 | 0x200 | (0x4000 if index == 0 else 0),
-            },
-        )
-        viewport.dxf.id = index + 2
-        assert viewport.dxf.height / viewport.dxf.view_height == 1 / (50 + index * 50)
-    audit = document.audit()
-    assert not audit.errors and not audit.fixes, (audit.errors, audit.fixes)
-    document.saveas(path)
 
 
 def main():
@@ -60,7 +30,7 @@ def main():
     args.output.mkdir(parents=True, exist_ok=False)
     source = args.output / "input-a3-two-views.dxf"
     target = args.output / "viewport-roundtrip.dxf"
-    make_fixture(source)
+    make_fixture(source, direction_probe=True)
     subprocess.run([str(args.writer.resolve()), str(source.resolve()), str(target.resolve())], check=True)
     expected = viewport_records(source)
     actual = viewport_records(target)

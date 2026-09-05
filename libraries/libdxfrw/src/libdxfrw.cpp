@@ -2064,7 +2064,7 @@ bool dxfRW::processTables() {
                     } else if (sectionstr == "DIMSTYLE") {
                         processDimStyle();
                     } else if (sectionstr == "BLOCK_RECORD") {
-//                        processBlockRecord();
+                        if (!processBlockRecord()) return false;
                     }
                 }
             } else if (sectionstr == "ENDSEC") {
@@ -2073,6 +2073,28 @@ bool dxfRW::processTables() {
         }
     }
 
+    return setError(DRW::BAD_READ_TABLES);
+}
+
+bool dxfRW::processBlockRecord() {
+    int code;
+    bool reading = false;
+    DRW_Block_Record record;
+    while (reader->readRec(&code)) {
+        if (code == 0) {
+            if (reading) {
+                if (record.appGroupDepth) return setError(DRW::BAD_CODE_PARSED);
+                iface->addBlockRecord(record);
+            }
+            const auto type = reader->getString();
+            if (type == "ENDTAB") return true;
+            if (type != "BLOCK_RECORD") return setError(DRW::BAD_READ_TABLES);
+            record.reset();
+            reading = true;
+        } else if (reading && !record.parseCode(code, reader)) {
+            return setError(DRW::BAD_CODE_PARSED);
+        }
+    }
     return setError(DRW::BAD_READ_TABLES);
 }
 
@@ -2920,6 +2942,9 @@ bool dxfRW::processObjects() {
         else if ("PLOTSETTINGS" == nextentity) {
             processed = processPlotSettings();
         }
+        else if ("LAYOUT" == nextentity) {
+            processed = processLayout();
+        }
         else {
             if (!reader->readRec(&code)) {
                 return setError(DRW::BAD_READ_OBJECTS); //end of file without ENDSEC
@@ -2954,6 +2979,21 @@ bool dxfRW::processImageDef() {
         }
     }
 
+    return setError(DRW::BAD_READ_OBJECTS);
+}
+
+bool dxfRW::processLayout() {
+    int code;
+    DRW_Layout layout;
+    while (reader->readRec(&code)) {
+        if (code == 0) {
+            if (layout.appGroupDepth) return setError(DRW::BAD_CODE_PARSED);
+            nextentity = reader->getString();
+            iface->addLayout(layout);
+            return true;
+        }
+        if (!layout.parseCode(code, reader)) return setError(DRW::BAD_CODE_PARSED);
+    }
     return setError(DRW::BAD_READ_OBJECTS);
 }
 

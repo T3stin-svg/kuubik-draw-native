@@ -49,6 +49,15 @@ public:
     /** Called for every AppId entry. */
     virtual void addAppId(const DRW_AppId& data) = 0;
 
+    /** DXF BLOCK_RECORD and LAYOUT callbacks; defaults preserve existing adapters.
+     * References are valid only during the callback. Retain via copy construction,
+     * e.g. vector.emplace_back(data), which deep-copies XDATA. Do not copy-assign:
+     * the inherited TableEntry assignment shallow-copies its owned XDATA pointers.
+     * These callbacks do not imply application paperspace or DWG layout support.
+     */
+    virtual void addBlockRecord(const DRW_Block_Record&) {}
+    virtual void addLayout(const DRW_Layout&) {}
+
     /**
      * Called for every block. Note: all entities added after this
      * command go into this block until endBlock() is called.

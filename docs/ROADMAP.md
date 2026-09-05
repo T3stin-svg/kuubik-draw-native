@@ -2,13 +2,14 @@
 
 ## Jälgitav tööplaan
 
-**Uuendatud:** 2026-09-05 20:00 EEST. **Vastutaja:** Codex, integratsiooniomanik.
-**Hetkel:** P1-01a ülevaatuse järelkontroll; P1-01b layout'i lugemise ettevalmistus.
+**Uuendatud:** 2026-09-05 20:29 EEST. **Vastutaja:** Codex, integratsiooniomanik.
+**Hetkel:** P1-01b kohalik kontroll läbitud; etapi commit ja Windows CI ettevalmistus.
 **Tööaken:** 5.09 kell 19:10 kuni 6.09 kell 00:10 EEST; Reio kinnitas 5 h arendust.
 **Viimane sündmus:** P0 lähtepunkt `3cefc819` läbis Windows MSVC CI
 [33977714231](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33977714231).
 P0 kohalik portable-kordus ja sõltumatu DXF/PDF/SVG kontroll läbivad.
-Viewport'i puuduva DXF-grupi 45 parandus läbib kohaliku red/green testi.
+Viewport'i kaameraväljad ja ülevaatuse täiendused on kohalikus commit'is `04a0f55a`.
+Layout'i lugeja läbis 4 positiivset ja 7 vigase andmegrupi juhtu ning kogu native build'i.
 [Selle tööakna plaan](../tasks/plan.md).
 
 ```mermaid
@@ -17,7 +18,7 @@ flowchart TD
     A["P0-A · Properties<br/>Teostus ✓ · 9 olekut ✓<br/>Kohalik commit d4280f9b"]
     B["P0-B · DXF ownership<br/>Teostus ✓ · 14 väljundit audit 0/0 ✓<br/>Kohalik commit 4e40a43c"]
     G["G-01 · MSVC CI 33977714231 ✓<br/>Source 3cefc819 · portable-kordus ✓<br/>Omaniku vastuvõtt ootel"]
-    P["1 · Native paperspace<br/>P1-01a DXF-leping ja testid käimas<br/>A3 TEST · kaks vaadet · 1:50 ja 1:100"]
+    P["1 · Native paperspace<br/>Camera + layout'i lugemine lokaalselt ✓<br/>Kirjutus ja native UI ootel"]
     C["2 · Igapäevased CAD-töövood<br/>MOVE/COPY elutsükkel · Modify<br/>Layers · Annotation · Blocks · Properties"]
     R["3 · Töökindlus ja failitugi<br/>Taaste · suured DXF-id · päris Windows DPI<br/>Laiem failikorpus ja omaniku töövood"]
     UI --> A
@@ -36,7 +37,7 @@ protsente ega tähtaegu ei ole oletatud. Reprodutseeritav P0 viga tõuseb järje
 | SARibboni alus, `d35ec354` | Valmis | Läbitud | Läbitud: `33966232573` | Ootel |
 | P0-A Properties | Valmis | 9/9 olekut | Läbitud: `33977714231` | Ootel |
 | P0-B PLOTSETTINGS | Valmis | 14 väljundit: audit 0/0 | Läbitud: `33977714231` | Ootel |
-| Native paperspace | P1-01a kaameraväljad valmis; P1-01b lugemine järgmisena; UI puudub | Camera red/green ja 4 P0 regressiooni läbitud | Puudub | Puudub |
+| Native paperspace | P1-01a camera ja P1-01b lugemine valmis; kirjutus/UI puuduvad | Camera + layout + native GUI regressioonid läbitud | Ootel | Puudub |
 | AutoCADi-laadsed MOVE/COPY töövood | Planeeritud; native alus olemas | Täielik töövoog tõendamata | Täielik töövoog tõendamata | Puudub |
 | Laiem töökindlus ja failitugi | Planeeritud | Osaline senine korpus | Osaline senine korpus | Puudub |
 
@@ -123,7 +124,7 @@ flowchart TD
 | P1-08 | Layout copy | Koopia saab eraldi layout/viewport ID-d, näitab sama mudelit ning säilitab oma camera, scale'i ja lock'i ka reopen'i järel | P1-07 põhivoo tõend |
 
 P1-01 alametapid: **a)** viewport'i camera väljad ja testid — lokaalselt läbitud;
-**b)** LAYOUT/BLOCK_RECORD lugemine — ettevalmistamisel; **c)** terviklik ownership'i kirjutus
+**b)** LAYOUT/BLOCK_RECORD lugemine — lokaalselt läbitud; **c)** terviklik ownership'i kirjutus
 ja sõltumatu 0/0 audit — ootel. Üks alametapp ei märgi kogu P1-01 tööd läbituks.
 
 **P1 koondvastuvõtt:** kõik kaheksa rida ei ole üks automaatne PASS. Põhislice'i

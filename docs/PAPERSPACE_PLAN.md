@@ -1,9 +1,10 @@
 # Kuubik Draw — native paperspace'i teostusplaan
 
-Staatus: **JÄRGMINE ETAPP, mitte valmis funktsioon**. 2026-09-05.
-UI-etapp on lõpetatud. Järgnenud Propertiesi ja PLOTSETTINGSi P0 parandused on
-lokaalselt kontrollitud; täpse lähtekoodi MSVC CI ja omaniku kinnitus on ootel.
-Paperspace'i teostust ei alustatud. Alljärgnev lukustab järgneva tehnilise suuna.
+Staatus: **DXF-aluse teostus käib; native paperspace pole valmis**. 2026-09-05.
+Propertiesi ja PLOTSETTINGSi P0 parandused läbisid MSVC CI ning kohaliku portable-korduse.
+P1-01a camera väljad ja P1-01b LAYOUT/BLOCK_RECORD lugemine on lokaalselt kontrollitud.
+Kirjutuse ownership, native dokumendi integratsioon ja allolev kasutajavoog on ootel.
+Jooksev seis ja tõendid: [ROADMAP](ROADMAP.md), [TEST_REPORT](TEST_REPORT.md).
 
 ## Vastuvõetav vertikaalne läbilõige
 
@@ -49,9 +50,9 @@ Esmane tootmistee jääb libdxfrw. **Sellest ei piisa, et täita üks callback.*
 |---|---|
 | `librecad/src/lib/filters/rs_filterdxfrw.h`, `addViewport` | Tühi callback; lisada päris native viewport'i import |
 | `librecad/src/lib/filters/rs_filterdxfrw.cpp`, `addBlock` | `*Paper_Space` suunatakse dummyContainer'isse, mis impordi lõpus kustutatakse |
-| `libraries/libdxfrw/src/drw_entities.cpp`, `DRW_Viewport::parseCode` | DXF-spetsiifiliselt loeb 40/41/68/69/12/22; puuduvad mudeli kõrgus 45, twist 51 ja lippude 90 terviktee |
-| `libraries/libdxfrw/src/libdxfrw.cpp`, `writeViewport` | Kirjutab samuti ainult piiratud välju; skaala/lukk ei säili praegu selle kaudu |
-| `libraries/libdxfrw/src/drw_interface.h`, `drw_objects.h` | Puudub LAYOUT callback/valmis objektiarhitektuur; LAYOUT on TODO loendis |
+| `libraries/libdxfrw/src/drw_entities.cpp`, `DRW_Viewport::parseCode` | P1-01a lisas camera suuna/sihtpunkti/kõrguse, twist'i ja lipud; kohalik test läbitud |
+| `libraries/libdxfrw/src/libdxfrw.cpp`, `writeViewport` | Camera väljad säilivad; täielik layout ownership on endiselt ootel |
+| `libraries/libdxfrw/src/drw_interface.h`, `drw_objects.h` | P1-01b lisas LAYOUT/BLOCK_RECORD lugemise ja ühilduvad callback'id; native adapter neid veel ei kasuta |
 | `libraries/libdxfrw/src/libdxfrw.cpp`, `writeEntity`, `writeObjects` | Uued handle'id, üldise owner'i kirjutamise ja ACAD_LAYOUT sõnastiku laiendamise vajadus |
 | `librecad/src/lib/filters/rs_filterdxfrw.cpp`, `writeObjects` | Praegu ainult dokumendi üks PLOTSETTINGS; vajalikud layout-põhised lehesätted |
 
