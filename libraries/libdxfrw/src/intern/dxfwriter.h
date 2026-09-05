@@ -13,6 +13,7 @@
 #ifndef DXFWRITER_H
 #define DXFWRITER_H
 
+#include <ios>
 #include "drw_textcodec.h"
 
 class dxfWriter {
@@ -31,10 +32,12 @@ public:
     void setVersion(const std::string &v, bool dxfFormat){encoder.setVersion(v, dxfFormat);}
     void setCodePage(const std::string &c){encoder.setCodePage(c, true);}
     std::string getCodePage(){return encoder.getCodePage();}
+    bool writeHandleSeed(int value); // First call reserves a fixed-width field; later call patches it.
 protected:
     std::ofstream *filestr = nullptr;
 private:
     DRW_TextCodec encoder;
+    std::streampos handleSeedPosition = std::streampos(-1);
 };
 
 class dxfWriterBinary : public dxfWriter {

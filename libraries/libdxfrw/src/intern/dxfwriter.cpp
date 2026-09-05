@@ -14,7 +14,27 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
 #include "dxfwriter.h"
+
+bool dxfWriter::writeHandleSeed(int value) {
+    if (value <= 0) return false;
+    std::ostringstream text;
+    text << std::uppercase << std::hex << std::setfill('0') << std::setw(8) << value;
+    // Windows text streams translate LF to CRLF; flush before recording the byte position.
+    filestr->flush();
+    if (!filestr->good()) return false;
+    const auto end = filestr->tellp();
+    if (handleSeedPosition == std::streampos(-1)) {
+        handleSeedPosition = end;
+        return writeString(5, text.str());
+    }
+    filestr->seekp(handleSeedPosition);
+    const bool written = writeString(5, text.str());
+    filestr->seekp(end);
+    return written && filestr->good();
+}
 
 //RLZ TODO change std::endl to x0D x0A (13 10)
 /*bool dxfWriter::readRec(int *codeData, bool skip) {

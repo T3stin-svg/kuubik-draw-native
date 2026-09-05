@@ -912,8 +912,7 @@ void DRW_Header::write(dxfWriter *writer, DRW::Version ver){
             writer->writeInt16(70, 1);
     }
     writer->writeString(9, "$HANDSEED");
-    //RLZ        dxfHex(5, 0xFFFF);
-    writer->writeString(5, "20000");
+    writer->writeHandleSeed(0x20000);
     writer->writeString(9, "$SURFTAB1");
     if (getInt("$SURFTAB1", &varInt)) {
         writer->writeInt16(70, varInt);

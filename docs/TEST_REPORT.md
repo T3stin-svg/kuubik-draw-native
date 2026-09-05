@@ -38,8 +38,8 @@ The write-contract review found that `write(..., AC1032, ...)` fell through to
 the AC1021 header. A new raw `$ACADVER` assertion reproduced that failure. Adding
 the missing AC1032 switch case makes the camera roundtrip pass with an actual
 2018 header. Earlier camera results prove field values only, not a 2018 output
-header. This narrow correction is locally verified; the running reader checkpoint
-CI at `f2879c5b` predates it.
+header. This narrow correction is locally verified in commit `4a1c4e42`; the passed
+reader checkpoint CI at `f2879c5b` predates it.
 
 ### P1-01b — layout and block-record reading
 
@@ -61,13 +61,60 @@ Full local Qt/MinGW application build passes. The native GUI/file replay passes
 with eight isolated process profiles, unchanged registry, ten independently clean
 DXFs, vector PDF/SVG and the prior Properties/Undo/Redo workflows. Camera and four
 PLOTSETTINGS regressions also pass against the new reader. Exact-source MSVC CI
-for P1 remains pending; P0 run 33977714231 must not be reused as its proof.
+for the reader passed at `f2879c5b86f04354ecf1cde0a76c134568299168` in
+[run 33981465387](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33981465387),
+including the new camera/read adapters, native GUI and independent file checks.
+It predates the AC1032 header fix and layout writer below.
 
 Record fields follow Autodesk's [LAYOUT](https://help.autodesk.com/cloudhelp/2024/ENU/AutoCAD-DXF/files/GUID-433D25BF-655D-4697-834E-C666EDFD956D.htm)
 and [PLOTSETTINGS](https://help.autodesk.com/cloudhelp/2024/ENU/AutoCAD-DXF/files/GUID-1113675E-AB07-4567-801A-310CDE0D56E9.htm)
 references. Group 147 is preserved numerically: ezdxf names it `unit_factor`,
 whereas the Autodesk text calls it a standard-scale factor. Plotting semantics
 are not inferred from this read-only check.
+
+### P1-01c — bounded layout export, local evidence
+
+The explicit ASCII2018 exporter preserves the layout dictionary, LAYOUT,
+BLOCK_RECORD and LINE/VIEWPORT identities, entity owners, last viewport and
+backlinks. Generated table/block/object handles move above retained identities;
+the final HANDSEED exceeds all emitted handles. This typed API supports one Model
+and one paper layout, mm model/paper units, planar LINE and rectangular VIEWPORT.
+The native application does not use it yet; a caller still must reject unsupported
+source records before selecting this bounded export. No whole-file losslessness
+or arbitrary DXF conversion is claimed.
+
+Compile `tests/dxf-layout-write.cpp` with assertions enabled and run
+`scripts/test-dxf-layout-write.py ADAPTER FRESH_OUTPUT_DIRECTORY`. Local MinGW 8.1
+checks pass four synthetic inputs through two saves: A3 TEST, custom page/UCS
+metadata and UTF-8 name, sparse high handles, and retained handle 10020. Raw checks
+precede ezdxf loading and cover uniqueness, typed table/block owners, dictionaries,
+reactors, backlinks, viewport owner/ID, camera, visibility and line-type scale.
+Nine successful outputs (including recovery from an interrupted legacy IMAGE
+write) have zero independent audit errors and fixes.
+
+Twenty-one Windows rejection/failure cases preserve the destination bytes,
+including duplicate IDs, wrong links, units, non-finite/unsupported camera data,
+handle headroom/exhaustion, header/write exceptions and a real locked destination.
+Each failed operation can be followed by a valid explicit save and legacy reuse.
+Replacement of an existing directory fails without touching its contents, and
+owned temporary files are removed. Files are flushed/closed before final native
+replacement; power-loss durability and unsupported source fidelity are not tested.
+
+The fresh review found and the checks reproduced: inverted DXF visibility on the
+second save, a dangling optional VPORT visual-style pointer, and stale owned image
+definitions after an interrupted legacy write. All are corrected in their shared
+paths. A first write check also exposed a MinGW Windows text-stream position error;
+flushing before recording HANDSEED's byte offset fixes the CRLF translation offset.
+Camera, layout-read and four standalone PLOTSETTINGS regressions pass after these
+changes. Full Qt/MinGW application build and native GUI replay pass: eight isolated
+profiles, unchanged registry, previous Properties/Undo/Redo workflows, independent
+DXF/PDF/SVG outputs and four ribbon geometry captures. This writer's MSVC run is
+pending; the reader CI does not cover this code.
+
+The common visibility flag follows Autodesk's
+[entity group codes](https://help.autodesk.com/cloudhelp/2024/ENU/AutoCAD-DXF/files/GUID-3610039E-27D1-4E23-B6D3-7E60B22BB5BD.htm);
+the unimplemented optional style pointer is omitted as permitted by the
+[VPORT record](https://help.autodesk.com/cloudhelp/2023/ENU/AutoCAD-DXF/files/GUID-8CE7CC87-27BD-4490-89DA-C21F516415A9.htm).
 
 ## Historical local P0 corrections — 2026-09-05 (before MSVC CI)
 

@@ -2,8 +2,9 @@
 
 Staatus: **DXF-aluse teostus käib; native paperspace pole valmis**. 2026-09-05.
 Propertiesi ja PLOTSETTINGSi P0 parandused läbisid MSVC CI ning kohaliku portable-korduse.
-P1-01a camera väljad ja P1-01b LAYOUT/BLOCK_RECORD lugemine on lokaalselt kontrollitud.
-Kirjutuse ownership, native dokumendi integratsioon ja allolev kasutajavoog on ootel.
+P1-01a camera väljad ja P1-01b LAYOUT/BLOCK_RECORD lugemine läbisid kohaliku ja MSVC kontrolli.
+P1-01c piiratud kirjutus säilitab tunnused/seosed ja läbib kohaliku raw/0-0 auditi;
+native dokumendi integratsioon, kasutajafaili salvestuskaitse ja allolev kasutajavoog on ootel.
 Jooksev seis ja tõendid: [ROADMAP](ROADMAP.md), [TEST_REPORT](TEST_REPORT.md).
 
 ## Vastuvõetav vertikaalne läbilõige
@@ -51,9 +52,9 @@ Esmane tootmistee jääb libdxfrw. **Sellest ei piisa, et täita üks callback.*
 | `librecad/src/lib/filters/rs_filterdxfrw.h`, `addViewport` | Tühi callback; lisada päris native viewport'i import |
 | `librecad/src/lib/filters/rs_filterdxfrw.cpp`, `addBlock` | `*Paper_Space` suunatakse dummyContainer'isse, mis impordi lõpus kustutatakse |
 | `libraries/libdxfrw/src/drw_entities.cpp`, `DRW_Viewport::parseCode` | P1-01a lisas camera suuna/sihtpunkti/kõrguse, twist'i ja lipud; kohalik test läbitud |
-| `libraries/libdxfrw/src/libdxfrw.cpp`, `writeViewport` | Camera väljad säilivad; täielik layout ownership on endiselt ootel |
+| `libraries/libdxfrw/src/libdxfrw.cpp`, `writeViewport` | Camera väljad säilivad; piiratud layout'i kirjutus on lokaalselt kontrollitud |
 | `libraries/libdxfrw/src/drw_interface.h`, `drw_objects.h` | P1-01b lisas LAYOUT/BLOCK_RECORD lugemise ja ühilduvad callback'id; native adapter neid veel ei kasuta |
-| `libraries/libdxfrw/src/libdxfrw.cpp`, `writeEntity`, `writeObjects` | Uued handle'id, üldise owner'i kirjutamise ja ACAD_LAYOUT sõnastiku laiendamise vajadus |
+| `libraries/libdxfrw/src/libdxfrw.cpp`, `writeLayoutDocument` | Piiratud typed-eksport säilitab ID-d/owner'id ning kirjutab ACAD_LAYOUT; native adapteri ühendamine ja toetamatu sisendi värav on ootel |
 | `librecad/src/lib/filters/rs_filterdxfrw.cpp`, `writeObjects` | Praegu ainult dokumendi üks PLOTSETTINGS; vajalikud layout-põhised lehesätted |
 
 Lukustada esmalt minimaalne DXF 2018 record-leping: LAYOUT dictionary, layout'i

@@ -3,6 +3,26 @@
 These are current product decisions. A later AI may recommend changes, but must
 not silently reverse them.
 
+## D-027 — Paperspace file foundation uses a bounded, identity-preserving export
+
+2026-09-05: The first layout writer is an explicit libdxfrw operation over one
+Model layout, one paper layout and a complete supported LINE/VIEWPORT list.
+It reuses the existing entity serializers, preserves imported layout/dictionary/
+block-record/entity identities and relocates generated system handles above them.
+The header callback runs once; entity pointers are borrowed only until return.
+Metadata is retained by copy construction, avoiding inherited unsafe assignment.
+
+Validation precedes destination access. An exclusively created sibling temporary
+file is serialized, flushed and closed before native replacement. Failed validation,
+allocation, callback, write or replacement leaves the previous destination intact;
+operation state is discarded before reuse. No new runtime dependency is introduced.
+
+This is a typed file API, not a lossless arbitrary-source converter. Its future
+native adapter must verify source dictionary membership and refuse unsupported
+content before writing back. Native RS_Graphic ownership, shared Undo, view
+transforms, UI and plotting remain subsequent gates; successful record tests do
+not certify them. The current application still uses the legacy modelspace writer.
+
 ## D-026 — Graphical roadmap is updated during development
 
 2026-09-05: Reio requested a detailed graphical plan that stays current as features

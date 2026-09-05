@@ -17,6 +17,18 @@
 #include <algorithm>
 #include <sstream>
 #include <cassert>
+#include <cmath>
+#include <cstdio>
+#include <limits>
+#include <set>
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 #include "intern/drw_textcodec.h"
 #include "intern/dxfreader.h"
 #include "intern/dxfwriter.h"
@@ -107,28 +119,208 @@ bool dxfRW::read(DRW_Interface *interface_, bool ext){
 }
 
 bool dxfRW::write(DRW_Interface *interface_, DRW::Version ver, bool bin){
+    clearExportState();
+    if (!interface_) return setError(DRW::BAD_UNKNOWN);
+    DRW_Header data;
+    interface_->writeHeader(data);
+    return writeFile(fileName, interface_, ver, bin, data, {});
+}
+
+void dxfRW::clearExportState() {
+    for (auto* image : imageDef) delete image;
+    imageDef.clear();
+    exportLayouts.clear();
+    exportBlockRecords.clear();
+    blockMap.clear();
+    textStyleMap.clear();
+    systemHandleBase = 0;
+    writeFailed = false;
+    error = DRW::BAD_NONE;
+    writingBlock = false;
+}
+
+int dxfRW::nextHandle() {
+    if (entCount >= std::numeric_limits<int>::max() - 1) {
+        writeFailed = true;
+        return 0;
+    }
+    return ++entCount;
+}
+
+std::string dxfRW::fixedHandle(int value) {
+    return toHexStr(value == 0 ? 0 : systemHandleBase + value);
+}
+
+bool dxfRW::prepareLayouts(const DRW_Header& data, const std::vector<DRW_Layout>& layouts,
+                          const std::vector<DRW_Block_Record>& records,
+                          const std::vector<const DRW_Entity*>& entities) {
+    const auto units = data.vars.find("$INSUNITS");
+    if (units == data.vars.end() || !units->second || units->second->type() != DRW_Variant::INTEGER
+        || units->second->content.i != 4 || layouts.size() != 2 || records.size() != 2) return false;
+    const auto textValid = [](const std::string& value) {
+        return value.find_first_of("\r\n") == std::string::npos && value.find('\0') == std::string::npos;
+    };
+    const auto finite = [](const DRW_Coord& value) {
+        return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
+    };
+    std::set<duint32> handles;
+    const auto addHandle = [&handles](duint32 value) {
+        return value > 0 && value < static_cast<duint32>(std::numeric_limits<int>::max())
+            && handles.insert(value).second;
+    };
+    if (layouts.front().parentHandle <= 0 || !addHandle(layouts.front().parentHandle)) return false;
+    std::set<std::string> names;
+    duint32 model = 0, paper = 0;
+    for (const auto& layout : layouts) {
+        if (!addHandle(layout.handle) || layout.parentHandle != layouts.front().parentHandle
+            || layout.name.empty() || !textValid(layout.name) || !names.insert(layout.name).second
+            || !layout.extData.empty() || layout.ucsHandle || layout.baseUcsHandle
+            || layout.reactors != std::vector<duint32>{static_cast<duint32>(layout.parentHandle)}) return false;
+        const auto record = std::find_if(records.begin(), records.end(), [&layout](const DRW_Block_Record& item) {
+            return item.handle == layout.blockRecordHandle && item.layoutHandle == layout.handle;
+        });
+        const bool isModel = layout.name == "Model";
+        if (record == records.end() || !addHandle(record->handle) || !record->extData.empty()
+            || record->name != (isModel ? "*Model_Space" : "*Paper_Space")
+            || record->insUnits < 0 || record->insUnits > 24
+            || record->parentHandle <= 0 || record->parentHandle != records.front().parentHandle
+            || bool(layout.plotFlags & 1024) != isModel) return false;
+        (isModel ? model : paper) = record->handle;
+        for (const auto* value : {&layout.pageSetupName, &layout.printerName, &layout.paperSize, &layout.plotViewName})
+            if (!textValid(*value)) return false;
+        if (layout.paperUnits != 1 || layout.paperRotation < 0 || layout.paperRotation > 3
+            || layout.plotType != 5 || layout.tabOrder < 0 || layout.tabOrder > 32767
+            || layout.standardScaleType < 0 || layout.standardScaleType > 32
+            || layout.plotFlags < 0 || layout.plotFlags > 0xFFFF
+            || layout.layoutFlags < 0 || layout.layoutFlags > 3 || layout.ucsType < 0 || layout.ucsType > 6) return false;
+        for (double value : {layout.paperWidth, layout.paperHeight, layout.scaleNumerator,
+                             layout.scaleDenominator, layout.standardScale})
+            if (!std::isfinite(value) || value <= 0) return false;
+        for (double value : {layout.marginLeft, layout.marginBottom, layout.marginRight, layout.marginTop})
+            if (!std::isfinite(value) || value < 0) return false;
+        for (double value : {layout.plotOriginX, layout.plotOriginY, layout.paperOriginX, layout.paperOriginY, layout.elevation})
+            if (!std::isfinite(value)) return false;
+        for (const auto* value : {&layout.minLimit, &layout.maxLimit, &layout.basePoint, &layout.minExtent,
+                                 &layout.maxExtent, &layout.ucsOrigin, &layout.ucsXAxis, &layout.ucsYAxis})
+            if (!finite(*value)) return false;
+    }
+    if (!model || !paper || layouts[0].tabOrder == layouts[1].tabOrder) return false;
+    std::set<int> viewportIDs;
+    for (const auto* entity : entities) {
+        if (!entity || !addHandle(entity->handle) || !entity->appData.empty() || !entity->extData.empty()
+            || !textValid(entity->layer) || entity->layer.empty() || !textValid(entity->lineType)
+            || entity->material != DRW::MaterialByLayer || entity->plotStyle != DRW::DefaultPlotStyle
+            || entity->transparency != DRW::Opaque || !entity->colorName.empty()
+            || entity->numProxyGraph || !entity->proxyGraphics.empty()
+            || !std::isfinite(entity->ltypeScale) || entity->ltypeScale <= 0
+            || (entity->space != DRW::ModelSpace && entity->space != DRW::PaperSpace)
+            || entity->parentHandle != (entity->space == DRW::ModelSpace ? model : paper)) return false;
+        if (entity->eType == DRW::LINE) {
+            const auto* line = dynamic_cast<const DRW_Line*>(entity);
+            if (!line || !finite(line->basePoint) || !finite(line->secPoint)
+                || line->basePoint.z != 0 || line->secPoint.z != 0 || line->thickness != 0) return false;
+        } else if (entity->eType == DRW::VIEWPORT) {
+            const auto* viewport = dynamic_cast<const DRW_Viewport*>(entity);
+            if (!viewport || entity->space != DRW::PaperSpace || viewport->vpID <= 0 || viewport->vpID > 32767
+                || !viewportIDs.insert(viewport->vpID).second || viewport->vpstatus < -1 || viewport->vpstatus > 32767
+                || (viewport->vpFlags & (0x1 | 0x2 | 0x4 | 0x10 | 0x10000))
+                || viewport->vpFlags < 0 || viewport->vpFlags > 0x3FFFFF
+                || !finite(viewport->basePoint) || viewport->basePoint.z != 0
+                || !finite(viewport->viewTarget) || viewport->viewTarget.z != 0
+                || !finite(viewport->viewDir) || viewport->viewDir.x != 0 || viewport->viewDir.y != 0
+                || viewport->viewDir.z <= 0) return false;
+            for (double value : {viewport->pswidth, viewport->psheight, viewport->viewHeight})
+                if (!std::isfinite(value) || value <= 0) return false;
+            for (double value : {viewport->centerPX, viewport->centerPY, viewport->twistAngle})
+                if (!std::isfinite(value)) return false;
+            if (!std::isfinite(viewport->twistAngle * ARAD)) return false;
+        } else return false;
+    }
+    if (!viewportIDs.count(1)) return false;
+    for (const auto& layout : layouts) {
+        if (!layout.lastViewportHandle) continue;
+        const auto viewport = std::find_if(entities.begin(), entities.end(), [&layout](const DRW_Entity* entity) {
+            return entity->handle == layout.lastViewportHandle && entity->eType == DRW::VIEWPORT
+                && entity->parentHandle == layout.blockRecordHandle;
+        });
+        if (viewport == entities.end()) return false;
+    }
+    const auto highest = *handles.rbegin();
+    if (highest >= static_cast<duint32>(std::numeric_limits<int>::max() - FIRSTHANDLE - 2)) return false;
+    systemHandleBase = static_cast<int>(highest) + 1;
+    for (const auto& layout : layouts) exportLayouts.emplace_back(layout);
+    for (const auto& record : records) exportBlockRecords.emplace_back(record);
+    return true;
+}
+
+bool dxfRW::writeLayoutDocument(DRW_Interface* interface_, const std::vector<DRW_Layout>& layouts,
+                               const std::vector<DRW_Block_Record>& records,
+                               const std::vector<const DRW_Entity*>& entities) {
+    clearExportState();
+    if (!interface_) return setError(DRW::BAD_UNKNOWN);
+    std::string temporary;
+    bool written = false;
+    try {
+        DRW_Header data;
+        interface_->writeHeader(data);
+        if (!prepareLayouts(data, layouts, records, entities)) {
+            clearExportState();
+            return setError(DRW::BAD_CODE_PARSED);
+        }
+        const auto separator = fileName.find_last_of("/\\");
+        const auto directory = separator == std::string::npos ? "." : fileName.substr(0, separator + 1);
+#ifdef _WIN32
+        char path[MAX_PATH];
+        if (GetTempFileNameA(directory.c_str(), "kdx", 0, path)) temporary = path;
+#else
+        std::string pattern = directory + "/.kuubik-XXXXXX";
+        std::vector<char> path(pattern.begin(), pattern.end());
+        path.push_back('\0');
+        const int descriptor = mkstemp(path.data());
+        if (descriptor >= 0) {
+            close(descriptor);
+            temporary = path.data();
+        }
+#endif
+        if (!temporary.empty() && writeFile(temporary, interface_, DRW::AC1032, false, data, entities)) {
+#ifdef _WIN32
+            written = MoveFileExA(temporary.c_str(), fileName.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+#else
+            written = std::rename(temporary.c_str(), fileName.c_str()) == 0;
+#endif
+        }
+    } catch (...) {
+        // Callback/allocation failures must also leave the destination unchanged.
+    }
+    if (!temporary.empty() && !written) std::remove(temporary.c_str());
+    clearExportState();
+    return written || setError(DRW::BAD_OPEN);
+}
+
+bool dxfRW::writeFile(const std::string& path, DRW_Interface *interface_, DRW::Version ver,
+                      bool bin, DRW_Header& data, const std::vector<const DRW_Entity*>& entities) try {
     bool isOk = false;
     std::ofstream filestr;
     version = ver;
     binFile = bin;
     iface = interface_;
     if (binFile) {
-        filestr.open (fileName.c_str(), std::ios_base::out | std::ios::binary | std::ios::trunc);
+        filestr.open (path.c_str(), std::ios_base::out | std::ios::binary | std::ios::trunc);
+        if (!filestr) return setError(DRW::BAD_OPEN);
         //write sentinel
         filestr << "AutoCAD Binary DXF\r\n" << (char)26 << '\0';
         writer = new dxfWriterBinary(&filestr);
         DRW_DBG("dxfRW::read binary file\n");
     } else {
-        filestr.open (fileName.c_str(), std::ios_base::out | std::ios::trunc);
+        filestr.open (path.c_str(), std::ios_base::out | std::ios::trunc);
+        if (!filestr) return setError(DRW::BAD_OPEN);
         writer = new dxfWriterAscii(&filestr);
         std::string comm = std::string("dxfrw ") + std::string(DRW_VERSION);
         writer->writeString(999, comm);
     }
-    DRW_Header header;
-    iface->writeHeader(header);
     writer->writeString(0, "SECTION");
-    entCount =FIRSTHANDLE;
-    header.write(writer, version);
+    entCount = systemHandleBase + FIRSTHANDLE;
+    data.write(writer, version);
     writer->writeString(0, "ENDSEC");
     if (ver > DRW::AC1009) {
         writer->writeString(0, "SECTION");
@@ -146,7 +338,19 @@ bool dxfRW::write(DRW_Interface *interface_, DRW::Version ver, bool bin){
 
     writer->writeString(0, "SECTION");
     writer->writeString(2, "ENTITIES");
-    iface->writeEntities();
+    if (exportLayouts.empty()) {
+        iface->writeEntities();
+    } else {
+        for (const auto* entity : entities) {
+            if (entity->eType == DRW::LINE) {
+                DRW_Line line(*static_cast<const DRW_Line*>(entity));
+                if (!writeLine(&line)) writeFailed = true;
+            } else {
+                DRW_Viewport viewport(*static_cast<const DRW_Viewport*>(entity));
+                if (!writeViewport(&viewport)) writeFailed = true;
+            }
+        }
+    }
     writer->writeString(0, "ENDSEC");
 
     if (version > DRW::AC1009) {
@@ -156,18 +360,28 @@ bool dxfRW::write(DRW_Interface *interface_, DRW::Version ver, bool bin){
         writer->writeString(0, "ENDSEC");
     }
     writer->writeString(0, "EOF");
+    if (!writer->writeHandleSeed(entCount + 1)) writeFailed = true;
     filestr.flush();
+    isOk = filestr.good() && !writeFailed;
     filestr.close();
-    isOk = true;
+    isOk = isOk && !filestr.fail();
     delete writer;
     writer = NULL;
-    return isOk;
+    return isOk || setError(DRW::BAD_UNKNOWN);
+} catch (...) {
+    delete writer;
+    writer = nullptr;
+    return setError(DRW::BAD_UNKNOWN);
 }
 
 bool dxfRW::writeEntity(DRW_Entity *ent) {
-    ent->handle = ++entCount;
+    if (exportLayouts.empty()) ent->handle = nextHandle();
     writer->writeString(5, toHexStr(ent->handle));
     if (version > DRW::AC1009) {
+        const auto owner = exportLayouts.empty()
+            ? (writingBlock ? toHexStr(currHandle) : fixedHandle(ent->space == 1 ? 0x1E : 0x1F))
+            : toHexStr(ent->parentHandle);
+        writer->writeString(330, owner);
         writer->writeString(100, "AcDbEntity");
     }
     if (ent->space == 1)
@@ -186,6 +400,8 @@ bool dxfRW::writeEntity(DRW_Entity *ent) {
     if (version > DRW::AC1014) {
         writer->writeInt16(370, DRW_LW_Conv::lineWidth2dxfInt(ent->lWeight));
     }
+    writer->writeDouble(48, ent->ltypeScale);
+    writer->writeInt16(60, ent->visible ? 0 : 1);
     if (version >= DRW::AC1014) {
         writeAppData(ent->appData);
     }
@@ -245,9 +461,9 @@ bool dxfRW::writeLineType(DRW_LType *ent){
     }
     writer->writeString(0, "LTYPE");
     if (version > DRW::AC1009) {
-        writer->writeString(5, toHexStr(++entCount));
+        writer->writeString(5, toHexStr(nextHandle()));
         if (version > DRW::AC1012) {
-            writer->writeString(330, "5");
+            writer->writeString(330, fixedHandle(0x5));
         }
         writer->writeString(100, "AcDbSymbolTableRecord");
         writer->writeString(100, "AcDbLinetypeTableRecord");
@@ -275,15 +491,15 @@ bool dxfRW::writeLayer(DRW_Layer *ent){
     if (!wlayer0 && ent->name == "0") {
         wlayer0 = true;
         if (version > DRW::AC1009) {
-            writer->writeString(5, "10");
+            writer->writeString(5, fixedHandle(0x10));
         }
     } else {
         if (version > DRW::AC1009) {
-            writer->writeString(5, toHexStr(++entCount));
+            writer->writeString(5, toHexStr(nextHandle()));
         }
     }
     if (version > DRW::AC1012) {
-        writer->writeString(330, "2");
+        writer->writeString(330, fixedHandle(0x2));
     }
     if (version > DRW::AC1009) {
         writer->writeString(100, "AcDbSymbolTableRecord");
@@ -302,7 +518,6 @@ bool dxfRW::writeLayer(DRW_Layer *ent){
         if (! ent->plotF)
             writer->writeBool(290, ent->plotF);
         writer->writeInt16(370, DRW_LW_Conv::lineWidth2dxfInt(ent->lWeight));
-        writer->writeString(390, "F");
     } else
         writer->writeUtf8Caps(6, ent->lineType);
     if (!ent->extData.empty()){
@@ -323,12 +538,12 @@ bool dxfRW::writeTextstyle(DRW_Textstyle *ent){
         }
     }
     if (version > DRW::AC1009) {
-        writer->writeString(5, toHexStr(++entCount));
+        writer->writeString(5, toHexStr(nextHandle()));
         textStyleMap[name] = entCount;
     }
 
     if (version > DRW::AC1012) {
-        writer->writeString(330, "2");
+        writer->writeString(330, fixedHandle(0x3));
     }
     if (version > DRW::AC1009) {
         writer->writeString(100, "AcDbSymbolTableRecord");
@@ -362,9 +577,9 @@ bool dxfRW::writeVport(DRW_Vport *ent){
     }
     writer->writeString(0, "VPORT");
     if (version > DRW::AC1009) {
-        writer->writeString(5, toHexStr(++entCount));
+        writer->writeString(5, toHexStr(nextHandle()));
         if (version > DRW::AC1012)
-            writer->writeString(330, "2");
+            writer->writeString(330, fixedHandle(0x8));
         writer->writeString(100, "AcDbSymbolTableRecord");
         writer->writeString(100, "AcDbViewportTableRecord");
         writer->writeUtf8String(2, ent->name);
@@ -419,7 +634,6 @@ bool dxfRW::writeVport(DRW_Vport *ent){
         writer->writeInt16(79, 0);
         writer->writeDouble(146, 0.0);
         if (version > DRW::AC1018) {
-            writer->writeString(348, "10020");
             writer->writeInt16(60, ent->gridBehavior);//v2007 undocummented see DRW_Vport class
             writer->writeInt16(61, 5);
             writer->writeBool(292, 1);
@@ -442,11 +656,11 @@ bool dxfRW::writeDimstyle(DRW_Dimstyle *ent){
             dimstyleStd = true;
     }
     if (version > DRW::AC1009) {
-        writer->writeString(105, toHexStr(++entCount));
+        writer->writeString(105, toHexStr(nextHandle()));
     }
 
     if (version > DRW::AC1012) {
-        writer->writeString(330, "A");
+        writer->writeString(330, fixedHandle(0xA));
     }
     if (version > DRW::AC1009) {
         writer->writeString(100, "AcDbSymbolTableRecord");
@@ -569,9 +783,9 @@ bool dxfRW::writeAppId(DRW_AppId *ent){
         return true;
     writer->writeString(0, "APPID");
     if (version > DRW::AC1009) {
-        writer->writeString(5, toHexStr(++entCount));
+        writer->writeString(5, toHexStr(nextHandle()));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "9");
+            writer->writeString(330, fixedHandle(0x9));
         }
         writer->writeString(100, "AcDbSymbolTableRecord");
         writer->writeString(100, "AcDbRegAppTableRecord");
@@ -1323,10 +1537,10 @@ DRW_ImageDef* dxfRW::writeImage(DRW_Image *ent, std::string name){
         if (id == NULL) {
             id = new DRW_ImageDef();
             imageDef.push_back(id);
-            id->handle = ++entCount;
+            id->handle = nextHandle();
         }
         id->name = name;
-        std::string idReactor = toHexStr(++entCount);
+        std::string idReactor = toHexStr(nextHandle());
 
         writer->writeString(0, "IMAGE");
         writeEntity(ent);
@@ -1358,12 +1572,13 @@ DRW_ImageDef* dxfRW::writeImage(DRW_Image *ent, std::string name){
 bool dxfRW::writeBlockRecord(std::string name){
     if (version > DRW::AC1009) {
         writer->writeString(0, "BLOCK_RECORD");
-        writer->writeString(5, toHexStr(++entCount));
+        writer->writeString(5, toHexStr(nextHandle()));
 
         blockMap[name] = entCount;
-        entCount = 2+entCount;//reserve 2 for BLOCK & ENDBLOCK
+        nextHandle(); // reserve BLOCK
+        nextHandle(); // reserve ENDBLK
         if (version > DRW::AC1014) {
-            writer->writeString(330, "1");
+            writer->writeString(330, fixedHandle(0x1));
         }
         writer->writeString(100, "AcDbSymbolTableRecord");
         writer->writeString(100, "AcDbBlockTableRecord");
@@ -1431,9 +1646,9 @@ bool dxfRW::writeTables() {
     writer->writeString(0, "TABLE");
     writer->writeString(2, "VPORT");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "8");
+        writer->writeString(5, fixedHandle(0x8));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "0");
+            writer->writeString(330, fixedHandle(0x0));
         }
         writer->writeString(100, "AcDbSymbolTable");
     }
@@ -1451,9 +1666,9 @@ bool dxfRW::writeTables() {
     writer->writeString(0, "TABLE");
     writer->writeString(2, "LTYPE");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "5");
+        writer->writeString(5, fixedHandle(0x5));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "0");
+            writer->writeString(330, fixedHandle(0x0));
         }
         writer->writeString(100, "AcDbSymbolTable");
     }
@@ -1461,9 +1676,9 @@ bool dxfRW::writeTables() {
 //Mandatory linetypes
     writer->writeString(0, "LTYPE");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "14");
+        writer->writeString(5, fixedHandle(0x14));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "5");
+            writer->writeString(330, fixedHandle(0x5));
         }
         writer->writeString(100, "AcDbSymbolTableRecord");
         writer->writeString(100, "AcDbLinetypeTableRecord");
@@ -1478,9 +1693,9 @@ bool dxfRW::writeTables() {
 
     writer->writeString(0, "LTYPE");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "15");
+        writer->writeString(5, fixedHandle(0x15));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "5");
+            writer->writeString(330, fixedHandle(0x5));
         }
         writer->writeString(100, "AcDbSymbolTableRecord");
         writer->writeString(100, "AcDbLinetypeTableRecord");
@@ -1495,9 +1710,9 @@ bool dxfRW::writeTables() {
 
     writer->writeString(0, "LTYPE");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "16");
+        writer->writeString(5, fixedHandle(0x16));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "5");
+            writer->writeString(330, fixedHandle(0x5));
         }
         writer->writeString(100, "AcDbSymbolTableRecord");
         writer->writeString(100, "AcDbLinetypeTableRecord");
@@ -1517,9 +1732,9 @@ bool dxfRW::writeTables() {
     writer->writeString(0, "TABLE");
     writer->writeString(2, "LAYER");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "2");
+        writer->writeString(5, fixedHandle(0x2));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "0");
+            writer->writeString(330, fixedHandle(0x0));
         }
         writer->writeString(100, "AcDbSymbolTable");
     }
@@ -1536,9 +1751,9 @@ bool dxfRW::writeTables() {
     writer->writeString(0, "TABLE");
     writer->writeString(2, "STYLE");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "3");
+        writer->writeString(5, fixedHandle(0x3));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "0");
+            writer->writeString(330, fixedHandle(0x0));
         }
         writer->writeString(100, "AcDbSymbolTable");
     }
@@ -1555,9 +1770,9 @@ bool dxfRW::writeTables() {
     writer->writeString(0, "TABLE");
     writer->writeString(2, "VIEW");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "6");
+        writer->writeString(5, fixedHandle(0x6));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "0");
+            writer->writeString(330, fixedHandle(0x0));
         }
         writer->writeString(100, "AcDbSymbolTable");
     }
@@ -1567,9 +1782,9 @@ bool dxfRW::writeTables() {
     writer->writeString(0, "TABLE");
     writer->writeString(2, "UCS");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "7");
+        writer->writeString(5, fixedHandle(0x7));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "0");
+            writer->writeString(330, fixedHandle(0x0));
         }
         writer->writeString(100, "AcDbSymbolTable");
     }
@@ -1579,18 +1794,18 @@ bool dxfRW::writeTables() {
     writer->writeString(0, "TABLE");
     writer->writeString(2, "APPID");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "9");
+        writer->writeString(5, fixedHandle(0x9));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "0");
+            writer->writeString(330, fixedHandle(0x0));
         }
         writer->writeString(100, "AcDbSymbolTable");
     }
     writer->writeInt16(70, 1); //end table def
     writer->writeString(0, "APPID");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "12");
+        writer->writeString(5, fixedHandle(0x12));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "9");
+            writer->writeString(330, fixedHandle(0x9));
         }
         writer->writeString(100, "AcDbSymbolTableRecord");
         writer->writeString(100, "AcDbRegAppTableRecord");
@@ -1603,9 +1818,9 @@ bool dxfRW::writeTables() {
     writer->writeString(0, "TABLE");
     writer->writeString(2, "DIMSTYLE");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "A");
+        writer->writeString(5, fixedHandle(0xA));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "0");
+            writer->writeString(330, fixedHandle(0x0));
         }
         writer->writeString(100, "AcDbSymbolTable");
     }
@@ -1626,16 +1841,21 @@ bool dxfRW::writeTables() {
     if (version > DRW::AC1009) {
         writer->writeString(0, "TABLE");
         writer->writeString(2, "BLOCK_RECORD");
-        writer->writeString(5, "1");
+        writer->writeString(5, fixedHandle(0x1));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "0");
+            writer->writeString(330, fixedHandle(0x0));
         }
         writer->writeString(100, "AcDbSymbolTable");
         writer->writeInt16(70, 2); //end table def
+        if (!exportLayouts.empty()) {
+            writeLayoutBlockRecords();
+            writer->writeString(0, "ENDTAB");
+            return true;
+        }
         writer->writeString(0, "BLOCK_RECORD");
-        writer->writeString(5, "1F");
+        writer->writeString(5, fixedHandle(0x1F));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "1");
+            writer->writeString(330, fixedHandle(0x1));
         }
         writer->writeString(100, "AcDbSymbolTableRecord");
         writer->writeString(100, "AcDbBlockTableRecord");
@@ -1647,9 +1867,9 @@ bool dxfRW::writeTables() {
             writer->writeInt16(281, 0);
         }
         writer->writeString(0, "BLOCK_RECORD");
-        writer->writeString(5, "1E");
+        writer->writeString(5, fixedHandle(0x1E));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "1");
+            writer->writeString(330, fixedHandle(0x1));
         }
         writer->writeString(100, "AcDbSymbolTableRecord");
         writer->writeString(100, "AcDbBlockTableRecord");
@@ -1669,12 +1889,123 @@ bool dxfRW::writeTables() {
 return true;
 }
 
+bool dxfRW::writeLayoutBlockRecords() {
+    for (const auto& record : exportBlockRecords) {
+        writer->writeString(0, "BLOCK_RECORD");
+        writer->writeString(5, toHexStr(record.handle));
+        writer->writeString(330, fixedHandle(0x1));
+        writer->writeString(100, "AcDbSymbolTableRecord");
+        writer->writeString(100, "AcDbBlockTableRecord");
+        writer->writeUtf8String(2, record.name);
+        writer->writeString(340, toHexStr(record.layoutHandle));
+        writer->writeInt16(70, record.insUnits);
+        writer->writeInt16(280, 1);
+        writer->writeInt16(281, 0);
+    }
+    return true;
+}
+
+bool dxfRW::writeLayoutBlocks() {
+    for (const auto& record : exportBlockRecords) {
+        const bool paper = record.name != "*Model_Space";
+        writer->writeString(0, "BLOCK");
+        writer->writeString(5, toHexStr(nextHandle()));
+        writer->writeString(330, toHexStr(record.handle));
+        writer->writeString(100, "AcDbEntity");
+        if (paper) writer->writeInt16(67, 1);
+        writer->writeString(8, "0");
+        writer->writeString(100, "AcDbBlockBegin");
+        writer->writeUtf8String(2, record.name);
+        writer->writeInt16(70, 0);
+        writer->writeDouble(10, 0);
+        writer->writeDouble(20, 0);
+        writer->writeDouble(30, 0);
+        writer->writeUtf8String(3, record.name);
+        writer->writeString(1, "");
+        writer->writeString(0, "ENDBLK");
+        writer->writeString(5, toHexStr(nextHandle()));
+        writer->writeString(330, toHexStr(record.handle));
+        writer->writeString(100, "AcDbEntity");
+        if (paper) writer->writeInt16(67, 1);
+        writer->writeString(8, "0");
+        writer->writeString(100, "AcDbBlockEnd");
+    }
+    return true;
+}
+
+bool dxfRW::writeLayouts() {
+    writer->writeString(0, "DICTIONARY");
+    writer->writeString(5, toHexStr(exportLayouts.front().parentHandle));
+    writer->writeString(330, fixedHandle(0xC));
+    writer->writeString(100, "AcDbDictionary");
+    writer->writeInt16(280, 1);
+    writer->writeInt16(281, 1);
+    for (const auto& layout : exportLayouts) {
+        writer->writeUtf8String(3, layout.name);
+        writer->writeString(350, toHexStr(layout.handle));
+    }
+    for (const auto& layout : exportLayouts) {
+        writer->writeString(0, "LAYOUT");
+        writer->writeString(5, toHexStr(layout.handle));
+        writer->writeString(102, "{ACAD_REACTORS");
+        writer->writeString(330, toHexStr(layout.parentHandle));
+        writer->writeString(102, "}");
+        writer->writeString(330, toHexStr(layout.parentHandle));
+        writer->writeString(100, "AcDbPlotSettings");
+        writer->writeUtf8String(1, layout.pageSetupName);
+        writer->writeUtf8String(2, layout.printerName);
+        writer->writeUtf8String(4, layout.paperSize);
+        writer->writeUtf8String(6, layout.plotViewName);
+        writer->writeDouble(40, layout.marginLeft);
+        writer->writeDouble(41, layout.marginBottom);
+        writer->writeDouble(42, layout.marginRight);
+        writer->writeDouble(43, layout.marginTop);
+        writer->writeDouble(44, layout.paperWidth);
+        writer->writeDouble(45, layout.paperHeight);
+        writer->writeDouble(46, layout.plotOriginX);
+        writer->writeDouble(47, layout.plotOriginY);
+        writer->writeDouble(142, layout.scaleNumerator);
+        writer->writeDouble(143, layout.scaleDenominator);
+        writer->writeInt16(70, layout.plotFlags);
+        writer->writeInt16(72, layout.paperUnits);
+        writer->writeInt16(73, layout.paperRotation);
+        writer->writeInt16(74, layout.plotType);
+        writer->writeInt16(75, layout.standardScaleType);
+        writer->writeDouble(147, layout.standardScale);
+        writer->writeDouble(148, layout.paperOriginX);
+        writer->writeDouble(149, layout.paperOriginY);
+        writer->writeString(100, "AcDbLayout");
+        writer->writeUtf8String(1, layout.name);
+        writer->writeInt16(70, layout.layoutFlags);
+        writer->writeInt16(71, layout.tabOrder);
+        const auto coord = [this](int code, const DRW_Coord& value, bool xyz = true) {
+            writer->writeDouble(code, value.x);
+            writer->writeDouble(code + 10, value.y);
+            if (xyz) writer->writeDouble(code + 20, value.z);
+        };
+        coord(10, layout.minLimit, false);
+        coord(11, layout.maxLimit, false);
+        coord(12, layout.basePoint);
+        coord(14, layout.minExtent);
+        coord(15, layout.maxExtent);
+        writer->writeDouble(146, layout.elevation);
+        coord(13, layout.ucsOrigin);
+        coord(16, layout.ucsXAxis);
+        coord(17, layout.ucsYAxis);
+        writer->writeInt16(76, layout.ucsType);
+        writer->writeString(330, toHexStr(layout.blockRecordHandle));
+        if (layout.lastViewportHandle) writer->writeString(331, toHexStr(layout.lastViewportHandle));
+    }
+    return true;
+}
+
 bool dxfRW::writeBlocks() {
+    if (!exportLayouts.empty()) return writeLayoutBlocks();
     writer->writeString(0, "BLOCK");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "20");
+        writer->writeString(5, fixedHandle(0x20));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "1F");
+            writer->writeString(330, fixedHandle(0x1F));
         }
         writer->writeString(100, "AcDbEntity");
     }
@@ -1695,9 +2026,9 @@ bool dxfRW::writeBlocks() {
     writer->writeString(1, "");
     writer->writeString(0, "ENDBLK");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "21");
+        writer->writeString(5, fixedHandle(0x21));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "1F");
+            writer->writeString(330, fixedHandle(0x1F));
         }
         writer->writeString(100, "AcDbEntity");
     }
@@ -1707,9 +2038,9 @@ bool dxfRW::writeBlocks() {
 
     writer->writeString(0, "BLOCK");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "1C");
+        writer->writeString(5, fixedHandle(0x1C));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "1B");
+            writer->writeString(330, fixedHandle(0x1E));
         }
         writer->writeString(100, "AcDbEntity");
     }
@@ -1730,9 +2061,9 @@ bool dxfRW::writeBlocks() {
     writer->writeString(1, "");
     writer->writeString(0, "ENDBLK");
     if (version > DRW::AC1009) {
-        writer->writeString(5, "1D");
+        writer->writeString(5, fixedHandle(0x1D));
         if (version > DRW::AC1014) {
-            writer->writeString(330, "1F");
+            writer->writeString(330, fixedHandle(0x1E));
         }
         writer->writeString(100, "AcDbEntity");
     }
@@ -1746,7 +2077,7 @@ bool dxfRW::writeBlocks() {
         writer->writeString(0, "ENDBLK");
         if (version > DRW::AC1009) {
             writer->writeString(5, toHexStr(currHandle+2));
-//            writer->writeString(5, "1D");
+//            writer->writeString(5, fixedHandle(0x1D));
             if (version > DRW::AC1014) {
                 writer->writeString(330, toHexStr(currHandle));
             }
@@ -1761,27 +2092,31 @@ bool dxfRW::writeBlocks() {
 
 bool dxfRW::writeObjects() {
     plotSettingsHandles.clear();
-    plotSettingsDictHandle = ++entCount;
+    plotSettingsDictHandle = nextHandle();
     writer->writeString(0, "DICTIONARY");
     std::string imgDictH;
-    writer->writeString(5, "C");
+    writer->writeString(5, fixedHandle(0xC));
     if (version > DRW::AC1014) {
-        writer->writeString(330, "0");
+        writer->writeString(330, fixedHandle(0x0));
     }
     writer->writeString(100, "AcDbDictionary");
     writer->writeInt16(281, 1);
     writer->writeString(3, "ACAD_GROUP");
-    writer->writeString(350, "D");
+    writer->writeString(350, fixedHandle(0xD));
     writer->writeString(3, "ACAD_PLOTSETTINGS");
     writer->writeString(350, toHexStr(plotSettingsDictHandle));
+    if (!exportLayouts.empty()) {
+        writer->writeString(3, "ACAD_LAYOUT");
+        writer->writeString(350, toHexStr(exportLayouts.front().parentHandle));
+    }
     if (imageDef.size() != 0) {
         writer->writeString(3, "ACAD_IMAGE_DICT");
-        imgDictH = toHexStr(++entCount);
+        imgDictH = toHexStr(nextHandle());
         writer->writeString(350, imgDictH);
     }
     writer->writeString(0, "DICTIONARY");
-    writer->writeString(5, "D");
-    writer->writeString(330, "C");
+    writer->writeString(5, fixedHandle(0xD));
+    writer->writeString(330, fixedHandle(0xC));
     writer->writeString(100, "AcDbDictionary");
     writer->writeInt16(281, 1);
 //write IMAGEDEF_REACTOR
@@ -1799,7 +2134,7 @@ bool dxfRW::writeObjects() {
     if (imageDef.size() != 0) {
         writer->writeString(0, "DICTIONARY");
         writer->writeString(5, imgDictH);
-        writer->writeString(330, "C");
+        writer->writeString(330, fixedHandle(0xC));
         writer->writeString(100, "AcDbDictionary");
         writer->writeInt16(281, 1);
         for (unsigned int i=0; i<imageDef.size(); i++) {
@@ -1816,7 +2151,7 @@ bool dxfRW::writeObjects() {
         writer->writeString(0, "IMAGEDEF");
         writer->writeString(5, toHexStr(id->handle) );
         if (version > DRW::AC1014) {
-//            writer->writeString(330, "0"); handle to DICTIONARY
+//            writer->writeString(330, fixedHandle(0x0)); handle to DICTIONARY
         }
         writer->writeString(102, "{ACAD_REACTORS");
         for (auto it=id->reactors.begin() ; it != id->reactors.end(); ++it ) {
@@ -1835,15 +2170,17 @@ bool dxfRW::writeObjects() {
     }
     //no more needed imageDef, delete it
     while (!imageDef.empty()) {
+       delete imageDef.back();
        imageDef.pop_back();
     }
 
-    iface->writeObjects();
+    if (exportLayouts.empty()) iface->writeObjects();
+    else writeLayouts();
 
     // The callback has now supplied every standalone PLOTSETTINGS handle.
     writer->writeString(0, "DICTIONARY");
     writer->writeString(5, toHexStr(plotSettingsDictHandle));
-    writer->writeString(330, "C");
+    writer->writeString(330, fixedHandle(0xC));
     writer->writeString(100, "AcDbDictionary");
     writer->writeInt16(280, 1);
     writer->writeInt16(281, 1);
@@ -3019,7 +3356,7 @@ bool dxfRW::processPlotSettings() {
 }
 
 bool dxfRW::writePlotSettings(DRW_PlotSettings *ent) {
-    ent->handle = ++entCount;
+    ent->handle = nextHandle();
     plotSettingsHandles.push_back(ent->handle);
     writer->writeString(0, "PLOTSETTINGS");
     writer->writeString(5, toHexStr(ent->handle));

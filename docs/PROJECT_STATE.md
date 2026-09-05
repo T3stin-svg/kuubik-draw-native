@@ -1,6 +1,6 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. **P0-A/B MSVC and local portable passed; P1 records locally verified.**
+Status date: **2026-09-05**. **P0-A/B and P1 reader pass MSVC; bounded P1 writer locally verified.**
 
 The current correction session starts at `8a5f7ae0` on the existing integration
 branch. P0-A uses native modification notifications and counts active entities.
@@ -16,7 +16,12 @@ independent DXF/PDF/SVG verification pass, with unchanged native settings regist
 P1 camera fields pass native/raw-tag read/write checks (commit `04a0f55a`).
 LAYOUT/BLOCK_RECORD reading now passes the bounded A3, owner-context and alternate
 page/coordinate cases. New callbacks default to no-op for existing adapters.
-Layout writing/ownership and application integration remain unfinished.
+Reader source `f2879c5b` passes Windows run `33981465387`. Header correction
+`4a1c4e42` and the subsequent explicit layout writer have local proof only.
+The bounded writer preserves identities/owners across two saves, passes raw and
+independent audit 0/0, and protects the destination on failed validation/replacement.
+Its full local application/GUI/file regression passes; MSVC checkpoint is pending. Native paperspace
+document/UI integration and the unsupported-source save guard remain unfinished.
 Owner acceptance, release and remote merge are not implied by these checks.
 
 ## Product and authority

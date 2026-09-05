@@ -2,16 +2,22 @@
 
 ## Jälgitav tööplaan
 
-**Uuendatud:** 2026-09-05 20:29 EEST. **Vastutaja:** Codex, integratsiooniomanik.
-**Hetkel:** P1-01c kirjutuse leping ja DXF 2018 päise parandus.
+**Uuendatud:** 2026-09-05 21:21 EEST. **Vastutaja:** Codex, integratsiooniomanik.
+**Hetkel:** P1-01c commit, avaliku push'i kontroll ja Windows CI.
 **Tööaken:** 5.09 kell 19:10 kuni 6.09 kell 00:10 EEST; Reio kinnitas 5 h arendust.
 **Viimane sündmus:** P0 lähtepunkt `3cefc819` läbis Windows MSVC CI
 [33977714231](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33977714231).
 P0 kohalik portable-kordus ja sõltumatu DXF/PDF/SVG kontroll läbivad.
 Viewport'i kaameraväljad ja ülevaatuse täiendused on kohalikus commit'is `04a0f55a`.
 Layout'i lugeja läbis 4 positiivset ja 7 vigase andmegrupi juhtu ning kogu native build'i.
-Commit `f2879c5b` on push'itud; [CI 33981465387](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33981465387) käib.
-Uus kirjutuse kontroll leidis AC1032 valikul vale AC1021 päise; parandus läbis red/green testi.
+Commit `f2879c5b` läbis [CI 33981465387](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33981465387): MSVC build, native GUI, failikontroll ning camera/layout'i lugeja regressioonid.
+DXF 2018 päise parandus läbis red/green testi ja on kohalikus commit'is `4a1c4e42`.
+P1-01c ülevaatuse parandused ja lõplik kohalik failitest läbivad: 4 sisendit × 2 salvestust,
+UTF-8 nimi/lehesätted, hõredad/kattuvad tunnused, nähtavus ja raw-seosed + audit 0/0.
+21 tõrkejuhtumit kaitsevad sihtfaili, sh päriselt lukustatud fail, erandid ja tunnuste ammendumine.
+Katkenud legacy-pildi kirjutuse järel ei kandu vana olek järgmisse eksporti.
+Camera, layout'i lugeja ja PLOTSETTINGS regressioonid läbivad. Native build, GUI,
+DXF/PDF/SVG, 4 ribboni mõõdukontrolli ja 8 isoleeritud profiili läbivad; register muutumatu.
 [Selle tööakna plaan](../tasks/plan.md).
 
 ```mermaid
@@ -20,7 +26,7 @@ flowchart TD
     A["P0-A · Properties<br/>Teostus ✓ · 9 olekut ✓<br/>Kohalik commit d4280f9b"]
     B["P0-B · DXF ownership<br/>Teostus ✓ · 14 väljundit audit 0/0 ✓<br/>Kohalik commit 4e40a43c"]
     G["G-01 · MSVC CI 33977714231 ✓<br/>Source 3cefc819 · portable-kordus ✓<br/>Omaniku vastuvõtt ootel"]
-    P["1 · Native paperspace<br/>Camera + layout'i lugemine lokaalselt ✓<br/>Kirjutus ja native UI ootel"]
+    P["1 · Native paperspace<br/>Lugemine: kohalik ✓ · MSVC ✓<br/>Kirjutus + native regressioon: kohalik ✓ · CI ootel<br/>Native UI ootel"]
     C["2 · Igapäevased CAD-töövood<br/>MOVE/COPY elutsükkel · Modify<br/>Layers · Annotation · Blocks · Properties"]
     R["3 · Töökindlus ja failitugi<br/>Taaste · suured DXF-id · päris Windows DPI<br/>Laiem failikorpus ja omaniku töövood"]
     UI --> A
@@ -39,7 +45,7 @@ protsente ega tähtaegu ei ole oletatud. Reprodutseeritav P0 viga tõuseb järje
 | SARibboni alus, `d35ec354` | Valmis | Läbitud | Läbitud: `33966232573` | Ootel |
 | P0-A Properties | Valmis | 9/9 olekut | Läbitud: `33977714231` | Ootel |
 | P0-B PLOTSETTINGS | Valmis | 14 väljundit: audit 0/0 | Läbitud: `33977714231` | Ootel |
-| Native paperspace | P1-01a camera ja P1-01b lugemine valmis; kirjutus/UI puuduvad | Camera + layout + native GUI regressioonid läbitud | Ootel | Puudub |
+| Native paperspace | P1-01a/b lugemine ja P1-01c piiratud kirjutus valmis; UI puudub | Kirjutuse 9 väljundit audit 0/0, 21 tõrkejuhtu; native GUI/failiregressioon ✓ | Lugemine: `33981465387`; uus päis/kirjutus ootel | Puudub |
 | AutoCADi-laadsed MOVE/COPY töövood | Planeeritud; native alus olemas | Täielik töövoog tõendamata | Täielik töövoog tõendamata | Puudub |
 | Laiem töökindlus ja failitugi | Planeeritud | Osaline senine korpus | Osaline senine korpus | Puudub |
 
@@ -55,7 +61,7 @@ protsente ega tähtaegu ei ole oletatud. Reprodutseeritav P0 viga tõuseb järje
 - [x] Kontrollida LINE → save ning PLINE → save → Undo → save → Redo → save.
 - [x] Kontrollida kõiki 9 entity/Modified olekut: enne parandust 8 viga, pärast 0.
 - [x] Säilitada selection, layer, MDI ja native Undo/Redo töövood.
-- [ ] Läbida sama lähtekoodi Windows MSVC CI ja portable-kordus.
+- [x] Läbida sama lähtekoodi Windows MSVC CI ja portable-kordus.
 - [ ] Reio kontrollib tegelikus töövoos entity count'i ja Modified-näitu.
 
 **Lõpetamise tingimus:** õige näit pärast iga nimetatud tegevust, olemasolevad
@@ -72,7 +78,7 @@ töövood säilinud ning uus Windowsi artifact sama lähtekoodiga tõendatud.
 - [x] Nõuda puhtalt sisendilt ja 14 väljundilt 0 audit error'it ning 0 repair'i.
 - [x] Kontrollida geomeetria, kihtide, ühikute, margin'ite ja native reopen'i säilimist.
 - [x] Hoida binary-DXF päise leitud viga eraldi lahtise tööna F-01.
-- [ ] Läbida sama lähtekoodi Windows MSVC CI ja portable-kordus.
+- [x] Läbida sama lähtekoodi Windows MSVC CI ja portable-kordus.
 - [ ] Reio kontrollib sünteetilise DXF-i avamist, muutmist ja taasavamist.
 
 **Lõpetamise tingimus:** PLOTSETTINGS säilib ka sõltumatu auditi mälus;
@@ -125,9 +131,10 @@ flowchart TD
 | P1-07 | Mõõtkavatäpne vektor-PDF | 1:1 A3 paber; 5000 mm LINE mõõdab vastavalt 100 ja 50 mm; tolerants ≤0,05 mm; geomeetria ei ole raster | P1-04–06 |
 | P1-08 | Layout copy | Koopia saab eraldi layout/viewport ID-d, näitab sama mudelit ning säilitab oma camera, scale'i ja lock'i ka reopen'i järel | P1-07 põhivoo tõend |
 
-P1-01 alametapid: **a)** viewport'i camera väljad ja testid — lokaalselt läbitud;
-**b)** LAYOUT/BLOCK_RECORD lugemine — lokaalselt läbitud; **c)** terviklik ownership'i kirjutus
-ja sõltumatu 0/0 audit — ootel. Üks alametapp ei märgi kogu P1-01 tööd läbituks.
+P1-01 alametapid: **a)** viewport'i camera väljad ja testid — kohalik/MSVC läbitud;
+**b)** LAYOUT/BLOCK_RECORD lugemine — kohalik/MSVC läbitud; **c)** terviklik ownership'i kirjutus,
+tunnuste säilitamine, failiasenduse veakaitse ja sõltumatu 0/0 audit — töös.
+Üks alametapp ei märgi kogu P1-01 tööd läbituks.
 
 **P1 koondvastuvõtt:** kõik kaheksa rida ei ole üks automaatne PASS. Põhislice'i
 värav on P1-01–07 ühine native töövoog, sõltumatu DXF/PDF mõõtmine, Windows CI

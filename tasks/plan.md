@@ -92,3 +92,40 @@ Review 1 (fresh-context read-only agent) found five actionable gaps; all accepte
 Reio explicitly chose to continue with this review and tests, without an external
 cross-model CLI. Re-review the bounded ownership proposal after these constraints
 are made concrete; camera field behavior first receives its own red/green test.
+
+## P1-01c reviewed export contract
+
+The second writer review accepted the bounded explicit ASCII2018 path, with six
+corrections incorporated before implementation:
+
+- Pass retained BLOCK_RECORD records as well as layouts and the complete supported
+  LINE/VIEWPORT list. Validate backlinks, names, IDs, units, finite camera/page
+  values, separate viewport IDs and last-active references before touching a target.
+  The source adapter must establish raw ACAD_LAYOUT dictionary membership.
+- Serialize that validated entity list directly with existing native writers;
+  do not invoke a second writeEntities callback for the same explicit export.
+- Preserve layout/dictionary/block-record/entity handles. Relocate generated
+  system handles above them, keep null references zero, check arithmetic headroom
+  and every allocation, and correct inherited STYLE/VPORT table owners and dangling
+  plot-style references. Patch HANDSEED only after allocation finishes.
+- Obtain and validate the millimeter header once; header getters consume values,
+  so validation inspects vars. AC1032's missing header case was separately fixed
+  in `4a1c4e42`, with raw red/green proof.
+- Write an exclusively created sibling temporary file, check serialization and
+  flush/close, then perform native replacement. Never remove the destination first.
+  Failed preflight, write or replacement must preserve an existing sentinel file.
+- Keep export state scoped to one call. Test failure → explicit success → legacy
+  export reuse, raw target types/owners before independent loading, nonconsecutive
+  and conflicting imported handles, near-limit rejection and zero audit repairs.
+
+This remains a bounded file contract. Unknown source records, arbitrary DXF
+losslessness, native layout ownership/Undo and UI stay separate gates.
+
+Implementation review caught three shared-path defects: inverted entity visibility,
+an optional VPORT style pointer to absent/wrong-type handle 10020, and stale owned
+image definitions after an interrupted legacy write. All are corrected; raw
+visibility/style RED checks were recorded before fixes. A Windows CRLF stream
+position failure also received a failing raw test and a flush-before-tellp fix.
+The final local suite passes four inputs/two saves plus image-recovery output,
+raw ownership and independent audit 0/0, twenty-one Windows failure/retry cases,
+camera/read/PLOTSETTINGS regressions. Full native build and GUI checks follow.

@@ -91,7 +91,7 @@ bool DRW_Entity::parseCode(int code, dxfReader *reader){
         ltypeScale = reader->getDouble();
         break;
     case 60:
-        visible = reader->getBool();
+        visible = reader->getInt32() == 0;
         break;
     case 420:
         color24 = reader->getInt32();

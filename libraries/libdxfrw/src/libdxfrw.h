@@ -42,6 +42,15 @@ public:
     void setBinary(bool b) {binFile = b;}
 
     bool write(DRW_Interface *interface_, DRW::Version ver, bool bin);
+    /** Explicit bounded ASCII2018 layout export; one Model and one paper layout.
+     * Borrowed entity pointers must stay valid and unchanged until return.
+     * Supports 2D LINE and rectangular VIEWPORT only. The source adapter must
+     * validate raw dictionary membership/unsupported source data before export.
+     * Validation or write/replace failure leaves the destination unchanged.
+     */
+    bool writeLayoutDocument(DRW_Interface *interface_, const std::vector<DRW_Layout>& layouts,
+                             const std::vector<DRW_Block_Record>& records,
+                             const std::vector<const DRW_Entity*>& entities);
     bool writeLineType(DRW_LType *ent);
     bool writeLayer(DRW_Layer *ent);
     bool writeDimstyle(DRW_Dimstyle *ent);
@@ -78,6 +87,16 @@ public:
     DRW::error getError() const;
 
 private:
+    bool writeFile(const std::string& path, DRW_Interface*, DRW::Version, bool, DRW_Header&,
+                   const std::vector<const DRW_Entity*>& entities);
+    bool prepareLayouts(const DRW_Header&, const std::vector<DRW_Layout>&,
+                        const std::vector<DRW_Block_Record>&, const std::vector<const DRW_Entity*>&);
+    void clearExportState();
+    int nextHandle();
+    std::string fixedHandle(int value);
+    bool writeLayoutBlockRecords();
+    bool writeLayoutBlocks();
+    bool writeLayouts();
     /// used by read() to parse the content of the file
     bool processDxf();
     bool processHeader();
@@ -146,6 +165,10 @@ private:
 //    int section;
     std::string nextentity;
     int entCount = 0;
+    int systemHandleBase = 0;
+    bool writeFailed = false;
+    std::vector<DRW_Layout> exportLayouts;
+    std::vector<DRW_Block_Record> exportBlockRecords;
     int plotSettingsDictHandle = 0;
     std::vector<int> plotSettingsHandles;
     bool wlayer0 = false;
