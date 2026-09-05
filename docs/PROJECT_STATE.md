@@ -1,8 +1,12 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. **P1 file foundation, save guard, native metadata/Undo, Qt camera foundation, settings diagnostics and binary Boolean fix pass MSVC and local packaged replay.**
+Status date: **2026-09-06**. **P1 file foundation, save guard, native metadata/Undo, Qt camera foundation, settings diagnostics and binary Boolean fix pass MSVC and local packaged replay.**
 
-Latest pushed executable source: `81103460ba46f0cecb79da00764b8a7d99832e41`.
+Latest guide/package source: `7b897ea8858ce97993cd2914f56a986db8660c4e`, [MSVC 33991361757](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33991361757) and full local replay pass.
+ZIP SHA-256: `9315d20dbfea896461fdd7e8692bedb1c7e53a8f3b71bbdcc446577555f2e5dd` (43,811,803 bytes).
+Application code remains the verified `81103460` checkpoint below.
+
+Verified executable code checkpoint: `81103460ba46f0cecb79da00764b8a7d99832e41`.
 Combined Windows verification passed in
 [33990304131](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33990304131).
 The 43,811,683-byte ZIP matches source/run and SHA-256

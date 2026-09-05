@@ -149,6 +149,12 @@ nativeCenter = target + R(-rawTwist) * dcsCenter
 export: dcsCenter = R(rawTwist) * (nativeCenter - target)
 ```
 
+Valemites on mõlemad nurgad radiaanides. DXF-i group 51 on kraadides, kuid
+`DRW_Viewport::parseCode` teisendab selle juba `twistAngle` radiaanideks ning
+`writeViewport` teeb tagasiteisenduse. Native adapter ei tohi seda teisendust
+teist korda rakendada. `viewHeight` ja WCS/DCS koordinaadid jäävad joonise
+ühikutesse, raam paberimillimeetritesse; esimene impordileping lubab ainult mm.
+
 Eraldi planeerimiskatse võrdles keskpunkti ja mõlemat 5000-ühikulist baastelge
 ezdxf 1.4.4 maatriksiga: 0/+30/−30°, mõlemad mõõtkavad, mitte-null siht/kese
 ja ekspordi pöördvalem läbivad. See ei käivitanud veel native DXF-adapterit.

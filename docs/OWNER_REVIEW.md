@@ -1,7 +1,7 @@
 # Kuubik Draw — Reio ülevaatus
 
-2026-09-05 native paperspace'i aluse arendusetapp. Source `81103460` läbis Windows
-CI `33990304131` ning ZIP-i räsi/manifesti ja kohaliku täiskorduse kontrolli.
+2026-09-05 native paperspace'i aluse arendusetapp. Source `7b897ea8` läbis Windows
+CI `33991361757` ning ZIP-i räsi/manifesti ja kohaliku täiskorduse kontrolli.
 Täpne pakett ja räsi on [TEST_REPORT.md](TEST_REPORT.md) alguses. Tegemist on arenduse
 eelvaatega, mitte uue avaliku release'i ega valmis AutoCAD-asendusega.
 

@@ -40,6 +40,22 @@ Existing native LINE/PLINE, COPY/MOVE Undo/Redo, layer, Tool Options, ribbon and
 DXF/PDF/SVG gates remain required. DPI captures use qwindows and Qt scale factors;
 they do not certify physical Windows Settings scaling or multiple monitors.
 
+## Reproduce the independent evidence checks
+
+Use the recorded source and a fresh download directory. The complete CI artifact
+contains the companion drawings and reports that the six-file summary omits:
+
+```powershell
+gh run download 33990304131 --repo T3stin-svg/kuubik-draw-native --name KuubikDraw-0.2.0-preview.2-gui-evidence --dir .artifacts/evidence-replay-33990304131
+python scripts/verify-preview-outputs.py ".artifacts/evidence-replay-33990304131/Kuubik Draw portable smoke"
+python scripts/test-viewport-probe-verifier.py ".artifacts/evidence-replay-33990304131/Kuubik Draw portable smoke/gui-evidence/viewport-transform-probe.pdf"
+python scripts/verify-ribbon-layout.py ".artifacts/evidence-replay-33990304131/Kuubik Draw portable smoke/dpi-evidence/reference/kuubik-ui-contract.json" --exact-reference
+```
+
+These developer checks use ezdxf 1.4.4, Pillow and pypdf. The application itself
+does not need Python. GitHub artifacts have finite retention; the development
+AI handoff includes an evidence ZIP, source ZIP, portable ZIP and their SHA-256s.
+
 ## Limits and continuation
 
 The libdxfrw layout writer is a bounded file contract. Native layout import/export,

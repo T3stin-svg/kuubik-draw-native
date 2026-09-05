@@ -2,16 +2,16 @@
 
 ## Jälgitav tööplaan
 
-**Uuendatud:** 2026-09-05 23:51 EEST. **Vastutaja:** Codex.
-**Hetkel:** source `81103460` läbis [Windows CI 33990304131](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33990304131), SHA/manifesti ja kohaliku täiskorduse. Paketi aegunud testijuhendi parandus ning üleandmine käivad.
+**Uuendatud:** 2026-09-06 00:10 EEST. **Vastutaja:** Codex.
+**Seis:** `7b897ea8` läbis [Windows CI 33991361757](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33991361757), ZIP-i SHA/manifesti ja kohaliku täiskorduse. Järgmine teostus on P1-02c.
 **Tööaken:** 5.09 kell 19:10 kuni 6.09 kell 00:10 EEST; Reio kinnitas 5 h arendust.
 
 - **Teostatud ja kohalikult kontrollitud:** Properties, PLOTSETTINGS, piiratud
   layout-failileping, native salvestuskaitse, metadata/Undo (54 kontrolli),
   Qt kaamera alus (36 kontrolli), settings-tõrgete diagnostika (3 juhtu)
   ning binary-DXF bool-parandus (15 väljundit, audit 0/0).
-- **Üleandmisel:** EXE, lähtekood ja tõendid; paketi testijuhend viiakse praeguse
-  käitumisega kooskõlla. Kõik nimetatud parandused läbivad sama source'i MSVC ja kohaliku paketikontrolli.
+- **Kontrollitud Windowsi pakett:** parandatud juhend, täpne source/CI/SHA,
+  native ja sõltumatud katsed läbitud. Omaniku vastuvõtt on eraldi ootel.
 - **Järgmisena:** valideeritud DXF impordiadapter koos tunnuste ja DCS/WCS
   kaameraseosega; seejärel native save/close/reopen. Model/Layout sakid,
   viewport'i kaudu muutmine ja native layout-PDF on veel tegemata.
@@ -25,7 +25,7 @@ flowchart TD
     B["P0-B · DXF ownership<br/>Teostus ✓ · 14 väljundit audit 0/0 ✓<br/>Kohalik commit 4e40a43c"]
     G["G-01 · MSVC CI 33977714231 ✓<br/>Source 3cefc819 · portable-kordus ✓<br/>Omaniku vastuvõtt ootel"]
     P["1 · Native paperspace<br/>Failileping + salvestuskaitse: kohalik ✓ · MSVC ✓<br/>Metadata/Undo: 54 kontrolli ✓ · MSVC ✓<br/>Qt transform: 36 kontrolli ✓ · MSVC ✓<br/>Native UI ootel"]
-    V["G-02 · Viimase paketi kontroll<br/>81103460 · MSVC ✓ · kohalik ZIP ✓<br/>Settings: 3 tõrkeproovi ✓<br/>Binary bool: 15 faili ✓<br/>Testijuhend / AI-pakk koostamisel"]
+    V["G-02 · Viimase paketi kontroll<br/>81103460 · MSVC ✓ · kohalik ZIP ✓<br/>Settings: 3 tõrkeproovi ✓<br/>Binary bool: 15 faili ✓<br/>7b897ea8 juhendipakett · MSVC ✓ · kohalik ZIP ✓"]
     C["2 · Igapäevased CAD-töövood<br/>MOVE/COPY elutsükkel · Modify<br/>Layers · Annotation · Blocks · Properties"]
     R["3 · Töökindlus ja failitugi<br/>Taaste · suured DXF-id · päris Windows DPI<br/>Laiem failikorpus ja omaniku töövood"]
     UI --> A
@@ -37,8 +37,8 @@ flowchart TD
     classDef verified fill:#123d31,stroke:#42b887,color:#f0fff8
     classDef active fill:#473711,stroke:#e4b648,color:#fff6dc
     classDef pending fill:#252b35,stroke:#8592a3,color:#edf2f8
-    class A,B,G verified
-    class P,V active
+    class A,B,G,V verified
+    class P active
     class C,R pending
 ```
 

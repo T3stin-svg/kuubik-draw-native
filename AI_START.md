@@ -111,6 +111,9 @@ Settings scaling and full AutoCAD command equivalence remain unproved.
 
 ## Current work — 2026-09-05 five-hour paperspace foundation
 
+Final guide/package source `7b897ea8` passes MSVC `33991361757`, downloaded
+checksum/manifest and full local replay. See TEST_REPORT for its exact ZIP.
+
 Reio authorized continued development through 21:10:46 UTC, work-branch pushes
 and existing Windows CI. Both P0 slices pass MSVC CI at `3cefc819`; the package
 checksum, source manifest and full local portable replay pass.

@@ -206,7 +206,9 @@ this is a bounded codec repair, not a new binary save UI or compatibility claim.
 Combined source `81103460` was committed and pushed after Gitleaks/diff checks;
 MSVC run `33990304131` passes. Final artifact checksum/manifest and local portable
 replay pass, including independent outputs, ten isolated processes, unchanged
-registry and the three forced settings failures. Development handoff is being assembled.
+registry and the three forced settings failures. Final guide/package source `7b897ea8` also passes MSVC 33991361757,
+its downloaded SHA/manifest and full local replay. The development archive uses
+separate exact source/executable/evidence identities; release and native UI remain open.
 
 The existing read-only reviewer traced the next adapter boundary. Native geometry
 currently changes during import, DICTIONARY membership is skipped and entity DXF

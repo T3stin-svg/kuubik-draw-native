@@ -19,5 +19,6 @@ Copy this prompt exactly:
 
 Short spoken version:
 
-> LibreCAD GitHub — open `T3stin-svg/kuubik-draw-native`, read `AI_START.md`, and
+> LibreCAD GitHub — open `T3stin-svg/kuubik-draw-native` on branch
+> `codex/autocad-visual-integration-root`, read `AI_START.md`, and
 > continue the first unfinished implementation task in `NEXT_TASKS.md`.

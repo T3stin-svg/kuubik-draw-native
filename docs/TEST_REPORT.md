@@ -1,6 +1,20 @@
 # Kuubik Draw Native — verified test checkpoint
 
-## Latest Windows development package — verified
+## Final package with current guide — verified
+
+Executable source `7b897ea8858ce97993cd2914f56a986db8660c4e` passes [MSVC 33991361757](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33991361757).
+This rebuild includes the corrected owner/test guide and byte-exact source evidence;
+application code is unchanged from the verified `81103460` checkpoint below.
+The downloaded ZIP is **43,811,803 bytes**, SHA-256
+`9315d20dbfea896461fdd7e8692bedb1c7e53a8f3b71bbdcc446577555f2e5dd`; checksum sidecar and manifest source/run match.
+Full local packaged replay passes again: native GUI, metadata/camera, independent
+DXF/PDF/SVG, six negative PDF cases, four ribbon checks and three real settings
+failure cases. Ten isolated portable processes leave the registry unchanged.
+Evidence: ignored `guide-msvc-local-replay.log` and its fresh replay/failure folders.
+The development AI archive binds its source, portable and CI evidence ZIPs in
+HANDOFF_MANIFEST.json and SHA256SUMS.txt. No release or merge was made.
+
+## Executable code checkpoint — 81103460
 
 - Executable source: `81103460ba46f0cecb79da00764b8a7d99832e41`.
 - [Windows run 33990304131](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33990304131): all gates passed.

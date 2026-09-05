@@ -1,6 +1,6 @@
 # Kuubik Draw Native — next tasks
 
-Updated 2026-09-05. Reproducible owner-found failures always take priority.
+Updated 2026-09-06. Reproducible owner-found failures always take priority.
 
 ## P0 — local and Windows verification complete; owner gate open
 
@@ -27,6 +27,9 @@ Updated 2026-09-05. Reproducible owner-found failures always take priority.
 - [x] Verify the final `81103460` ZIP/source/SHA and full local portable replay:
   ten isolated processes, unchanged registry, independent outputs/ribbon/negative
   PDF checks and the three actual settings failure cases all pass.
+
+- [x] Rebuild corrected packaged test guide: `7b897ea8`, MSVC `33991361757`;
+  downloaded SHA/source and full local replay pass. Application code unchanged.
 
 ## Completed — approved SARibbon UI milestone
 
