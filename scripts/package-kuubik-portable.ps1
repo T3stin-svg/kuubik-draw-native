@@ -160,8 +160,8 @@ $manifest = [ordered]@{
         license = 'MIT'
         frameless = $false
     }
-    guaranteedFileWorkflows = @('DXF open/save', 'vector PDF export')
-    notCertified = @('DWG roundtrip', 'DWT', 'XREF parity')
+    guaranteedFileWorkflows = @('2D model-space DXF open/save (tested subset)', 'vector PDF export')
+    notCertified = @('paperspace/layout roundtrip', 'DWG roundtrip', 'DWT', 'XREF parity', 'AutoCAD 2024 visual/command parity')
     builtAtUtc = [DateTime]::UtcNow.ToString('o')
     githubRunId = $env:GITHUB_RUN_ID
 }

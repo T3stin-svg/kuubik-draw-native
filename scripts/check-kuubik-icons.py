@@ -20,6 +20,7 @@ REQUIRED_KEYS = {
     "DimRadial", "DimDiametric", "DimAngular", "DimLeader",
     "LayersAdd", "LayersEdit", "LayersToggleView", "LayersToggleLock",
     "BlocksInsert", "BlocksCreate", "BlocksEdit", "BlocksExplode", "BlocksImport", "ModifyEntity",
+    "PenSyncFromLayer", "PenPick", "PenPickResolved", "PenApply", "PenCopy",
     "InfoDist", "InfoAngle", "InfoArea", "InfoTotalLength",
     "EditCut", "EditCopy", "EditPaste", "ViewGrid", "RestrictOrthogonal", "SnapEnd", "SnapMiddle",
     "SnapCenter", "SnapIntersection", "ZoomIn", "ZoomOut", "ZoomPrevious", "ZoomWindow", "ZoomPan",

@@ -85,7 +85,8 @@ function Run-Native(
     [string]$Executable,
     [string[]]$Arguments,
     [string]$Label,
-    [hashtable]$Environment = @{}
+    [hashtable]$Environment = @{},
+    [int]$TimeoutSeconds = 180
 ) {
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $Executable
@@ -107,7 +108,12 @@ function Run-Native(
     if ($null -eq $process) {
         throw "$Label failed to start."
     }
-    $process.WaitForExit()
+    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+        # Only this freshly created test process is owned by the harness.
+        # A modal regression must not consume the entire CI runner timeout.
+        $process.Kill($true)
+        throw "$Label exceeded the $TimeoutSeconds second test timeout."
+    }
     if ($process.ExitCode -ne 0) {
         throw "$Label failed with exit code $($process.ExitCode)"
     }
@@ -194,6 +200,7 @@ $statusMenuScreenshotPath = Join-Path $smokeRoot 'status-bar-customization.png'
 $statusBarScreenshotPath = Join-Path $smokeRoot 'status-bar.png'
 $uiContractEnvironment = $offscreenEnvironment.Clone()
 $uiContractEnvironment['KUUBIK_UI_CONTRACT_PATH'] = $uiContractPath
+$uiContractEnvironment['KUUBIK_UI_SCREENSHOT_PATH'] = (Join-Path $smokeRoot 'workspace.png')
 $uiContractEnvironment['KUUBIK_STATUS_MENU_SCREENSHOT_PATH'] = $statusMenuScreenshotPath
 $uiContractEnvironment['KUUBIK_STATUS_BAR_SCREENSHOT_PATH'] = $statusBarScreenshotPath
 $uiContractEnvironment['KUUBIK_UI_CONTRACT_WIDTH'] = '1200'

@@ -103,6 +103,9 @@ private:
     QToolBar* penToolbar {nullptr};
     QToolBar* optionToolbar {nullptr};
     Qt::Orientation penToolbarOriginalOrientation {Qt::Horizontal};
+    bool penToolbarOriginalMovable {true};
+    bool penToolbarOriginalFloatable {true};
+    QList<QAction*> penToolbarOriginalActions;
     QFrame* penToolbarHost {nullptr};
     QFrame* optionToolbarHost {nullptr};
     QGridLayout* penToolbarLayout {nullptr};

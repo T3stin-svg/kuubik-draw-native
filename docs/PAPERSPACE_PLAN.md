@@ -40,7 +40,25 @@ muuda model-entity koordinaate. PDF kasutab lehte 1:1, mitte fit-to-page'i.
 
 ## DXF ja andmete säilimine
 
-Esmane tootmistee jääb libdxfrw. Täita senine tühi `RS_FilterDXFRW::addViewport`
+Esmane tootmistee jääb libdxfrw. **Sellest ei piisa, et täita üks callback.**
+2026-09-05 native-lähtekoodi järelkontroll leidis ka teegitaseme puudujäägid:
+
+| Päris lähtekoodikoht | Praegune piirang / järgmine vajalik muudatus |
+|---|---|
+| `librecad/src/lib/filters/rs_filterdxfrw.h`, `addViewport` | Tühi callback; lisada päris native viewport'i import |
+| `librecad/src/lib/filters/rs_filterdxfrw.cpp`, `addBlock` | `*Paper_Space` suunatakse dummyContainer'isse, mis impordi lõpus kustutatakse |
+| `libraries/libdxfrw/src/drw_entities.cpp`, `DRW_Viewport::parseCode` | DXF-spetsiifiliselt loeb 40/41/68/69/12/22; puuduvad mudeli kõrgus 45, twist 51 ja lippude 90 terviktee |
+| `libraries/libdxfrw/src/libdxfrw.cpp`, `writeViewport` | Kirjutab samuti ainult piiratud välju; skaala/lukk ei säili praegu selle kaudu |
+| `libraries/libdxfrw/src/drw_interface.h`, `drw_objects.h` | Puudub LAYOUT callback/valmis objektiarhitektuur; LAYOUT on TODO loendis |
+| `libraries/libdxfrw/src/libdxfrw.cpp`, `writeEntity`, `writeObjects` | Uued handle'id, üldise owner'i kirjutamise ja ACAD_LAYOUT sõnastiku laiendamise vajadus |
+| `librecad/src/lib/filters/rs_filterdxfrw.cpp`, `writeObjects` | Praegu ainult dokumendi üks PLOTSETTINGS; vajalikud layout-põhised lehesätted |
+
+Lukustada esmalt minimaalne DXF 2018 record-leping: LAYOUT dictionary, layout'i
+BLOCK_RECORD, paper-space entity owner, viewport'i identiteet/status, view-height,
+twist ja lock lipud. Kõik arvväärtused tuleb initsialiseerida ka puuduvate DXF
+väljade korral. Teegi DWG-lugejas olev samanimeline väli ei tõenda DXF-tuge.
+
+Täita senine tühi `RS_FilterDXFRW::addViewport`
 ja asendada paper-space block'i dummy-käsitlus päris layout'i seostamisega.
 LAYOUT, BLOCK_RECORD, paper-space entities ja VIEWPORT peavad säilitama owner-
 seosed, eristatavad handle'id, nime ja viewport'i lipud. Eraldada lehe üldviewport
@@ -52,8 +70,39 @@ record/proxy, kui see on ohutult võimalik, vastasel juhul keelduda originaali
 ülekirjutamisest koos konkreetse selgitusega. Save As koopiale jääb eraldi
 teadlikult piiratud eksporditee. Selle toe puudumisel pole roundtrip sertifitseeritud.
 
+**Praegune SARibboni eelvaade ei rakenda seda kaitset. Layout'e sisaldavat
+tootmisoriginaali ei tohi selle eelvaatega üle salvestada; katsetada koopiaga.**
+
+## Native integratsioonipunktid ja eluea piirid
+
+- `RS_Graphic` omab layout'ide registrit. Registri identiteet on stabiilne ID,
+  mitte kasutaja muudetav nimi ega UI-saki indeks. `newDoc`, open-failure,
+  document close ja save-as peavad registrit üheselt haldama.
+- `RS_Document::removeUndoable` oskab praegu koristada ainult undone entity'id.
+  Enne uute layout-muudatuste `RS_Undoable`-objektide lisamist tuleb laiendada
+  omandit ja obsolete-redo koristust. Toores UI-pointer Undo payload'is ei sobi.
+  Võimalik adapter hoiab dokumendi ID-sid ning enne/pärast väärtusseisu ja ühineb
+  sama `startUndoCycle` / `endUndoCycle` tehinguga.
+- `RS_GraphicView::toGui/toGraph` on praegu telgede skaalal/nihkel põhinev.
+  Pööratud viewport ei valmi ainult QPainter.rotate abil: olemasolevad käsud ja
+  snap kasutavad samas klassis scalar toGuiX/toGuiY/toGraphX/toGraphY teisendusi.
+  Kõik need tarbijad tuleb kaardistada; uus ühtne 2D transform peab teenindama
+  vektorpunkte ja distantse õigesti, ilma mudelkoordinaate ümber kirjutamata.
+- `RS_GraphicView::drawEntity` ja `RS_PainterQt` jäävad native renderdusteeks.
+  Iga viewport'i renderdus salvestab/taastab painter'i klipi ja transformi.
+  Valikuhandle'id, snap-markerid, joonetüübi skaala ja lineweight ei tohi pärida
+  kogemata eelmise viewport'i olekut. Mitteplotitav viewport'i raam on eraldi
+  paberobjekti omadus, mitte mudeli layer'i globaalne peitmine.
+- Print Preview ja PDF peavad saama sama layout-konteksti. Ekraanil nähtud
+  rasterpildi asetamine PDF-i ei ole vektor-PDF värava täitmine.
+- Aktiivse viewport'i kustutamine vahetab konteksti ohutult Paper'iks, katkestab
+  pooliku käsu ilma geomeetriat salvestamata ja puhastab valiku. Undo taastab
+  identiteedi; aktiivse UI-fookuse taastamise poliitika testitakse eraldi.
+
 ## Tööjärjekord ja testid
 
+0. libdxfrw minimaalne record-leping ja import/export korpus: tõendada, et vajalikud
+   andmed üldse läbivad teegi. Alles siis siduda UI nupud uute objektidega.
 1. Native layout/viewport omand, eluiga ja Undo; mudeli külge sidumise testid.
 2. Üks ühine transformatsioon: 0° ja 30°, pöördteisendus, klippimine, ühikud.
 3. DXF sünteetiline korpus enne UI lubamist; import/export/import ning ezdxf audit.

@@ -20,6 +20,7 @@ def require(condition, message):
 def verify(contract, exact_reference=False):
     require(contract["classicNativeToolbarsRestored"] is True,
             "Classic workspace did not regain its native toolbars")
+    require(contract["classicPenActionsRestored"] is True, "Classic lost native Pen commands")
     interaction = contract["ribbonInteraction"]
     for field in ("tabsPassed", "gridAvailable", "keyboardFocusReached",
                   "spaceToggledNativeGrid", "spaceRestoredNativeGrid",
@@ -36,6 +37,7 @@ def verify(contract, exact_reference=False):
     require(layout["implementation"] == "SARibbon" and layout["version"] == "2.9.0",
             "Unexpected ribbon implementation/version")
     require(layout["frameless"] is False, "Unexpected frameless dependency")
+    require(layout["barContained"] is True, "Ribbon is clipped by its outer toolbar")
     require(layout["tabs"] == ["Home", "Insert", "Annotate", "View", "Manage", "Output"],
             "Native ribbon tab order changed")
     require(layout["currentLayerInLayers"] is True, "Native layer selector is outside Layers")
@@ -73,10 +75,25 @@ def verify(contract, exact_reference=False):
         else:
             require(panel["unavailable"] is False and bool(panel["controls"]),
                     f"{title}: unexpected unavailable panel")
+        if title in ("Layers", "Properties"):
+            require(panel["collapsed"] is False, f"{title}: native selectors lost behind action-only overflow")
+            expected_count = 1 if title == "Layers" else 3
+            require(len(panel["embeddedControls"]) == expected_count,
+                    f"{title}: expected {expected_count} native selectors")
+            require(all(control["visible"] is True and control["contained"] is True
+                        and control["width"] > 0 and control["height"] > 0
+                        for control in panel["embeddedControls"]),
+                    f"{title}: native selector is hidden or clipped")
+        if title == "Properties":
+            require({c["key"] for c in panel["controls"]} == {
+                "ModifyEntity", "PenSyncFromLayer", "PenPick", "PenPickResolved", "PenApply", "PenCopy"},
+                "Properties must retain all five native Pen commands and ModifyEntity")
         visible_rects = []
         for control in panel["controls"]:
             require(control["nativeIdentity"] is True and control["enabledMatchesNative"] is True,
                     f"{control['key']}: native action identity/enabled state diverged")
+            require(control["visible"] is (not panel["collapsed"]),
+                    f"{control['key']}: visibility disagrees with panel presentation")
             if control["visible"]:
                 require(control["contained"] is True, f"{control['key']}: clipped button")
                 x, y, w, h = (control[k] for k in ("x", "y", "width", "height"))

@@ -146,12 +146,14 @@ jobs:
           }
           $before = ((Get-DisplayResolution | Out-String) -replace "`0", '').Trim()
           Write-Output "Windows display resolution before UI tests: $before"
-          Set-DisplayResolution -Width 1920 -Height 1080 -Force
+          # Leave room for the native Windows caption around the 1920x1080
+          # client-area reference. A 1080-high desktop clamps that client height.
+          Set-DisplayResolution -Width 2560 -Height 1440 -Force
           Start-Sleep -Seconds 2
           $actual = ((Get-DisplayResolution | Out-String) -replace "`0", '').Trim()
           Write-Output "Windows display resolution for UI tests: $actual"
-          if ($actual -ne '1920x1080') {
-            throw "Windows UI test resolution did not become 1920x1080: $actual"
+          if ($actual -ne '2560x1440') {
+            throw "Windows UI test desktop did not become 2560x1440: $actual"
           }
 
       - name: Test portable folder and native file outputs
@@ -171,6 +173,10 @@ jobs:
           name: KuubikDraw-0.2.0-preview.2-gui-evidence
           path: |
             ${{ runner.temp }}/Kuubik Draw portable smoke/kuubik-ui-contract.json
+            ${{ runner.temp }}/Kuubik Draw portable smoke/workspace.png
+            ${{ runner.temp }}/Kuubik Draw portable smoke/preview-smoke.dxf
+            ${{ runner.temp }}/Kuubik Draw portable smoke/preview-smoke.pdf
+            ${{ runner.temp }}/Kuubik Draw portable smoke/preview-smoke.svg
             ${{ runner.temp }}/Kuubik Draw portable smoke/status-bar.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/status-bar-customization.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-active.png

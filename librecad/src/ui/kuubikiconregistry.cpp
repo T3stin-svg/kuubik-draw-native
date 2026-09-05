@@ -66,6 +66,11 @@ const IconMapping ICON_MAPPINGS[] = {
     {"BlocksImport", ":/icons/kuubik/blocks/blocks-import.svg"},
 
     {"ModifyEntity", ":/icons/kuubik/properties/modify-entity.svg"},
+    {"PenSyncFromLayer", ":/icons/kuubik/properties/pen-sync-layer.svg"},
+    {"PenPick", ":/icons/kuubik/properties/pen-pick.svg"},
+    {"PenPickResolved", ":/icons/kuubik/properties/pen-pick-resolved.svg"},
+    {"PenApply", ":/icons/kuubik/properties/pen-apply.svg"},
+    {"PenCopy", ":/icons/kuubik/properties/pen-copy.svg"},
 
     {"InfoDist", ":/icons/kuubik/utilities/info-dist.svg"},
     {"InfoAngle", ":/icons/kuubik/utilities/info-angle.svg"},

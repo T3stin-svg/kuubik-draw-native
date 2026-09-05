@@ -182,7 +182,7 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
     background: transparent;
 }
 #kuubikRibbonPanelOverflow {
-    min-width: 48px;
+    min-width: 40px;
     min-height: 52px;
     padding: 2px;
     color: #DCE5EB;
@@ -207,7 +207,7 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
     font-size: 8pt;
 }
 #kuubikPenToolbarHost {
-    min-width: 205px;
+    min-width: 198px;
     background: transparent;
 }
 #kuubikPenToolbarHost QComboBox {
@@ -235,7 +235,7 @@ QMenu::separator { height: 1px; margin: 4px 7px; background: #46515C; }
     padding: 0;
     background: transparent;
 }
-#kuubikOptionToolbarHost QToolButton, #kuubikRibbonGroup QToolButton {
+#kuubikOptionToolbarHost QToolButton {
     background-color: transparent;
 }
 

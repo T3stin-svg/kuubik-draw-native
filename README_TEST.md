@@ -37,6 +37,14 @@ Kuubik → Classic → Kuubik. Native menus, Tool Options and the three pen cont
 must remain usable. Save a synthetic DXF under a new name and reopen it. Report
 the exact source commit with any failure; do not upload client drawings.
 
+### Layout-bearing drawings: use copies only
+
+This UI preview does not implement true paperspace or lossless layout roundtrips.
+Do not overwrite a production DXF containing layouts/viewports with this preview.
+The inherited adapter currently discards paper-space data, and the planned
+unsupported-record save protection is not implemented yet. Use synthetic fixtures
+or copies; see `docs/PAPERSPACE_PLAN.md` for the next engine milestone.
+
 ### Shared native behavior
 
 - The default workspace uses the built-in `Kuubik Dark` theme and compact

@@ -55,7 +55,7 @@ AutoCADis tagasilugemist ja üldist DWG-ühilduvust ei kontrollitud.
 
 | Komponent | Tõend ja kasutusotsus |
 |---|---|
-| libdxfrw | Olemasolev C++ GPLv2-or-later DXF-tee. Säilitame. Kuubiku `RS_FilterDXFRW::addViewport` on tühi; teegi record-tugi ei tähenda rakenduse layout-tuge. |
+| libdxfrw | Olemasolev C++ GPLv2-or-later DXF-tee. Säilitame. Kuubiku `RS_FilterDXFRW::addViewport` on tühi; lisaks vajab teegi enda DXF VIEWPORT parser/writer välju 45/51/90 ning LAYOUT objektiteed. Täpne kaardistus PAPERSPACE_PLAN-is. |
 | [ezdxf 1.4.4](https://github.com/mozman/ezdxf) | MIT/Python. Sõltumatu fixture-generaator ja DXF-testioraakel; juba CI-s. Ei ole DWG-mootor, ei kasutata ODA-konverteri wrapper'it. |
 | [ACadSharp 3.7.1](https://github.com/DomCR/ACadSharp/tree/v3.7.1) | MIT/.NET. Tegelik DXF2018→DWG→DXF katse säilitas TEST-layout'i, A3, kaks viewport'i, skaalad, lukud, LINE/LWPOLYLINE/CIRCLE geomeetria ja paberiteksti; ezdxf audit 0 parandust. Kuid 25 VISUALSTYLE objekti kadus. Katse ei tõenda üldist kadudeta DWG-tuge. |
 | [GNU LibreDWG](https://github.com/LibreDWG/libredwg) | GPLv3-or-later. Selle auditi ajal README kirjutajapiirangud ja GPLv2-integratsiooni küsimus; käitust ei testitud. Ei valita põhikirjutajaks. |

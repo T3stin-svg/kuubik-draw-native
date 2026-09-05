@@ -71,7 +71,7 @@ void KuubikTheme::applyCanvasSettings()
 
 int KuubikTheme::ribbonMinimumHeight()
 {
-    // Logical pixels: keep two compact command rows usable at 100-150% DPI.
+    // Logical pixels: quick access + tabs + the three-row SARibbon panels.
     return 148;
 }
 

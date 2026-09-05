@@ -79,6 +79,18 @@ QAction peab olema sama objekt; peidetud nupu kunstlik klikk ei ole PASS.
   `SARibbonBar::showMinimumModeButton(false)` null-action'i kasutuses; Kuubik ei
   vaja seda vaikimisi puuduvat nuppu. Adapterist eemaldatud väljakutse, mitte
   muudetud vendori lähtekoodi. See run ei ole kontrollitud eelvaade.
+- 2026-09-05 10:43 UTC: parandatud `6ef7f74e` lähtekoodil käivitati
+  [teine CI](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33961402868).
+  Ehitamise ajal täpsustatud kogu esivanemaahela clipping'u kontrolli, eemaldatud
+  reserveeritud SARibboni tiitlirida ja dubleerivad paneelivahed. Native Pen'i
+  kolm valikut jäävad Properties-is nähtavale, viis lisakäsku saavad samade
+  QAction-idega kompaktse esituse ning Classic taastab toolbar'i algse koosseisu.
+  Lisatud viis sama stiili originaal-SVG-d (kokku 71 mapping'ut / 105 viidatud SVG-d).
+- 2026-09-05 11:02 UTC: teine build/pakett käivitub, põhileping läbis. Uus
+  referentskatse avastas Windowsi 1920×1061 clamp'i ning pilt näitas ka kärbitud
+  ribbonit ja heledaid Fusion-nuppe. Tööala nõuet 1920×1080 ei vähendata; CI
+  töölaud suurendatakse 2560×1440-le. Adapteri teegi-põhised suuruse/stiiili
+  parandused ja tab'i hit-rect'i kontroll lähevad järgmisse ehitusse.
 
 ## Ribboni komponendi- ja olekuleping
 

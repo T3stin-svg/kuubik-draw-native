@@ -293,6 +293,11 @@
         <file>kuubik/output/file-print-pdf.svg</file>
         <file>kuubik/output/file-print-preview.svg</file>
         <file>kuubik/properties/modify-entity.svg</file>
+        <file>kuubik/properties/pen-sync-layer.svg</file>
+        <file>kuubik/properties/pen-pick.svg</file>
+        <file>kuubik/properties/pen-pick-resolved.svg</file>
+        <file>kuubik/properties/pen-apply.svg</file>
+        <file>kuubik/properties/pen-copy.svg</file>
         <file>kuubik/qat/edit-redo.svg</file>
         <file>kuubik/qat/edit-undo.svg</file>
         <file>kuubik/qat/file-new.svg</file>

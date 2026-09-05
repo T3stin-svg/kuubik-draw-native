@@ -2846,6 +2846,13 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         && optionWidget != nullptr && penToolBar->parentWidget() == this
         && optionWidget->parentWidget() == this
         && penToolBar->orientation() == Qt::Horizontal;
+    bool classicPenActionsRestored = penToolBar != nullptr;
+    for (const QString& key : {QStringLiteral("PenSyncFromLayer"), QStringLiteral("PenPick"),
+                              QStringLiteral("PenPickResolved"), QStringLiteral("PenApply"),
+                              QStringLiteral("PenCopy")}) {
+        classicPenActionsRestored = classicPenActionsRestored
+            && a_map.value(key, nullptr) != nullptr && penToolBar->actions().contains(a_map.value(key));
+    }
     if (previousWorkspaceMode == QStringLiteral("classic")) {
         applyClassicWorkspace();
     } else {
@@ -2869,6 +2876,7 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     contract.insert("menuBarVisible", kuubikMenuBarVisible);
     contract.insert("classicMenuBarVisible", classicMenuBarVisible);
     contract.insert("classicNativeToolbarsRestored", classicNativeToolbarsRestored);
+    contract.insert("classicPenActionsRestored", classicPenActionsRestored);
     if (kuubikRibbon != nullptr) {
         contract.insert("ribbonInteraction", kuubikRibbon->interactionContract());
     }

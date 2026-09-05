@@ -17,7 +17,19 @@ and real Windows Settings DPI are not certified.
 
 SARibbon integration `b694b5d8` was dispatched to
 [run 33960243802](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33960243802).
-It is **pending**, not a passed binary. Local checks passed: pinned source hashes
+Its MSVC/Qt build and packaging **passed**, but UI startup **failed** with an
+access violation in `QAction::setVisible`. Upstream 2.9.0's unused
+`showMinimumModeButton(false)` dereferenced an uncreated action. The adapter call
+was removed in `6ef7f74e`; [run 33961402868](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33961402868)
+passed startup/primary contracts but failed the new full-size reference request:
+Windows clamped its client area to 1920x1061 on a 1920x1080 desktop. The captured
+image also exposed the reserved title row, clipped panel footers, per-widget
+Fusion button styling, and the interaction report rejected tab hit rectangles.
+The next adapter iteration addresses these measured defects; the CI desktop is
+expanded to 2560x1440 so a native-framed 1920x1080 client can be tested unchanged.
+Neither run is a verified SARibbon preview yet.
+
+Local checks passed: pinned source hashes
 and MIT notice, icon registry (66 mappings / 100 referenced SVGs), PowerShell
 syntax, diff whitespace and Gitleaks (zero findings). The independent ribbon
 verifier's negative tests also pass; they do not prove the application's layout.

@@ -53,7 +53,13 @@ command line, status controls and Classic fallback remain in scope.
 
 First integration source: `b694b5d8d9385b8b51d487d8c16138a0e0278024`.
 [Initial CI](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33960243802)
-is pending. Do not use the preceding checkpoint as proof of this new ribbon.
+built and packaged successfully but failed UI startup at the unused minimum-mode
+action. The adapter fix and interaction checks are in `6ef7f74e`, with
+[second CI](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33961402868)
+failed at the full-size reference (Windows clamped 1920x1080 client to 1920x1061).
+Captured evidence identified title-row clipping and default button styling;
+adapter fixes are being verified, with the exact client-size request retained.
+Do not use the preceding checkpoint as proof of this new ribbon.
 
 ## Current limitations and next work
 

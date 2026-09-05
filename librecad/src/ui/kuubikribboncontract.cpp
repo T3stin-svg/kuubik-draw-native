@@ -41,6 +41,12 @@ QJsonObject KuubikRibbon::interactionContract()
         QJsonObject tab;
         tab.insert("name", tabBar->tabText(index));
         tab.insert("activatedByMouse", clicked);
+        const QRect hitRect = tabBar->tabRect(index);
+        tab.insert("hitRectContained", tabBar->rect().contains(hitRect));
+        tab.insert("hitRectWidth", hitRect.width());
+        tab.insert("hitRectHeight", hitRect.height());
+        tab.insert("tabBarWidth", tabBar->width());
+        tab.insert("tabBarHeight", tabBar->height());
         tabResults.append(tab);
         tabsPassed = tabsPassed && clicked;
     }
