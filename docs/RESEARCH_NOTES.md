@@ -65,6 +65,22 @@ teine CAD-dokument. Enne levitamist vajab see self-contained .NET-pakenduse,
 kõigi sõltuvuste litsentsi, tundmatute objektide ja suurema failikorpuse kontrolle.
 Selles UI-etapis uut .NET/Python runtime-sõltuvust tootesse ei lisata.
 
+## Windowsi ehitus ja tõendi geomeetria
+
+[Qt jom](https://wiki.qt.io/Jom) on paralleeltööd toetav nmake-asendus, mitte
+toote runtime. CI kasutab fikseeritud 1.1.7 / kahe käsu paralleelsust ning
+[avaldaja ZIP-i kontrollsummat](https://download.qt.io/official_releases/jom/jom_1_1_7.zip.mirrorlist).
+Kasutaja rakendusse sellest uut sõltuvust ei lisata.
+
+CI virtuaalse adapteri tegelikud režiimid leitakse Microsofti
+[EnumDisplaySettings](https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-enumdisplaysettingsw)
+abil. Suurimat oletatavat resolutsiooni ei eeldada. Qt5.15.2
+[Windowsi geomeetriaadapter](https://github.com/qt/qtbase/blob/v5.15.2/src/plugins/platforms/windows/qwindowswindow.cpp)
+annab lõpliku maximumHeight-piirangu native akna max-track suuruseks koos raamiga.
+Automatiseeritud widget-katse kasutab seda 1080-pikslise kliendiala jaoks, et
+töölaua vaikimisi max-track ei kärbiks seda 1061-ni. Tõendi pikslid ja native
+geomeetria peavad endiselt vastama küsitud mõõdule; pilti ei skaleerita tagantjärele.
+
 ## Säilitatavad varasema projekti ideed
 
 Vana veebirepo 133 nõuderida ja kuus visuaalolekut on nõuete allikad, mitte

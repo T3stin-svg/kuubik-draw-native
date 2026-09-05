@@ -104,6 +104,15 @@ QAction peab olema sama objekt; peidetud nupu kunstlik klikk ei ole PASS.
   ZIP-i räsi ja binaari manifesti ning võtab juhendid samast Git-snapshot'ist,
   mitte muudetud tööpuust. Sünteetilised positiivsed ja negatiivsed testid läbivad;
   päris üleandmine tehakse alles kontrollitud Windowsi paketist.
+- CI [33963838013](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33963838013)
+  loetles adapteri režiimid: suurim 1920×1080, suurema kõrgusega vaid 1600×1200.
+  Seetõttu annab automatiseeritud Qt-test oma kliendiala kõrguse piirangu ise,
+  säilitades qwindows-i, native aknaraami ning nõutud 1920×1080 mõõtude range
+  kontrolli. Salvestatakse eraldi puutumatu idle- ja testijärgne widget-pilt.
+  Need pole Windowsi töölaua täielikud ekraanipildid ega OS-i DPI-seadete sertifikaat.
+- Ehitust kiirendatakse Qt ametliku jom 1.1.7 kahe paralleelse käsuga; kontrollitud
+  avaldaja SHA-256. MSVC, Qt5.15 ja qmake-lähteprojekt ei muutu ning jom ei lähe
+  toote portable-paketti. Nmake jääb kohalikuks alternatiivseks build-käsuks.
 
 ## Ribboni komponendi- ja olekuleping
 

@@ -60,13 +60,14 @@ jobs:
           }
           $modes = @(.\scripts\get-windows-display-modes.ps1)
           $modes | Format-Table | Out-Host
-          # A native caption needs room around the unchanged 1920x1080 client.
-          # Select an advertised mode; this adapter rejected guessed 2560x1440.
+          # The hosted virtual adapter advertises at most 1920x1080. The native
+          # test window explicitly supplies its client-height constraint to Qt;
+          # its widget capture still must measure exactly 1920x1080 (no crop).
           $candidate = $modes | Where-Object {
-            $_.Width -ge 1920 -and $_.Height -ge 1120 -and $_.BitsPerPixel -eq 32
+            $_.Width -ge 1920 -and $_.Height -ge 1080 -and $_.BitsPerPixel -eq 32
           } | Sort-Object @{ Expression = { $_.Width * $_.Height } }, Width, Height |
               Select-Object -First 1
-          if ($null -eq $candidate) { throw 'No supported display mode can contain the 1920x1080 native client reference.' }
+          if ($null -eq $candidate) { throw 'No supported display mode meets the 1920x1080 CI desktop minimum.' }
           Set-DisplayResolution -Width $candidate.Width -Height $candidate.Height -Force
           Start-Sleep -Seconds 2
           $actual = ((Get-DisplayResolution | Out-String) -replace "`0", '').Trim()
@@ -98,6 +99,22 @@ jobs:
       - name: Validate Kuubik icon registry
         shell: pwsh
         run: python .\scripts\check-kuubik-icons.py
+
+      - name: Install pinned Qt jom parallel make tool
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'jom_1_1_7.zip'
+          $toolDirectory = Join-Path $env:RUNNER_TEMP 'kuubik-jom-1.1.7'
+          Invoke-WebRequest -Uri 'https://download.qt.io/official_releases/jom/jom_1_1_7.zip' -OutFile $archive
+          # Publisher checksum: https://download.qt.io/official_releases/jom/jom_1_1_7.zip.mirrorlist
+          $expected = '4c8af345586a9a08fbfd2f613fcac748226d91a75627aa3581b297dd513046fe'
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) {
+            throw 'Qt jom archive checksum mismatch'
+          }
+          Expand-Archive -LiteralPath $archive -DestinationPath $toolDirectory
+          & (Join-Path $toolDirectory 'jom.exe') -version
+          if ($LASTEXITCODE -ne 0) { throw 'Qt jom failed to start' }
+          $toolDirectory | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Verify pinned SARibbon source and attribution
         shell: pwsh
@@ -155,7 +172,7 @@ jobs:
         run: |
           qmake.exe librecad.pro -r CONFIG+=release
           if errorlevel 1 exit /b 1
-          nmake release
+          jom.exe -j2 release
           if errorlevel 1 exit /b 1
           if not exist windows\KuubikDraw.exe exit /b 1
 

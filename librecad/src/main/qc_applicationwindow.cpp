@@ -2820,6 +2820,11 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
     const int requestedHeight = qEnvironmentVariable("KUUBIK_UI_CONTRACT_HEIGHT").toInt(&heightOk);
     if (widthOk && heightOk && requestedWidth > 0 && requestedHeight > 0) {
         setWindowState(windowState() & ~Qt::WindowMaximized);
+        // Automation-only client capture: Qt's finite maximum height supplies
+        // WM_GETMINMAXINFO explicitly, avoiding the desktop-derived 1061 px
+        // clamp for a 1080 px client plus native caption. Keep the real qwindows
+        // frame, font engine and rendering; do not rescale/crop the evidence.
+        setMaximumHeight(requestedHeight);
         resize(requestedWidth, requestedHeight);
         show();
         QApplication::processEvents();
