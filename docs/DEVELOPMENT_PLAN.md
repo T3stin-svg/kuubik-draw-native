@@ -68,6 +68,39 @@ QAction peab olema sama objekt; peidetud nupu kunstlik klikk ei ole PASS.
   toodi kontrollimiseks alla; `origin/kuubik/visual-v0.2` on HEAD-i eellane.
 - Uuema `9968198b` Windowsi tõendi tõttu on vanemate dokumentide d17e8b2-põhised
   "pole Windowsis kontrollitud" väited ajaloolised; need sünkroniseeritakse.
+- 2026-09-05 10:17 UTC: esimene lähtekood `b694b5d8` push'itud lubatud tööharule;
+  Windowsi CI [33960243802](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33960243802)
+  käivitatud. Lokaalne ikooni-, litsentsi-/SHA-, PowerShelli süntaksi-, whitespace-
+  ja Gitleaks-kontroll läbisid. Ei ole veel kontrollitud Windowsi eelvaade.
+- Uuendatud seisundi/teekaardi/otsuste/jätkamise dokumendid ning lisatud
+  sõltumatu geomeetria- ja interaktsioonikontrolli negatiivsed testid.
+- 2026-09-05 10:37 UTC: esimene MSVC/Qt build ja pakendamine läbisid, kuid UI
+  käivitus ebaõnnestus `QAction::setVisible` juures. Põhjus tuvastatud upstream
+  `SARibbonBar::showMinimumModeButton(false)` null-action'i kasutuses; Kuubik ei
+  vaja seda vaikimisi puuduvat nuppu. Adapterist eemaldatud väljakutse, mitte
+  muudetud vendori lähtekoodi. See run ei ole kontrollitud eelvaade.
+
+## Ribboni komponendi- ja olekuleping
+
+Disainisüsteemi kontroll suunab kasutama ühtset `kuubik-dark.qss` teemat ja
+olemasolevat KuubikIconRegistry SVG-süsteemi, mitte uusi Autodesk-varasid.
+
+| Olek / komponent | Nõue ja kontroll |
+|---|---|
+| Vaikimisi nupp | Kuubiku nimi/ikoon; sama native QAction, mitte koopiakäsk |
+| Hover / vajutatud / checked | Teema eristatav taust; checked peegeldab native QAction'i |
+| Klaviatuurifookus | StrongFocus; Space käivitab nähtava GRID-nupu ja taastab oleku |
+| Disabled | Native enabled muutus jõuab ka SARibboni esitlus-action'isse |
+| Native nime/ikooni muutus | LINE konstruktsioonivariant ei asenda ribboni püsivat nime/ikooni |
+| Kokkusurutud paneel | Peitub ainult kohalik esitlus; menüü kasutab samu native käske |
+| Puuduv funktsioon | Groups on disabled, selgitava tooltip'iga; ei alias'eeri Blocks'i |
+| Classic | Native Pen ja Tool Options taastavad päritolu; Pen jälle horisontaalne |
+| DPI | 100/125/150% qwindows renderdus; mõõdetud nähtavus ja geomeetria, mitte ainult suurusekonstandid |
+
+Ikoon-only nuppudel säilivad ligipääsetav nimi ja tooltip. Kitsas aken ei peida
+nelja põhigeomeetria käsku. Testi `ribbonInteraction` eristab hiirega tab'i valiku,
+Space'i native QAction-triggerid ja olekute taastamise. Sõltumatu parser peab
+ebaõnnestuma ka siis, kui üldine PASS-string on olemas, kuid alamkontroll ebaõnnestus.
 
 ## Seotud materjal
 

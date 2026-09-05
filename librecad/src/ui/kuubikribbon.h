@@ -42,6 +42,8 @@ public:
     QStringList missingActionKeys() const;
     QToolButton* buttonForAction(const QString& key) const;
     QJsonObject layoutContract() const;
+    // Automation-only: exercise visible tabs, keyboard input and native state mirroring.
+    QJsonObject interactionContract();
     void setWorkspaceActions(QAction* kuubikAction, QAction* classicAction);
 
     void embedNativeToolbars(QMainWindow* mainWindow);
@@ -95,6 +97,7 @@ private:
     QList<PanelInstance> panels;
     SARibbonBar* tabs {nullptr};
     bool updatingPanels {false};
+    bool panelUpdatePending {false};
     QMenu* applicationMenu {nullptr};
     bool workspaceActionsAdded {false};
     QToolBar* penToolbar {nullptr};

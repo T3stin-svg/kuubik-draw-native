@@ -2842,6 +2842,10 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
         && mouseWidget != nullptr
         && coordinateWidget->geometry().left()
             < mouseWidget->geometry().left();
+    const bool classicNativeToolbarsRestored = penToolBar != nullptr
+        && optionWidget != nullptr && penToolBar->parentWidget() == this
+        && optionWidget->parentWidget() == this
+        && penToolBar->orientation() == Qt::Horizontal;
     if (previousWorkspaceMode == QStringLiteral("classic")) {
         applyClassicWorkspace();
     } else {
@@ -2864,6 +2868,10 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
                                       && kuubikRibbonToolbar->isVisible());
     contract.insert("menuBarVisible", kuubikMenuBarVisible);
     contract.insert("classicMenuBarVisible", classicMenuBarVisible);
+    contract.insert("classicNativeToolbarsRestored", classicNativeToolbarsRestored);
+    if (kuubikRibbon != nullptr) {
+        contract.insert("ribbonInteraction", kuubikRibbon->interactionContract());
+    }
 
     QJsonObject selectorObject;
     selectorObject.insert("present", kuubikCurrentLayerSelector != nullptr);
@@ -2922,7 +2930,6 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
 
     QJsonArray ribbonPanels;
     if (kuubikRibbon != nullptr) {
-        contract.insert("ribbonLayout", kuubikRibbon->layoutContract());
         const auto frames = kuubikRibbon->findChildren<QFrame*>(
             QStringLiteral("kuubikRibbonGroup"));
         for (QFrame* frame : frames) {
@@ -4906,6 +4913,13 @@ bool QC_ApplicationWindow::writeKuubikUiContract(const QString& path)
                           statusBarScreenshot.devicePixelRatioF());
     statusBarObject.insert("m2StatusVisual", m2StatusVisual);
     contract.insert("statusBar", statusBarObject);
+
+    // Status-contract resize exercises above must settle before taking the
+    // ribbon geometry paired with the final workspace screenshot.
+    QApplication::processEvents();
+    if (kuubikRibbon != nullptr) {
+        contract.insert("ribbonLayout", kuubikRibbon->layoutContract());
+    }
 
     QJsonObject dpiObject;
     dpiObject.insert("logicalDpiX", logicalDpiX());

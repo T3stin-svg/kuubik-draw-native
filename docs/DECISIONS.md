@@ -3,6 +3,36 @@
 These are current product decisions. A later AI may recommend changes, but must
 not silently reverse them.
 
+## D-023 — Free/open-source native direction and full paperspace goal
+
+2026-09-05: Reio explicitly rejected CAD SDK license fees and retained LibreCAD.
+This supersedes D-006's suggested paid ODA/RealDWG investment; its evidence-bounded
+file claims remain valid. Keep GPLv2 compatibility and no Autodesk assets.
+Open CAD Studio was tested, not selected as the product base. ACadSharp is only
+a future experimental file-adapter candidate; no .NET runtime enters this UI wave.
+
+The final goal includes AutoCAD 2024-like command placement and workflows plus
+real native paperspace. It is broader than a cosmetic LibreCAD skin. Extend the
+single native document/undo engine as needed; do not create a second CAD engine.
+No command presence or narrow test implies certified AutoCAD equivalence.
+
+## D-024 — First five-hour milestone is SARibbon UI, not paperspace implementation
+
+2026-09-05: Reio selected the UI-first option and approved work-branch pushes and
+the existing Windows CI. Work remains on codex/autocad-visual-integration-root.
+No release, remote merge, tag/default-branch change or paid service is approved.
+
+Use pinned MIT SARibbon v2.9.0 inside KuubikRibbon, retain the native QMainWindow
+and shared QAction objects, and disable QWindowKit/frameless integration. Keep
+Tool Options inline for this milestone; this resolves the immediate placement
+choice, not final owner visual acceptance. Preserve Classic and the four direct
+large Draw buttons at narrow widths. A presentation wrapper may control widget
+visibility but must not replace or hide the underlying native command globally.
+
+DEVELOPMENT_PLAN owns the bounded scope; RESEARCH_NOTES preserves investigation;
+PAPERSPACE_PLAN prepares the next engine stage. These decisions supersede older
+roadmap ordering, not safety or file-integrity requirements.
+
 ## D-001 — Native LibreCAD fork is the active product
 
 The earlier React/Canvas Kuubik Draw direction exposed critical wiring gaps in

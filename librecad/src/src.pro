@@ -930,6 +930,7 @@ SOURCES += ui/lc_actionfactory.cpp \
     ui/kuubikcurrentlayerselector.cpp \
     ui/kuubikpropertiespalette.cpp \
     ui/kuubikribbon.cpp \
+    ui/kuubikribboncontract.cpp \
     ui/kuubikdynamicinput.cpp \
     ui/kuubikiconregistry.cpp \
     ui/kuubiktheme.cpp \

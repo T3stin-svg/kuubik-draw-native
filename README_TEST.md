@@ -23,6 +23,22 @@ LibreCAD's settings or the old React Kuubik Draw data.
 
 ## Kuubik workspace
 
+### SARibbon development milestone (2026-09-05)
+
+New work-branch builds replace the ribbon presentation with pinned MIT SARibbon.
+Check `build-manifest.json` and the exact-source test report: the older public
+preview is not evidence for a new build. Home targets ten panels with the current
+layer selector in Layers and native color/linetype/lineweight controls in
+Properties. Groups is explicitly unavailable; real paperspace is a later stage.
+
+For owner review: resize between full width and 1280 pixels, confirm direct Line,
+Polyline, Circle and Arc, change the layer, draw a LINE, use Undo/Redo, then switch
+Kuubik → Classic → Kuubik. Native menus, Tool Options and the three pen controls
+must remain usable. Save a synthetic DXF under a new name and reopen it. Report
+the exact source commit with any failure; do not upload client drawings.
+
+### Shared native behavior
+
 - The default workspace uses the built-in `Kuubik Dark` theme and compact
   ribbon. Ribbon buttons call LibreCAD's real actions; the original commands
   remain available through the menus.

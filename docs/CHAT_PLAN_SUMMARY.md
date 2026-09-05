@@ -72,6 +72,8 @@ package. The corrected package passed CI and local Windows replay.
 
 ## 6. Current governing product goal
 
+**Historical ordering below; superseded on 2026-09-05 by section 8.**
+
 Build a reliable, visually clean, AutoCAD-familiar **native 2D Kuubik Draw** by
 starting from LibreCAD's working functions and improving only what Reio's real
 workflow requires.
@@ -97,3 +99,21 @@ native fork needs its own scope and evidence if percentage scoring is restarted.
   at a release checkpoint.
 - Preserve the dirty worktree and never overwrite user work.
 - Be explicit about what is verified, partial, experimental or not run.
+
+## 8. Windows audit, free-component evaluation and approved UI milestone
+
+Reio requested an audit against AutoCAD 2024, including the earlier GitHub plans,
+and reiterated real paperspace. Paid ARES/ODA/RealDWG approaches were discussed,
+then rejected in favor of a free/open-source LibreCAD continuation.
+
+Practical Open CAD Studio v0.9.8 testing demonstrated two viewports, scale, lock,
+model-through-viewport editing and vector PDF, but independent DXF checks found
+structural/identity errors. SARibbon v2.9.0 was selected for a native UI trial.
+ACadSharp's narrow DWG roundtrip passed geometry/layout checks but lost VISUALSTYLE
+objects; it remains experimental. See RESEARCH_NOTES for exact scope and versions.
+
+Reio approved a five-hour autonomous milestone, chose UI before the paperspace
+prototype, and explicitly authorized pushes to the existing codex work branch and
+Windows CI. No merge/release/paid service was authorized. The final native 2D goal
+still includes true paperspace and AutoCAD-like workflows. DEVELOPMENT_PLAN,
+RESEARCH_NOTES and PAPERSPACE_PLAN are the persistent handoff for this direction.

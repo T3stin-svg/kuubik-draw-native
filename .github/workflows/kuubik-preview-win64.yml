@@ -73,7 +73,10 @@ jobs:
 
       - name: Verify pinned SARibbon source and attribution
         shell: pwsh
-        run: python .\scripts\check-saribbon.py
+        run: |
+          python .\scripts\check-saribbon.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python .\scripts\test-ribbon-layout.py
 
       - name: Scan source for committed secrets
         shell: pwsh
@@ -129,6 +132,7 @@ jobs:
           if not exist windows\KuubikDraw.exe exit /b 1
 
       - name: Package portable application
+        id: package
         shell: pwsh
         run: .\scripts\package-kuubik-portable.ps1
 
@@ -166,6 +170,9 @@ jobs:
         with:
           name: KuubikDraw-0.2.0-preview.2-gui-evidence
           path: |
+            ${{ runner.temp }}/Kuubik Draw portable smoke/kuubik-ui-contract.json
+            ${{ runner.temp }}/Kuubik Draw portable smoke/status-bar.png
+            ${{ runner.temp }}/Kuubik Draw portable smoke/status-bar-customization.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-active.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-committed.png
             ${{ runner.temp }}/Kuubik Draw portable smoke/gui-evidence/line-gui-smoke.json
@@ -186,6 +193,17 @@ jobs:
             ${{ runner.temp }}/Kuubik Draw portable smoke/tool-options-evidence/tool-options-1280.json
           if-no-files-found: error
           retention-days: 30
+
+      - name: Verify SARibbon visible geometry and native identity
+        shell: pwsh
+        run: |
+          $dpiRoot = Join-Path $env:RUNNER_TEMP 'Kuubik Draw portable smoke/dpi-evidence'
+          python .\scripts\verify-ribbon-layout.py "$dpiRoot/reference/kuubik-ui-contract.json" --exact-reference
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          foreach ($scale in @('100', '125', '150')) {
+            python .\scripts\verify-ribbon-layout.py "$dpiRoot/$scale/kuubik-ui-contract.json"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
 
       - name: Verify archive payload and checksum
         shell: pwsh
@@ -211,3 +229,14 @@ jobs:
             artifacts/KuubikDraw-0.2.0-preview.2-win64.zip.sha256
           if-no-files-found: error
           retention-days: 30
+
+      - name: Preserve unverified package for failure diagnosis
+        if: failure() && steps.package.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: KuubikDraw-UNVERIFIED-diagnostic-only
+          path: |
+            artifacts/KuubikDraw-0.2.0-preview.2-win64.zip
+            artifacts/KuubikDraw-0.2.0-preview.2-win64.zip.sha256
+          if-no-files-found: warn
+          retention-days: 7

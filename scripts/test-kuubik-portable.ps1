@@ -126,6 +126,7 @@ Require-Path (Join-Path $package 'resources\patterns')
 Require-Path (Join-Path $package 'resources\library')
 Require-Path (Join-Path $package 'resources\qm\librecad_en.qm')
 Require-Path (Join-Path $package 'LICENSE')
+Require-Path (Join-Path $package 'licenses\SARibbon-MIT.txt')
 Require-Path (Join-Path $package 'FORK_NOTICE.md')
 Require-Path (Join-Path $package 'SHA256SUMS.txt')
 Require-Path (Join-Path $package 'build-manifest.json')
@@ -143,6 +144,14 @@ if ($manifest.executable -ne 'KuubikDraw.exe' -or
     $manifest.version -ne '0.2.0-preview.2' -or
     $manifest.upstreamCommit -ne '7ebab007d9eb4c68609388b835a2487648f0877b') {
     throw 'Build manifest product or upstream provenance is incorrect.'
+}
+$ribbonProvenance = Require-JsonProperty $manifest 'ribbon' 'manifest'
+if ((Require-JsonString $ribbonProvenance 'name' 'manifest.ribbon') -ne 'SARibbon' -or
+    (Require-JsonString $ribbonProvenance 'version' 'manifest.ribbon') -ne '2.9.0' -or
+    (Require-JsonString $ribbonProvenance 'sourceCommit' 'manifest.ribbon') -ne '806e3e93be4dd7676697d3017282a4359519e053' -or
+    (Require-JsonString $ribbonProvenance 'license' 'manifest.ribbon') -ne 'MIT' -or
+    (Require-JsonBoolean $ribbonProvenance 'frameless' 'manifest.ribbon')) {
+    throw 'SARibbon package provenance or dependency policy is incorrect.'
 }
 
 $tempRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
@@ -736,6 +745,7 @@ foreach ($key in @('logicalDpiX', 'logicalDpiY', 'devicePixelRatio', 'windowLogi
 $dpiEvidenceRoot = Join-Path $smokeRoot 'dpi-evidence'
 New-Item -ItemType Directory -Path $dpiEvidenceRoot | Out-Null
 foreach ($dpiCase in @(
+    @{ Name = 'reference'; Factor = '1.00'; Expected = 1.0; Width = 1920; Height = 1080 },
     @{ Name = '100'; Factor = '1.00'; Expected = 1.0; Width = 1280; Height = 600 },
     @{ Name = '125'; Factor = '1.25'; Expected = 1.25; Width = 1280; Height = 600 },
     @{ Name = '150'; Factor = '1.50'; Expected = 1.5; Width = 1200; Height = 600 }

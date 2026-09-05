@@ -153,6 +153,13 @@ $manifest = [ordered]@{
     upstreamRepository = 'https://github.com/LibreCAD/LibreCAD'
     upstreamTag = 'v2.2.1.5'
     upstreamCommit = '7ebab007d9eb4c68609388b835a2487648f0877b'
+    ribbon = [ordered]@{
+        name = 'SARibbon'
+        version = '2.9.0'
+        sourceCommit = '806e3e93be4dd7676697d3017282a4359519e053'
+        license = 'MIT'
+        frameless = $false
+    }
     guaranteedFileWorkflows = @('DXF open/save', 'vector PDF export')
     notCertified = @('DWG roundtrip', 'DWT', 'XREF parity')
     builtAtUtc = [DateTime]::UtcNow.ToString('o')

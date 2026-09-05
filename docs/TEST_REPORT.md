@@ -1,5 +1,30 @@
 # Kuubik Draw Native — verified test checkpoint
 
+## Current checkpoint summary — 2026-09-05
+
+Latest verified pre-SARibbon Windows source:
+`9968198bbe72165e28c48f8e37109fa3eb103212`,
+[run 33919335101](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33919335101),
+ZIP SHA-256 `60bf9445fdc6206e8f1b21a392d72dece93714a56feabc435bf7cb66cca27550`.
+This supersedes d17e8b2 as the tested development baseline, not the immutable release.
+
+That exact-source run passed MSVC/Qt build and portable isolation, native
+LINE/PLINE/Enter, COPY/MOVE/Undo/Redo, current-layer and Properties wiring,
+precision/status contracts, direct Draw layout, Qt-scale captures and independent
+DXF/PDF/SVG read-back. Native command automation uses offscreen Qt; qwindows is
+used for DPI/Tool Options visuals. Full AutoCAD-equivalent MOVE/COPY interactions
+and real Windows Settings DPI are not certified.
+
+SARibbon integration `b694b5d8` was dispatched to
+[run 33960243802](https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33960243802).
+It is **pending**, not a passed binary. Local checks passed: pinned source hashes
+and MIT notice, icon registry (66 mappings / 100 referenced SVGs), PowerShell
+syntax, diff whitespace and Gitleaks (zero findings). The independent ribbon
+verifier's negative tests also pass; they do not prove the application's layout.
+
+All dated sections below retain historical evidence. Statements such as
+"Windows verification pending" apply to their old source/date, not to 9968198b.
+
 Checkpoint: `0.2.0-preview.2`
 
 The published-release evidence below applies only to source commit

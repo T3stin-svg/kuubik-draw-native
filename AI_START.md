@@ -76,11 +76,11 @@ does not certify DWG/DWT/XREF or full AutoCAD parity.
 
 - Integration branch: `codex/autocad-visual-integration-root`
 - Tested source commit:
-  `d17e8b23bb702a7df8c4c106783b75fcd0ba9ea2`
+  `9968198bbe72165e28c48f8e37109fa3eb103212`
 - Successful Windows MSVC x64 / Qt 5.15 run:
-  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33665520217>
+  <https://github.com/T3stin-svg/kuubik-draw-native/actions/runs/33919335101>
 - Tested portable ZIP SHA-256:
-  `127b0558ab12a285a5abe639053b16418f5ba8f502789f4e46596bd0c0730365`
+  `60bf9445fdc6206e8f1b21a392d72dece93714a56feabc435bf7cb66cca27550`
 
 This development artifact verifies the native current-layer selector,
 Properties callbacks, Classic restoration, visible responsive-ribbon LINE and
@@ -89,9 +89,20 @@ Undo/Redo, native Tool Options at 1280 logical pixels, and independent
 DXF/PDF/SVG read-back. It is an expiring workflow artifact and
 must not replace the immutable release without Reio's explicit approval.
 
-The first unfinished executable evidence item is the native MOVE
-selection → document → atomic Undo/Redo workflow. Real Windows Settings
-100%/125%/150% validation and Reio's visual accept/deny decisions remain open.
+This newer baseline additionally verifies the native MOVE selection, modal
+workflow and atomic Undo/Redo, LINE/PLINE Enter completion, direct Home Draw,
+expanded precision/status contracts and packaged DPI captures. The original
+command smoke uses offscreen Qt; DPI screenshots use qwindows. Real Windows
+Settings scaling and full AutoCAD command equivalence remain unproved.
+
+## Current work — approved 2026-09-05 UI milestone
+
+Read `docs/DEVELOPMENT_PLAN.md`, `docs/RESEARCH_NOTES.md` and
+`docs/PAPERSPACE_PLAN.md` alongside the required files. Reio selected SARibbon
+UI integration first and true native paperspace next, retaining a free/open-source
+LibreCAD base. The five-hour milestone permits work-branch pushes and existing
+Windows CI only; no release, remote merge or paid service. Check PROJECT_STATE
+and the actual workflow before treating any SARibbon source as Windows-verified.
 
 ## How to continue
 

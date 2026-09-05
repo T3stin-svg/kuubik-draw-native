@@ -5,7 +5,18 @@
 Build Kuubik Draw Native into a practical Windows 2D CAD workspace whose
 visual hierarchy, command placement and everyday workflow are familiar to an
 AutoCAD 2024 Drafting & Annotation user, while retaining LibreCAD's proven
-native behavior.
+native geometry and document/undo engine. The final owner goal includes matching
+AutoCAD 2024.1.2 command placement and interaction, plus true native paperspace,
+not only a familiar-looking skin. All dependencies must be free/open-source and
+compatible with the fork's licensing.
+
+## Active milestone — 2026-09-05
+
+Reio selected the five-hour SARibbon UI milestone in [DEVELOPMENT_PLAN](DEVELOPMENT_PLAN.md)
+and approved work-branch pushes plus Windows CI only. Real paperspace follows as
+the next engine stage in [PAPERSPACE_PLAN](PAPERSPACE_PLAN.md). Older evidence
+sections below are historical; [PROJECT_STATE](PROJECT_STATE.md) names the latest
+verified source. Current sidebar/UI work does not imply the whole goal is complete.
 
 The target user is a building or civil engineer. The primary information
 architecture therefore prioritizes:
@@ -135,7 +146,15 @@ The primary agent must:
 - Payload allowlists, Gitleaks, git diff --check, exact source commit and
   artifact SHA-256.
 
-## Evidence checkpoint — 2026-09-02
+### Phase 4 — Native paperspace and workflow equivalence
+
+- Extend the same native document with layout-owned paper entities and viewports.
+- Two views of one model, 1:50 and 1:100, independent cameras and locks.
+- Model/Paper/ModelThroughViewport contexts share transforms, selection and undo.
+- DXF layout/viewport identity and vector PDF scale survive independent read-back.
+- Broaden command interaction and visual comparison beyond inherited QAction tests.
+
+## Historical evidence checkpoint — 2026-09-02
 
 Development source `d17e8b23bb702a7df8c4c106783b75fcd0ba9ea2` passed the
 Windows MSVC x64 / Qt 5.15 workflow in run `33665520217`. The run verified the
@@ -213,3 +232,5 @@ same integration commit and native Windows artifact:
    the delivered artifact.
 8. No prohibited merge, release, force-push or unsupported parity claim has
    occurred.
+9. The native paperspace vertical slice and same-state command/visual comparison
+   gates are complete. A five-hour UI checkpoint alone does not complete the goal.

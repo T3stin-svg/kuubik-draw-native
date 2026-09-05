@@ -1,72 +1,71 @@
 # Kuubik Draw Native roadmap
 
-The roadmap is workflow-first. It does not attempt to reproduce all of AutoCAD
-before Reio can use the program.
+Updated 2026-09-05. Direction: free/open-source LibreCAD-based Windows 2D CAD,
+with AutoCAD 2024.1.2 visual placement and workflow as the target, including real
+paperspace. A staged delivery is not a reduction of that final goal.
 
-## Now — owner acceptance and P0 closure
+## Now — SARibbon UI milestone
 
-- Reio tests the latest portable preview on everyday 2D actions.
-- Every reproducible owner-found bug becomes the first P0.
-- Keep the smallest non-confidential DXF and exact command/input sequence as a
-  regression fixture.
-- Do not add unrelated tools while a basic Draw/Modify/file workflow is broken.
+Owner: lead integrator. Five-hour capacity, approximately four planned hours and
+one hour of correction/handoff buffer; see [DEVELOPMENT_PLAN](DEVELOPMENT_PLAN.md).
 
-## Next — primary 2D workflow proof
+- Integrate pinned MIT SARibbon into the existing native action-bound workspace.
+- Use measured Home panel order/widths, a single Layers panel and native pen
+  controls in Properties; retain four direct Draw commands at narrow widths.
+- Preserve Classic, real current-layer selection, Tool Options and native actions.
+- Require Windows build, visible GUI interaction, DPI/read-back and portable checks.
+- Record evidence and give Reio a runnable checkpoint, not an untested mockup.
 
-Create native GUI and file read-back coverage for:
+Any reproducible owner-found Draw/Modify/file regression interrupts UI work as P0.
 
-- Draw: LINE, PLINE, CIRCLE, ARC and RECTANGLE;
-- Modify: ERASE, MOVE, COPY, ROTATE, OFFSET, TRIM, EXTEND and FILLET;
-- precision: ORTHO, endpoint, midpoint, center and intersection snap, exact
-  coordinates and distances;
-- layers: create/current, color, visibility, lock and lineweight;
-- annotation: text, linear dimension and hatch;
-- blocks: create, insert and explode;
-- files: open DXF, edit, save a new DXF, close/reopen, vector PDF export;
-- undo/redo across each command group.
+## Next — true native paperspace vertical slice
 
-The outcome is a short owner checklist and automated native smoke suite, not a
-new percentage claim.
+Owner: lead integrator. Start after the UI checkpoint; duration is not yet committed.
+[PAPERSPACE_PLAN](PAPERSPACE_PLAN.md) defines document ownership, contexts,
+transforms, undo and persistence.
 
-## Then — visual/product refinement
+- A3 layout, two views of one model at 1:50 and 1:100, independent cameras and locks.
+- Enter/exit ModelThroughViewport; one edit updates both views.
+- Shared native Undo/Redo, DXF save/reopen, zero structural repair errors.
+- Scale-accurate vector PDF and unknown-object safety before compatibility claims.
 
-- complete Reio's visual acceptance of the current 66 mapped Kuubik SVGs and
-  preserve inherited LibreCAD fallbacks with their existing licences;
-- refine ribbon density, labels, active/disabled states and keyboard access;
-- preserve the existing read-only Properties dock and delegate editing to the
-  existing native `ModifyEntity` workflow rather than adding another editor;
-- improve command history/status clarity;
-- preserve Classic workspace and all inherited menu commands;
-- keep the qwindows + Qt scale-factor responsive smoke and separately verify
-  real Windows Settings display scaling at 100%, 125%, and 150%.
+SARibbon does not provide any of this CAD-engine behavior.
 
-## Reliability wave
+## Next — everyday AutoCAD-like command lifecycles
 
-- autosave and recovery behavior;
-- crash/reopen tests with a synthetic drawing;
-- missing font/linetype handling;
-- larger DXF performance and memory checks;
-- signed installer only after the portable product is accepted.
+Retain native geometry/undo while matching command prompts, base/target points,
+selection, options, Enter/Esc and dynamic input. Prioritize MOVE, COPY, OFFSET,
+TRIM, EXTEND, FILLET, dimensions and editable Properties. The existing tests for
+in-place COPY and modal MOVE are regressions, not AutoCAD parity certificates.
 
-## Optional native compatibility investment
+Expand native GUI/file evidence for CIRCLE/ARC/RECTANGLE, layers, text, hatch and
+blocks. Keep all inherited commands available.
 
-Only after Reio confirms the requirement:
+## Later — reliability and free file compatibility
 
-- evaluate licensed ODA Drawings SDK or RealDWG;
-- define DWG/DWT/XREF acceptance files and legal boundaries;
-- require AutoCAD read-back for native claims;
-- never certify the upstream experimental converter as full roundtrip parity.
+- Autosave/recovery, crash/reopen, missing fonts/linetypes, large DXFs and memory.
+- Real Windows display scaling and multiple monitors; same-state AutoCAD reference
+  comparison with private images kept out of the public repository.
+- Continue libdxfrw for DXF and ezdxf as an independent test oracle.
+- ACadSharp remains a bounded MIT file-adapter candidate, not a promised lossless
+  DWG runtime. Broader corpus, object preservation, packaging and license review
+  precede shipping. No additional .NET dependency in the current UI milestone.
+- Signing/installer only after explicit owner approval.
+
+## Reprioritization record
+
+This roadmap supersedes the older "visual refinement later / optional licensed
+ODA or RealDWG" order. Reio rejected license fees, kept LibreCAD and selected the
+UI milestone before the native paperspace prototype. Open CAD Studio's tested
+workflow is a useful reference; its observed DXF structural errors and different
+stack rule it out as the selected replacement.
+
+The [research notes](RESEARCH_NOTES.md) distinguish tested behavior, source-based
+assessment and unverified assumptions. Existing gaps remain on the roadmap.
 
 ## Release gates
 
-Every public preview requires:
-
-- exact source commit and immutable tag;
-- Windows MSVC/Qt build;
-- portable dependency/plugin isolation;
-- targeted native GUI proof for changed workflows;
-- independent file read-back where applicable;
-- ZIP payload inspection and SHA-256;
-- sanitized public evidence;
-- explicit known limitations;
-- no production claim without Reio's approval.
+An exact-source Windows artifact, package-only Qt loading, targeted native GUI
+proof, independent file read-back, payload/license inspection, Gitleaks, SHA-256
+and honest limitations are mandatory. Work-branch CI approval does not authorize
+a release, remote merge, tag replacement or a production/parity claim.

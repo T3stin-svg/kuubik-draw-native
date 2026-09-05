@@ -131,7 +131,9 @@ KuubikRibbon::KuubikRibbon(const QMap<QString, QAction*>& actionMap,
     tabs->setTitleIconVisible(false);
     tabs->setApplicationButton(nullptr);
     tabs->quickAccessBar()->hide();
-    tabs->showMinimumModeButton(false);
+    // The minimum-mode action is absent by default. In upstream 2.9.0,
+    // showMinimumModeButton(false) dereferences that null action unless it was
+    // previously created. Do not create or hide an unused control.
     tabs->setTabBarHeight(26);
     tabs->setCategoryHeight(96);
     tabs->setPanelTitleHeight(16);
@@ -455,7 +457,15 @@ void KuubikRibbon::updateCollapsedPanels()
 void KuubikRibbon::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
-    updateCollapsedPanels();
+    // The category child receives its new width after the outer resize event.
+    // Coalesce against that final width, not the previous layout's geometry.
+    if (!panelUpdatePending) {
+        panelUpdatePending = true;
+        QTimer::singleShot(0, this, [this] {
+            panelUpdatePending = false;
+            updateCollapsedPanels();
+        });
+    }
 }
 
 QStringList KuubikRibbon::boundActionKeys() const { return actionButtons.keys(); }
@@ -515,6 +525,19 @@ QJsonObject KuubikRibbon::layoutContract() const
     result.insert("implementation", "SARibbon");
     result.insert("version", "2.9.0");
     result.insert("frameless", false);
+    result.insert("width", width());
+    result.insert("height", height());
+    result.insert("currentLayerInLayers", currentLayerHost != nullptr
+                  && currentLayerHost->parentWidget()->property("kuubikPanelTitle").toString() == tr("Layers"));
+    result.insert("penInProperties", penToolbarHost != nullptr && penToolbar != nullptr
+                  && penToolbarHost->isAncestorOf(penToolbar)
+                  && penToolbarHost->parentWidget()->property("kuubikPanelTitle").toString() == tr("Properties")
+                  && penToolbar->orientation() == Qt::Vertical);
+    QJsonArray tabNames;
+    for (int index = 0; tabs->categoryByIndex(index) != nullptr; ++index) {
+        tabNames.append(tabs->categoryByIndex(index)->property("kuubikTabTitle").toString());
+    }
+    result.insert("tabs", tabNames);
     QJsonArray records;
     for (const auto& panel : panels) {
         QJsonObject record;
@@ -529,6 +552,14 @@ QJsonObject KuubikRibbon::layoutContract() const
         record.insert("height", panel.frame->height());
         record.insert("visible", panel.frame->isVisibleTo(this));
         record.insert("contained", panel.page->rect().contains(panel.frame->geometry()));
+        record.insert("pageWidth", panel.page->width());
+        record.insert("titleVisible", panel.frame->panelLayout()->panelTitleLabel()->isVisibleTo(this));
+        record.insert("titleFits", panel.frame->panelLayout()->panelTitleLabel()->fontMetrics().horizontalAdvance(
+                          panel.frame->panelName()) <= panel.frame->panelLayout()->panelTitleLabel()->width());
+        if (auto* unavailable = panel.frame->findChild<QToolButton*>("kuubikRibbonUnavailable")) {
+            record.insert("unavailableEnabled", unavailable->isEnabled());
+            record.insert("unavailableTooltip", unavailable->toolTip());
+        }
         QJsonArray controls;
         for (QToolButton* button : panel.itemButtons) {
             QJsonObject control;
@@ -536,6 +567,8 @@ QJsonObject KuubikRibbon::layoutContract() const
             control.insert("visible", button->isVisibleTo(this));
             control.insert("contained", panel.frame->rect().contains(button->geometry()));
             control.insert("enabledMatchesNative", button->isEnabled() == button->defaultAction()->isEnabled());
+            control.insert("nativeIdentity", button->defaultAction() == actions.value(
+                               button->property("kuubikActionKey").toString(), nullptr));
             control.insert("x", button->x());
             control.insert("y", button->y());
             control.insert("width", button->width());
