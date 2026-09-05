@@ -1,5 +1,26 @@
 # Kuubik Draw Native — verified test checkpoint
 
+## Local P0-A correction — 2026-09-05 (MSVC CI pending)
+
+Baseline: clean `8a5f7ae0`, product-branch ancestry confirmed. Local developer
+toolchain: Qt 5.15.2 / MinGW 8.1 x64 with Boost 1.87 headers, all outside the
+tracked source in `.artifacts`. The authoritative MSVC artifact below is unchanged.
+
+The new native GUI test failed before the fix (process exit 4): eight of nine
+document summary snapshots were stale. After LINE it displayed 3 entities instead
+of 4; after Undo it included the retained polyline; save left Modified stale.
+After the fix, the rebuilt native GUI smoke exited 0 with PASS for all nine states
+and existing LINE/PLINE/COPY/MOVE, Undo/Redo, selection, layer and MDI checks.
+The independent summary verifier passed and rejected a retained-entity count even
+when its producer `passed` field was true. Native/Qt isolated INI backend and both
+sentinel read directions passed. No visual/DPI acceptance is inferred from offscreen.
+
+Initial build invocation used unordered make targets and failed because the app
+started before libmuparser existed. The corrected ordered target compiled
+successfully. This was a local test setup failure, not an application regression.
+See [P0_CORRECTIONS](P0_CORRECTIONS.md) for mechanism, commands and remaining gate.
+P0-B is separate and remains open at this checkpoint.
+
 ## Current checkpoint summary — 2026-09-05
 
 Latest tested SARibbon development source:

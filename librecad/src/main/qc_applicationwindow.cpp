@@ -493,6 +493,8 @@ QC_ApplicationWindow::QC_ApplicationWindow()
 
     kuubikCurrentLayerSelector = new KuubikCurrentLayerSelector(this);
     kuubikRibbon->setCurrentLayerSelector(kuubikCurrentLayerSelector);
+    // RS_Graphic updates layer and block flags in sequence. Read their final
+    // state after the native operation, resolving the active MDI at delivery.
     connect(kuubikCurrentLayerSelector, &KuubikCurrentLayerSelector::layerStateChanged,
             this, [this]() {
         QC_MDIWindow* mdi = getMDIWindow();
@@ -501,7 +503,7 @@ QC_ApplicationWindow::QC_ApplicationWindow()
             refreshKuubikProperties(document->countSelected(),
                                     document->totalSelectedLength());
         }
-    });
+    }, Qt::QueuedConnection);
 
     kuubikPropertiesDock = new QDockWidget(tr("Properties"), this);
     kuubikPropertiesDock->setObjectName(QStringLiteral("kuubikPropertiesDock"));
@@ -5592,6 +5594,27 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                                : layerList->getActive()->getName();
         const int entitiesBefore = graphic->getEntityList().size();
         const int linesBefore = lineCount(graphic);
+        QJsonObject documentSummaryStates;
+        bool documentSummaryPassed = true;
+        auto checkDocumentSummary = [&](const QString& name, int expectedEntities,
+                                        bool expectedModified) {
+            // Observe the displayed state after native events; never force a refresh.
+            QApplication::processEvents();
+            const QVariantMap state = kuubikPropertiesPalette->state();
+            const bool passed = state.value("entityCount").toInt() == expectedEntities
+                && state.value("modified").toString()
+                    == (expectedModified ? KuubikPropertiesPalette::tr("Yes")
+                                         : KuubikPropertiesPalette::tr("No"))
+                && graphic->isModified() == expectedModified;
+            QJsonObject snapshot = QJsonObject::fromVariantMap(state);
+            snapshot.insert(QStringLiteral("expectedEntities"), expectedEntities);
+            snapshot.insert(QStringLiteral("expectedModified"), expectedModified);
+            snapshot.insert(QStringLiteral("nativeModified"), graphic->isModified());
+            snapshot.insert(QStringLiteral("passed"), passed);
+            documentSummaryStates.insert(name, snapshot);
+            documentSummaryPassed = documentSummaryPassed && passed;
+        };
+        checkDocumentSummary(QStringLiteral("beforeDraw"), entitiesBefore, true);
         QSet<RS_Entity*> entitiesBeforeSet;
         for (RS_Entity* entity : graphic->getEntityList()) {
             entitiesBeforeSet.insert(entity);
@@ -5636,6 +5659,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         sendClick(view, secondPoint);
         const int entitiesAfterSecond = graphic->getEntityList().size();
         const int linesAfterSecond = lineCount(graphic);
+        checkDocumentSummary(QStringLiteral("afterDraw"), entitiesBefore + 1, true);
         const QString committedImagePath = output.filePath(QStringLiteral("line-committed.png"));
         const bool committedImageSaved = grab().save(committedImagePath, "PNG");
 
@@ -5664,6 +5688,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                                              : firstCreatedLine->getLayer(true)->getName();
         const QString dxfPath = output.filePath(QStringLiteral("line-gui-smoke.dxf"));
         const bool dxfSaved = graphic->saveAs(dxfPath, RS2::FormatDXFRW, true);
+        checkDocumentSummary(QStringLiteral("afterSave"), entitiesBefore + 1, false);
 
         invokeRibbonActionWithMouse(button, a_map.value("DrawLine", nullptr));
         QKeyEvent escapeEvent(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
@@ -5752,10 +5777,12 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const bool polylineUndoneBeforeUndo = createdPolyline == nullptr
                                               || createdPolyline->isUndone();
         const int activePolylinesBeforeUndo = activePolylineCount(graphic);
+        checkDocumentSummary(QStringLiteral("afterPolyline"), entitiesBefore + 2, true);
         const QString polylineBeforeUndoPath = output.filePath(
             QStringLiteral("pline-before-undo.dxf"));
         const bool polylineBeforeUndoSaved = graphic->saveAs(
             polylineBeforeUndoPath, RS2::FormatDXFRW, true);
+        checkDocumentSummary(QStringLiteral("afterPolylineSave"), entitiesBefore + 2, false);
 
         const bool undoNativeIdentity = undoQuickButton->defaultAction()
                                         == a_map.value("EditUndo", nullptr)
@@ -5780,10 +5807,12 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const bool firstLineActiveAfterUndo = firstCreatedLine != nullptr
                                               && !firstCreatedLine->isUndone();
         const int activePolylinesAfterUndo = activePolylineCount(graphic);
+        checkDocumentSummary(QStringLiteral("afterUndo"), entitiesBefore + 1, true);
         const QString polylineAfterUndoPath = output.filePath(
             QStringLiteral("pline-after-undo.dxf"));
         const bool polylineAfterUndoSaved = graphic->saveAs(
             polylineAfterUndoPath, RS2::FormatDXFRW, true);
+        checkDocumentSummary(QStringLiteral("afterUndoSave"), entitiesBefore + 1, false);
 
         const bool redoNativeIdentity = redoQuickButton->defaultAction()
                                         == a_map.value("EditRedo", nullptr)
@@ -5808,10 +5837,12 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         const bool firstLineActiveAfterRedo = firstCreatedLine != nullptr
                                               && !firstCreatedLine->isUndone();
         const int activePolylinesAfterRedo = activePolylineCount(graphic);
+        checkDocumentSummary(QStringLiteral("afterRedo"), entitiesBefore + 2, true);
         const QString polylineAfterRedoPath = output.filePath(
             QStringLiteral("pline-after-redo.dxf"));
         const bool polylineAfterRedoSaved = graphic->saveAs(
             polylineAfterRedoPath, RS2::FormatDXFRW, true);
+        checkDocumentSummary(QStringLiteral("afterRedoSave"), entitiesBefore + 2, false);
 
         const bool polylineRibbonIdentity = polylineButton->defaultAction()
                                             == a_map.value("DrawPolyline", nullptr)
@@ -7049,6 +7080,8 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
         moveUndoRedoObject.insert(QStringLiteral("files"), moveFilesObject);
         moveUndoRedoObject.insert(QStringLiteral("passed"), movePassed);
         report.insert(QStringLiteral("moveUndoRedo"), moveUndoRedoObject);
+        report.insert(QStringLiteral("documentSummaryStates"), documentSummaryStates);
+        report.insert(QStringLiteral("documentSummaryPassed"), documentSummaryPassed);
 
         const bool passed = lineRibbonMouseEvent && actionActiveAfterRibbon
                             && lineRibbonPresentationStable
@@ -7060,6 +7093,7 @@ bool QC_ApplicationWindow::runKuubikGuiSmoke(const QString& outputDirectory)
                             && linesAfterSecond == linesBefore + 1
                             && activeImageSaved && committedImageSaved && dxfSaved
                             && selectorPassed && propertiesPassed
+                            && documentSummaryPassed
                             && documentLifecyclePassed && polylinePassed
                             && copyPassed && movePassed;
 

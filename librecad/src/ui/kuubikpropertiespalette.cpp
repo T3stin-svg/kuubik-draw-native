@@ -10,6 +10,7 @@
 
 #include "kuubikpropertiespalette.h"
 
+#include <algorithm>
 #include <QAction>
 #include <QFormLayout>
 #include <QFileInfo>
@@ -173,7 +174,11 @@ void KuubikPropertiesPalette::refreshDocument()
     const QString filename = currentDocument->getFilename();
     setValue(documentValue, filename.isEmpty() ? tr("Untitled") : QFileInfo(filename).fileName());
     setValue(modifiedValue, currentDocument->isModified() ? tr("Yes") : tr("No"));
-    setValue(entityCountValue, QString::number(currentDocument->getEntityList().size()));
+    const auto& entities = currentDocument->getEntityList();
+    setValue(entityCountValue, QString::number(std::count_if(
+        entities.begin(), entities.end(), [](const RS_Entity* entity) {
+            return entity != nullptr && !entity->isUndone();
+        })));
 
     RS_LayerList* layerList = currentDocument->getLayerList();
     RS_Layer* activeLayer = layerList == nullptr ? nullptr : layerList->getActive();

@@ -111,6 +111,7 @@ void KuubikCurrentLayerSelector::layerToggledConstruction(RS_Layer*)
 void KuubikCurrentLayerSelector::layerListModified(bool)
 {
     rebuildItems();
+    emit layerStateChanged();
 }
 
 void KuubikCurrentLayerSelector::rebuildItems()

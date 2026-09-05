@@ -1,6 +1,14 @@
 # Kuubik Draw Native — project state
 
-Status date: **2026-09-05**. **SARibbon UI development checkpoint ready for owner review.**
+Status date: **2026-09-05**. **Properties P0-A locally verified; MSVC CI pending.**
+
+The current correction session starts at `8a5f7ae0` on the existing integration
+branch. P0-A uses native modification notifications and counts active entities.
+Its rebuilt Qt 5.15.2 / MinGW 8.1 x64 GUI smoke passes all nine new summary states
+and the existing native workflows. See [P0_CORRECTIONS](P0_CORRECTIONS.md).
+This is local development evidence, not a new MSVC/portable checkpoint.
+P0-B ownership remains open. Push, remote CI and release are not authorized for
+this correction session; earlier UI-milestone authorization is historical.
 
 ## Product and authority
 
@@ -14,7 +22,7 @@ The single native document/entity/layer/selection/undo engine is retained.
 - Upstream preservation: `master`; LibreCAD base `7ebab007d9eb4c68609388b835a2487648f0877b`.
 - The old web product remains separate. Its requirements/measurements may inform
   this fork; its implementation and old PASS scores are not merged.
-- Reio approved work-branch pushes and Windows CI for the current UI milestone.
+- Reio approved work-branch pushes and Windows CI for the earlier UI milestone.
   No remote merge, release, default-branch change, paid SDK or paid service is approved.
 
 ## Latest tested Windows development checkpoint
@@ -86,8 +94,8 @@ in DEVELOPMENT_PLAN and TEST_REPORT; no preceding source proves a later binary.
 - Real paperspace, Model/Layout tabs, viewport cameras/locks and layout DXF
   persistence are not implemented; see [PAPERSPACE_PLAN](PAPERSPACE_PLAN.md).
 - The Properties palette is read-only and delegates editing to ModifyEntity.
-- Its document entity/Modified summary can lag drawing/save changes until a
-  native selection/layer/activation refresh; add a document-change notification path.
+- Its document entity/Modified summary refresh is corrected locally in P0-A;
+  the last MSVC development artifact still has the old behavior.
 - A stricter ezdxf audit finds one orphan PLOTSETTINGS record (repair 202) in
   saved synthetic DXFs. Geometry passes, but whole-file zero-repair DXF is not claimed.
 - DWG/DWT/XREF and lossless handling of arbitrary unknown objects are not certified.
@@ -104,5 +112,7 @@ in DEVELOPMENT_PLAN and TEST_REPORT; no preceding source proves a later binary.
 findings. [TEST_REPORT](TEST_REPORT.md) keeps exact-source test evidence and history.
 The immediate task list is [NEXT_TASKS](../NEXT_TASKS.md).
 
-The Windows CI is the build authority here: local Qt/MSVC development tools are
-not installed. Only a verified new artifact can be offered as a working preview.
+MSVC x64 / Qt 5.15 Windows CI remains the build authority. A local isolated
+Qt 5.15.2 / MinGW 8.1 toolchain now supports development tests; it does not replace
+the required MSVC portable gate. Only a verified new artifact can be offered as
+the next portable preview.

@@ -4,6 +4,11 @@ Staatus: **UI-etapp rakendatud ja kontrollitud; omaniku ülevaatus ootel**.
 Algus 2026-09-05 10:00 UTC. Viietunnise akna ülevaatuse siht oli 15:00 UTC.
 Vastutaja: üks integratsiooniomanik; Herdr ei ole selles keskkonnas saadaval.
 
+Järgnev P0-parandussessioon algab `8a5f7ae0` pealt ja on eraldi allpool kirjeldatud
+UI-etapist. P0-A on lokaalselt Qt/MinGW build'i ja üheksa Propertiesi olekuga
+kontrollitud; MSVC CI ja P0-B on ootel. Täpne päevik: [P0_CORRECTIONS](P0_CORRECTIONS.md).
+Selle sessiooni push/remote CI vajab Reio uut otsest luba.
+
 ## Kinnitatud eesmärk
 
 Töötav native Windowsi eelvaade SARibboni ja AutoCAD 2024 Home-paigutusega.

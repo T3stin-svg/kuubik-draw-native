@@ -168,6 +168,20 @@ def main() -> None:
     end = created_lines[0].dxf.end
     require(not start.isclose(end), (start, end))
     require(gui_report["documentLifecycle"]["passed"] is True, gui_report["documentLifecycle"])
+    require(gui_report["documentSummaryPassed"] is True, gui_report["documentSummaryStates"])
+    summary_states = gui_report["documentSummaryStates"]
+    initial_entities = gui_report["entitiesBefore"]
+    for name, added, modified in (
+        ("beforeDraw", 0, True), ("afterDraw", 1, True), ("afterSave", 1, False),
+        ("afterPolyline", 2, True), ("afterPolylineSave", 2, False),
+        ("afterUndo", 1, True), ("afterUndoSave", 1, False),
+        ("afterRedo", 2, True), ("afterRedoSave", 2, False),
+    ):
+        state = summary_states[name]
+        require(state["passed"] is True, (name, state))
+        require(int(state["entityCount"]) == initial_entities + added, (name, state))
+        require(state["nativeModified"] is modified, (name, state))
+        require(state["modified"] == ("Yes" if modified else "No"), (name, state))
     full_properties = gui_report["fullPropertiesAction"]
     require(full_properties["actionKey"] == "ModifyEntity", full_properties)
     require(full_properties["nativeIdentity"] is True, full_properties)
